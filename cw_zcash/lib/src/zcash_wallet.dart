@@ -137,10 +137,7 @@ abstract class ZcashWalletBase
     for (final output in creds.outputs) {
       int amount;
       if (output.sendAll) {
-        amount = availableBalance - internalCalculateEstimatedFee(creds.priority, null);
-        if (amount <= 0) {
-          throw Exception('Insufficient balance for send all (including fee)');
-        }
+        amount = availableBalance;
       } else {
         amount = output.formattedCryptoAmount ?? 0;
 

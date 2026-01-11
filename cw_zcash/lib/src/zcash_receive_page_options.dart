@@ -47,11 +47,11 @@ class ZcashReceivePageOption implements ReceivePageOption {
   }
 
   static const all = [
-    ZcashReceivePageOption.unified,
     ZcashReceivePageOption.shieldedOrchard,
     ZcashReceivePageOption.shieldedSapling,
-    ZcashReceivePageOption.transparent,
+    ZcashReceivePageOption.unified,
     ZcashReceivePageOption.transparentRotated,
+    ZcashReceivePageOption.transparent,
   ];
 
   ZcashAddressType toType() {

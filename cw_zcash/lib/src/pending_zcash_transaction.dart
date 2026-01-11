@@ -16,12 +16,14 @@ class PendingZcashTransaction with PendingTransaction {
     required this.credentials,
     required this.txPlan,
     required this.fee,
+    required this.availableBalance,
   });
 
   final ZcashWallet zcashWallet;
   final ZcashTransactionCredentials credentials;
   final String txPlan;
   String? _txId;
+  final int availableBalance;
 
   @override
   String get id => _txId ?? '';
@@ -35,9 +37,16 @@ class PendingZcashTransaction with PendingTransaction {
   }
 
   int get totalAmount {
+    final isAll = credentials.outputs.fold<bool>(
+      false,
+      (final a, final b) => a || (b.sendAll),
+    );
+    if (isAll) {
+      return availableBalance;
+    }
     return credentials.outputs.fold<int>(
       0,
-      (final sum, final output) => sum + (output.formattedCryptoAmount ?? 0),
+      (final a, final b) => a + (b.formattedCryptoAmount ?? 0),
     );
   }
 

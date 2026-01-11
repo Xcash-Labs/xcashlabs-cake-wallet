@@ -115,6 +115,8 @@ abstract class CakePayBuyCardViewModelBase with Store {
         ];
       case WalletType.monero:
         return [CakePayPaymentMethod.XMR];
+      case WalletType.zcash:
+        return [CakePayPaymentMethod.ZEC];
       default:
         return const [];
     }

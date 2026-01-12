@@ -2,7 +2,7 @@
 set -x -e
 cd "$(dirname "$0")"
 
-HASH=f4f64ec71a0c22fc810409917ff06487341b783c
+HASH=73b25d5adb28653ee88519da8128715d859bc36e
 
 if [[ ! -d "zcash_lib/.git" ]];
 then
@@ -19,3 +19,10 @@ git reset --hard
 git checkout $HASH
 git reset --hard
 git submodule update --init --force --recursive
+
+# in go I could nicely replace => the heck out of it
+# sadly rust is not go
+find . -name Cargo.toml -exec sed -i.bak -E '
+s|rusqlite[[:space:]]*=[[:space:]]*\{[^}]*\}|rusqlite = { version = "0.29.0", features = ["bundled", "modern_sqlite", "backup"] }|g
+' {} +
+# find . -name Cargo.toml -exec sed -i.bak -E 's|r2d2_sqlite[[:space:]]*=[[:space:]]*([^\n]*)|r2d2_sqlite = "0.32.0"|g' {} +

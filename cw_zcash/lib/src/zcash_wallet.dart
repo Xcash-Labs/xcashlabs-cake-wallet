@@ -137,10 +137,7 @@ abstract class ZcashWalletBase
     for (final output in creds.outputs) {
       int amount;
       if (output.sendAll) {
-        amount = availableBalance - internalCalculateEstimatedFee(creds.priority, null);
-        if (amount <= 0) {
-          throw Exception('Insufficient balance for send all (including fee)');
-        }
+        amount = availableBalance;
       } else {
         amount = output.formattedCryptoAmount ?? 0;
 
@@ -236,6 +233,7 @@ abstract class ZcashWalletBase
       credentials: creds,
       txPlan: txPlan,
       fee: internalCalculateEstimatedFee(creds.priority, null),
+      availableBalance: availableBalance,
     );
   }
 
@@ -930,9 +928,17 @@ abstract class ZcashWalletBase
     if (!File(dbDataPath!).existsSync()) {
       //TODO(mrcyjanek): copy-encrypt
     }
-    WarpApi.setDbPasswd(coin, _password! + ";cw_zcash");
+    // coin+1 = ycash
+    WarpApi.setDbPasswd(coin, '');
+    WarpApi.setDbPasswd(coin+1, '');
     WarpApi.initWallet(coin, dbDataPath!);
-    WarpApi.setDbPasswd(coin, _password! + ";cw_zcash");
+    WarpApi.initWallet(coin+1, dbDataPath!);
+    try {
+      WarpApi.migrateData(coin);
+      WarpApi.migrateData(coin+1);
+    } catch (e) {
+      printV("zec init failed: $e");
+    } // do not fail on network exception
     final spend = await rootBundle.load('scripts/zcash_lib/assets/sapling-spend.params');
     final output = await rootBundle.load('scripts/zcash_lib/assets/sapling-output.params');
     WarpApi.initProver(spend.buffer.asUint8List(), output.buffer.asUint8List());

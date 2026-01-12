@@ -264,11 +264,11 @@ class ZcashTaddressRotation {
       for (var j = 0; j < accs.length; j++) {
         int bal = 0;
         try {
-          final bal = await WarpApi.getTBalance(coin, accs[j].id);
+          bal += await WarpApi.getTBalance(coin, accs[j].id);
         } catch (e) {
           printV("getTBalance: $e");
           return;
-        } 
+        }
         if (bal < 30000) continue inner;
         final to = accountForSeed(seeds[raKeys[i]]!)!;
         // final toAddress = WarpApi.getTAddr(coin, to.id);

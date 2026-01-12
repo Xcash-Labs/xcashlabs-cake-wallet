@@ -25,6 +25,7 @@ class ZcashFromSeedWalletCredentials extends WalletCredentials {
     final String? password,
     required final String? passphrase,
     required this.seed,
+    required super.height,
   }) : super(name: name, password: password, passphrase: passphrase);
   final String? seed;
 }

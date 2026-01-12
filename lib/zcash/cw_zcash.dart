@@ -29,9 +29,10 @@ class CWZcash extends Zcash {
       {required String name,
       required String mnemonic,
       required String password,
-      String? passphrase}) {
+      String? passphrase,
+      required int? height}) {
     return ZcashFromSeedWalletCredentials(
-        name: name, seed: mnemonic, passphrase: passphrase, password: password);
+        name: name, seed: mnemonic, passphrase: passphrase, password: password, height: height);
   }
 
   @override

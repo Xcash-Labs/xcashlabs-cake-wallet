@@ -745,7 +745,12 @@ abstract class ZcashWalletBase
       final confirmedBalances = confirmedPoolBalances.unpack();
       final confirmedTotal =
           confirmedBalances.orchard + confirmedBalances.sapling + confirmedBalances.transparent;
-      final confirmedSpendable = confirmedTotal - balances.transparent;
+
+      int knownOutPending = 0;
+      ZcashWalletBase.temporarySentTx[accountId]?.forEach((final sTx) {
+        knownOutPending += sTx.value; // it's negative
+      });
+      final confirmedSpendable = confirmedTotal - balances.transparent + knownOutPending;
 
       unawaited(_autoShield());
 
@@ -819,6 +824,23 @@ abstract class ZcashWalletBase
       walletInfo: credentials.walletInfo!,
     );
     await wallet.walletAddresses.saveAddressesInBox();
+    printV("height: ${credentials.height}");
+    if (credentials.height != null) {
+      final zcashDir = await pathForWalletTypeDir(type: WalletType.zcash);
+      final zcashInitialSync = File(p.join(zcashDir, ".initial-sync-marker"));
+      zcashInitialSync.writeAsBytesSync([0x00]);
+      zcashInitialSync.writeAsStringSync(
+        credentials.height.toString(),
+        mode: FileMode.writeOnlyAppend,
+      );
+      unawaited(
+        Future.delayed(Duration(seconds: 8)).then(
+          (_) => ZcashWalletService.runInDbMutex(
+            () async => await WarpApi.rescanFrom(coin, credentials.height ?? 0),
+          ),
+        ),
+      );
+    }
     return wallet;
   }
 
@@ -930,12 +952,12 @@ abstract class ZcashWalletBase
     }
     // coin+1 = ycash
     WarpApi.setDbPasswd(coin, '');
-    WarpApi.setDbPasswd(coin+1, '');
+    WarpApi.setDbPasswd(coin + 1, '');
     WarpApi.initWallet(coin, dbDataPath!);
-    WarpApi.initWallet(coin+1, dbDataPath!);
+    WarpApi.initWallet(coin + 1, dbDataPath!);
     try {
       WarpApi.migrateData(coin);
-      WarpApi.migrateData(coin+1);
+      WarpApi.migrateData(coin + 1);
     } catch (e) {
       printV("zec init failed: $e");
     } // do not fail on network exception

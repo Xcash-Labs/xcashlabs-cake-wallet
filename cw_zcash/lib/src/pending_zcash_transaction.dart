@@ -37,10 +37,7 @@ class PendingZcashTransaction with PendingTransaction {
   }
 
   int get totalAmount {
-    final isAll = credentials.outputs.fold<bool>(
-      false,
-      (final a, final b) => a || (b.sendAll),
-    );
+    final isAll = credentials.outputs.fold<bool>(false, (final a, final b) => a || (b.sendAll));
     if (isAll) {
       return availableBalance;
     }

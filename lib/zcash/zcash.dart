@@ -35,7 +35,8 @@ abstract class Zcash {
       {required String name,
       required String mnemonic,
       required String password,
-      String? passphrase});
+      String? passphrase,
+      required int? height});
   WalletCredentials createZcashRestoreWalletFromPrivateKey(
       {required String name, required String privateKey, required String password});
   String getAddress(WalletBase wallet);

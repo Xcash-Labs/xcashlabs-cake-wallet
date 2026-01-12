@@ -90,7 +90,8 @@ abstract class WalletRestoreViewModelBase extends WalletCreationVM with Store {
   late final bool hasBlockchainHeightSelector = [
     WalletType.monero,
     WalletType.haven,
-    WalletType.wownero
+    WalletType.wownero,
+    WalletType.zcash
   ].contains(type);
   
   late final bool hasRestoreFromPrivateKey = [
@@ -238,6 +239,7 @@ abstract class WalletRestoreViewModelBase extends WalletCreationVM with Store {
             mnemonic: seed,
             password: password,
             passphrase: passphrase,
+            height: height,
           );
         case WalletType.none:
         case WalletType.haven:

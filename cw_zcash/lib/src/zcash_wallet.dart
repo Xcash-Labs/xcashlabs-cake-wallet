@@ -343,6 +343,7 @@ abstract class ZcashWalletBase
   Future<void> rescan({required final int height}) async {
     try {
       syncStatus = StartingScanSyncStatus(height);
+      printV("rescanning from: $height");
       await ZcashWalletService.runInDbMutex(() async => WarpApi.rescanFrom(coin, height));
       await startSync();
     } catch (e) {
@@ -511,7 +512,7 @@ abstract class ZcashWalletBase
         }),
       );
       final result = await ZcashWalletService.runInDbMutex(
-        () => WarpApi.warpSync(coin, accountId, true, 0, 100000, 0),
+        () => WarpApi.warpSync(coin, accountId, true, 0, 1000000, 0),
       );
       printV("warpSync completed with result: $result");
 

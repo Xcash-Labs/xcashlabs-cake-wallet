@@ -111,7 +111,7 @@ class TransactionExportData {
 
   /// Returns generic CSV header row
   static String csvHeader() {
-    return 'Timestamp,Transaction ID,Amount,Fee,Type,Block Height,Confirmations,Subwallet Number,Key,Recipient Address,Explorer Link';
+    return 'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
   }
 }
 

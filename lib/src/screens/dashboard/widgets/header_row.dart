@@ -124,7 +124,6 @@ class HeaderRow extends StatelessWidget {
                                       gravity: ToastGravity.BOTTOM,
                                     );
                                   } catch (e) {
-                                    printV('Error saving file on Android: $e');
                                     Fluttertoast.showToast(
                                       msg: 'Failed to save file: ${e.toString()}',
                                       toastLength: Toast.LENGTH_LONG,
@@ -147,7 +146,6 @@ class HeaderRow extends StatelessWidget {
                                       tempFile.deleteSync();
                                     }
                                   } catch (e) {
-                                    printV('Error on iOS: $e');
                                     Fluttertoast.showToast(
                                       msg: 'Failed to share file: ${e.toString()}',
                                       toastLength: Toast.LENGTH_LONG,
@@ -177,7 +175,6 @@ class HeaderRow extends StatelessWidget {
                                       );
                                     }
                                   } catch (e) {
-                                    printV('Error saving file on Desktop: $e');
                                     Fluttertoast.showToast(
                                       msg: 'Failed to save file: ${e.toString()}',
                                       toastLength: Toast.LENGTH_LONG,

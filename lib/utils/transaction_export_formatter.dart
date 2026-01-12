@@ -138,7 +138,6 @@ class TransactionExportFormatter {
     try {
       // Format timestamp
       final timestamp = _dateFormat.format(tx.date);
-      printV("Timestamp: $timestamp");
       final timeString = '"$timestamp';
       // Format transaction type
       final type = tx.direction == TransactionDirection.incoming ? 'Received' : 'Sent';
@@ -152,7 +151,6 @@ class TransactionExportFormatter {
         recipientAddress = _extractRecipientAddress(tx) ?? 'Not known';
       }
 
-      printV("Figure out what we're processing this as for wallet type: $walletType");
       // Extract wallet-type-specific fields
       switch (walletType) {
         case WalletType.monero:

@@ -9,7 +9,7 @@ do
     dart format --line-length=100 $i/
     if [[ ! "x$ABORT_ON_CHANGE" == "x" ]];
     then
-        if [[ -z "$(git status --porcelain -- "$(find $i)")" ]];
+        if [[ ! -z "$(git status --porcelain -- $(find $i))" ]];
         then
             echo "Please run scripts/lint.sh ($i has changes)"
             exit 1

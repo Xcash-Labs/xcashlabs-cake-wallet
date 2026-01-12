@@ -62,9 +62,7 @@ class CryptoCurrency extends EnumerableItem<int> with Serializable<int> implemen
     CryptoCurrency.hbar,
     CryptoCurrency.sc,
     CryptoCurrency.usdcsol,
-    CryptoCurrency.zaddr,
     CryptoCurrency.zec,
-    CryptoCurrency.tzec,
     CryptoCurrency.zen,
     CryptoCurrency.xvg,
     CryptoCurrency.usdcpoly,
@@ -140,6 +138,10 @@ class CryptoCurrency extends EnumerableItem<int> with Serializable<int> implemen
     xnzd,
     xusd,
   ];
+
+  // well technically not currencies but since we had them a long time ago and don't want to break
+  // the app for users who had contacts saved for them
+  static const zcashCurrencies = [ zec, zaddr, tzec ];
 
   // title, tag (if applicable), fullName (if unique), raw, name, iconPath
   static const xmr = CryptoCurrency(title: 'XMR', fullName: 'Monero', raw: 0, name: 'xmr', iconPath: 'assets/images/crypto/monero.webp', decimals: 12);
@@ -252,22 +254,22 @@ class CryptoCurrency extends EnumerableItem<int> with Serializable<int> implemen
   static const baseEth = CryptoCurrency(title: 'ETH', tag: 'BASE', fullName: 'Ethereum', raw: 104, name: 'baseth', iconPath: 'assets/images/crypto/base_icon.webp', decimals: 18);
   static const usde = CryptoCurrency(title: 'USDE', tag: 'BASE', fullName: 'Ethena USDE', raw: 105, name: 'usde', iconPath: 'assets/images/crypto/ethena-usde-logo.png', decimals: 18);
   static const arbEth = CryptoCurrency(title: 'ETH', tag: 'ARB', fullName: 'Arbitrum', raw: 106, name: 'arbeth', iconPath: 'assets/images/crypto/arbitrum.webp', decimals: 18);
-  static const zec = CryptoCurrency(title: 'ZEC', tag: 'ZEC', fullName: 'Zcash', raw: 107, name: 'zec', iconPath: 'assets/images/zec_icon.png', decimals: 8);
+  static const zec = CryptoCurrency(title: 'ZEC', fullName: 'Zcash', raw: 107, name: 'zec', iconPath: 'assets/images/zec_icon.png', decimals: 8);
 
   static final Map<int, CryptoCurrency> _rawCurrencyMap =
-    [...all, ...havenCurrencies].fold<Map<int, CryptoCurrency>>(<int, CryptoCurrency>{}, (acc, item) {
+    [...all, ...havenCurrencies, ...zcashCurrencies].fold<Map<int, CryptoCurrency>>(<int, CryptoCurrency>{}, (acc, item) {
       acc.addAll({item.raw: item});
       return acc;
     });
 
   static final Map<String, CryptoCurrency> _nameCurrencyMap =
-    [...all, ...havenCurrencies].fold<Map<String, CryptoCurrency>>(<String, CryptoCurrency>{}, (acc, item) {
+    [...all, ...havenCurrencies, ...zcashCurrencies].fold<Map<String, CryptoCurrency>>(<String, CryptoCurrency>{}, (acc, item) {
       acc.addAll({item.name: item});
       return acc;
     });
 
   static final Map<String, CryptoCurrency> _fullNameCurrencyMap =
-    [...all, ...havenCurrencies].fold<Map<String, CryptoCurrency>>(<String, CryptoCurrency>{}, (acc, item) {
+    [...all, ...havenCurrencies, ...zcashCurrencies].fold<Map<String, CryptoCurrency>>(<String, CryptoCurrency>{}, (acc, item) {
       if(item.fullName != null){
         acc.addAll({item.fullName!.toLowerCase(): item});
       }

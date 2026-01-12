@@ -59,9 +59,9 @@ abstract class Zcash {
   int formatterZcashParseAmount(String amount);
   double formatterZcashAmountToDouble({TransactionInfo? transaction, BigInt? amount});
   String formatterZcashAmountToString({required int amount});
-  
+
   List<WalletInfoAddressInfo> getAddressInfos(Object wallet);
-  
+
   TransactionPriority getDefaultTransactionPriority();
   TransactionPriority getZcashTransactionPriorityAutomatic();
   TransactionPriority deserializeZcashTransactionPriority({required int raw});

@@ -13,9 +13,7 @@ import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/utils/proxy_wrapper.dart';
 import 'package:cake_wallet/utils/exchange_provider_logger.dart';
 class XOSwapExchangeProvider extends ExchangeProvider {
-  XOSwapExchangeProvider() : super(pairList: supportedPairs(_notSupported));
-
-  static const List<CryptoCurrency> _notSupported = [];
+  XOSwapExchangeProvider();
 
   static const _apiAuthority = 'exchange.exodus.io';
   static const _apiPath = '/v3';

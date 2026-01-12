@@ -2108,12 +2108,28 @@ Future<void> generateWalletTypes({
     outputContent += '\tWalletType.ethereum,\n';
   }
 
-  if (hasBitcoin) {
-    outputContent += '\tWalletType.litecoin,\n';
+  if (hasSolana) {
+    outputContent += '\tWalletType.solana,\n';
+  }
+
+  if (hasTron) {
+    outputContent += '\tWalletType.tron,\n';
   }
 
   if (hasDogecoin) {
     outputContent += '\tWalletType.dogecoin,\n';
+  }
+
+  if (hasBitcoinCash) {
+    outputContent += '\tWalletType.bitcoinCash,\n';
+  }
+
+  if (hasDecred) {
+    outputContent += '\tWalletType.zcash,\n';
+  }
+
+  if (hasBitcoin) {
+    outputContent += '\tWalletType.litecoin,\n';
   }
 
   if (hasBase) {
@@ -2124,24 +2140,16 @@ Future<void> generateWalletTypes({
     outputContent += '\tWalletType.arbitrum,\n';
   }
 
-  if (hasBitcoinCash) {
-    outputContent += '\tWalletType.bitcoinCash,\n';
-  }
-
   if (hasPolygon) {
     outputContent += '\tWalletType.polygon,\n';
   }
 
-  if (hasSolana) {
-    outputContent += '\tWalletType.solana,\n';
-  }
-
-  if (hasTron) {
-    outputContent += '\tWalletType.tron,\n';
-  }
-
   if (hasNano) {
     outputContent += '\tWalletType.nano,\n';
+  }
+
+  if (hasDecred) {
+    outputContent += '\tWalletType.decred,\n';
   }
 
   if (hasZano) {
@@ -2150,14 +2158,6 @@ Future<void> generateWalletTypes({
 
   if (hasBanano) {
     outputContent += '\tWalletType.banano,\n';
-  }
-
-  if (hasDecred) {
-    outputContent += '\tWalletType.decred,\n';
-  }
-
-  if (hasDecred) {
-    outputContent += '\tWalletType.zcash,\n';
   }
 
   // if (hasWownero) {

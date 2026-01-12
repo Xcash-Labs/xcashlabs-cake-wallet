@@ -38,7 +38,8 @@ Future<void> main(List<String> args) async {
   final hasBase = args.contains('${prefix}base');
   final hasArbitrum = args.contains('${prefix}arbitrum');
   final hasZcash = args.contains('${prefix}zcash');
-  final excludeFlutterSecureStorage = args.contains('${prefix}excludeFlutterSecureStorage');
+  final excludeFlutterSecureStorage =
+      args.contains('${prefix}excludeFlutterSecureStorage');
 
   await generateBitcoin(hasBitcoin);
   await generateMonero(hasMonero);
@@ -159,7 +160,7 @@ import 'package:mobx/mobx.dart';
 """;
   const bitcoinCwPart = "part 'cw_bitcoin.dart';";
   const bitcoinContent = """
-  
+
   class ElectrumSubAddress {
   ElectrumSubAddress({
     required this.id,
@@ -406,7 +407,7 @@ abstract class MoneroWalletDetails {
 
 abstract class Monero {
   MoneroAccountList getAccountList(Object wallet);
-  
+
   MoneroSubaddressList getSubaddressList(Object wallet);
 
   TransactionHistoryBase getTransactionHistory(Object wallet);
@@ -424,7 +425,7 @@ abstract class Monero {
   TransactionPriority deserializeMoneroTransactionPriority({required int raw});
   List<TransactionPriority> getTransactionPriorities();
   List<String> getMoneroWordList(String language);
-  
+
   List<Unspent> getUnspents(Object wallet);
   Future<void> updateUnspents(Object wallet);
 
@@ -613,7 +614,7 @@ abstract class WowneroWalletDetails {
 
 abstract class Wownero {
   WowneroAccountList getAccountList(Object wallet);
-  
+
   WowneroSubaddressList getSubaddressList(Object wallet);
 
   TransactionHistoryBase getTransactionHistory(Object wallet);
@@ -631,7 +632,7 @@ abstract class Wownero {
   TransactionPriority deserializeWowneroTransactionPriority({required int raw});
   List<TransactionPriority> getTransactionPriorities();
   List<String> getWowneroWordList(String language);
-  
+
   List<Unspent> getUnspents(Object wallet);
   Future<void> updateUnspents(Object wallet);
 
@@ -789,7 +790,7 @@ abstract class Ethereum {
   Future<void> deleteErc20Token(WalletBase wallet, CryptoCurrency token);
   Future<void> removeTokenTransactionsInHistory(WalletBase wallet, CryptoCurrency token);
   Future<Erc20Token?> getErc20Token(WalletBase wallet, String contractAddress);
-  
+
   CryptoCurrency assetOfTransaction(WalletBase wallet, TransactionInfo transaction);
   void updateEtherscanUsageState(WalletBase wallet, bool isEnabled);
   Web3Client? getWeb3Client(WalletBase wallet);
@@ -807,7 +808,7 @@ abstract class Ethereum {
   Future<PendingTransaction> removeDEuroSaving(WalletBase wallet, BigInt amount, TransactionPriority priority);
   Future<PendingTransaction> reinvestDEuroInterest(WalletBase wallet, TransactionPriority priority);
   Future<PendingTransaction> enableDEuroSaving(WalletBase wallet, TransactionPriority priority);
-  
+
   Future<void> setHardwareWalletService(WalletBase wallet, HardwareWalletService service);
   HardwareWalletService getLedgerHardwareWalletService(ledger.LedgerConnection connection);
   HardwareWalletService getBitboxHardwareWalletService(bitbox.BitboxManager manager);
@@ -925,12 +926,12 @@ abstract class Polygon {
   Future<bool> isApprovalRequired(WalletBase wallet, String tokenContract, String spender, BigInt requiredAmount);
   Future<PendingTransaction> createTokenApproval(WalletBase wallet, BigInt amount, String spender, CryptoCurrency token, TransactionPriority priority);
   Future<PendingTransaction> createRawCallDataTransaction(WalletBase wallet, String to, String dataHex, BigInt valueWei, TransactionPriority priority);
-  
+
   CryptoCurrency assetOfTransaction(WalletBase wallet, TransactionInfo transaction);
   void updatePolygonScanUsageState(WalletBase wallet, bool isEnabled);
   Web3Client? getWeb3Client(WalletBase wallet);
   String getTokenAddress(CryptoCurrency asset);
-  
+
   Future<void> setHardwareWalletService(WalletBase wallet, HardwareWalletService service);
   HardwareWalletService getLedgerHardwareWalletService(ledger.LedgerConnection connection);
   HardwareWalletService getBitboxHardwareWalletService(bitbox.BitboxManager manager);
@@ -995,18 +996,21 @@ abstract class BitcoinCash {
   TransactionPriority getDefaultTransactionPriority();
 
   List<TransactionPriority> getTransactionPriorities();
-  
+
   TransactionPriority getBitcoinCashTransactionPrioritySlow();
 }
   """;
 
   const bitcoinCashEmptyDefinition = 'BitcoinCash? bitcoinCash;\n';
-  const bitcoinCashCWDefinition = 'BitcoinCash? bitcoinCash = CWBitcoinCash();\n';
+  const bitcoinCashCWDefinition =
+      'BitcoinCash? bitcoinCash = CWBitcoinCash();\n';
 
   final output = '$bitcoinCashCommonHeaders\n' +
       (hasImplementation ? '$bitcoinCashCWHeaders\n' : '\n') +
       (hasImplementation ? '$bitcoinCashCwPart\n\n' : '\n') +
-      (hasImplementation ? bitcoinCashCWDefinition : bitcoinCashEmptyDefinition) +
+      (hasImplementation
+          ? bitcoinCashCWDefinition
+          : bitcoinCashEmptyDefinition) +
       '\n' +
       bitcoinCashContent;
 
@@ -1072,7 +1076,7 @@ abstract class Nano {
     WalletInfo? walletInfo,
     String? passphrase,
   });
-  
+
   WalletCredentials createNanoRestoreWalletFromSeedCredentials({
     required String name,
     required String password,
@@ -1141,7 +1145,8 @@ abstract class NanoUtil {
   """;
 
   const nanoEmptyDefinition = 'Nano? nano;\nNanoUtil? nanoUtil;\n';
-  const nanoCWDefinition = 'Nano? nano = CWNano();\nNanoUtil? nanoUtil = CWNanoUtil();\n';
+  const nanoCWDefinition =
+      'Nano? nano = CWNano();\nNanoUtil? nanoUtil = CWNanoUtil();\n';
 
   final output = '$nanoCommonHeaders\n' +
       (hasImplementation ? '$nanoCWHeaders\n' : '\n') +
@@ -1289,7 +1294,7 @@ abstract class Tron {
   Future<void> addTronToken(WalletBase wallet, CryptoCurrency token, String contractAddress);
   Future<void> deleteTronToken(WalletBase wallet, CryptoCurrency token);
   Future<CryptoCurrency?> getTronToken(WalletBase wallet, String contractAddress);
-  
+
   double getTransactionAmountRaw(TransactionInfo transactionInfo);
   CryptoCurrency assetOfTransaction(WalletBase wallet, TransactionInfo transaction);
   String getTokenAddress(CryptoCurrency asset);
@@ -1297,7 +1302,7 @@ abstract class Tron {
 
   String? getTronNativeEstimatedFee(WalletBase wallet);
   String? getTronTRC20EstimatedFee(WalletBase wallet);
-  
+
   void updateTronGridUsageState(WalletBase wallet, bool isEnabled);
   List<String> getDefaultTokenContractAddresses();
   bool isTokenAlreadyAdded(WalletBase wallet, String contractAddress);
@@ -1843,9 +1848,9 @@ abstract class Zcash {
   int formatterZcashParseAmount(String amount);
   double formatterZcashAmountToDouble({TransactionInfo? transaction, BigInt? amount});
   String formatterZcashAmountToString({required int amount});
-  
+
   List<WalletInfoAddressInfo> getAddressInfos(Object wallet);
-  
+
   TransactionPriority getDefaultTransactionPriority();
   TransactionPriority getZcashTransactionPriorityAutomatic();
   TransactionPriority deserializeZcashTransactionPriority({required int raw});
@@ -1981,7 +1986,8 @@ Future<void> generatePubspec({
   final inputLines = inputText.split('\n');
   final dependenciesIndex = inputLines.indexWhere((line) => Platform.isWindows
       // On Windows it could contains `\r` (Carriage Return). It could be fixed in newer dart versions.
-      ? line.toLowerCase() == 'dependencies:\r' || line.toLowerCase() == 'dependencies:'
+      ? line.toLowerCase() == 'dependencies:\r' ||
+          line.toLowerCase() == 'dependencies:'
       : line.toLowerCase() == 'dependencies:');
   var output = cwCore;
 
@@ -2125,7 +2131,7 @@ Future<void> generateWalletTypes({
     outputContent += '\tWalletType.bitcoinCash,\n';
   }
 
-  if (hasDecred) {
+  if (hasZcash) {
     outputContent += '\tWalletType.zcash,\n';
   }
 
@@ -2195,7 +2201,7 @@ class DefaultSecureStorage extends SecureStorage {
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   ));
-   
+
   final FlutterSecureStorage _secureStorage;
 
   @override
@@ -2213,7 +2219,7 @@ class DefaultSecureStorage extends SecureStorage {
 
   @override
   Future<void> delete({required String key}) async => _secureStorage.delete(key: key);
-  
+
   @override
   Future<void> deleteAll() async => _secureStorage.deleteAll();
 

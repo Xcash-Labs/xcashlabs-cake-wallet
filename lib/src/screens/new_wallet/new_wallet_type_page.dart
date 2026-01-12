@@ -156,21 +156,11 @@ class WalletTypeFormState extends State<WalletTypeForm> {
     });
   }
 
-
-  bool isSelected(WalletType type) => widget.inGroup
-      ? false
-      : (widget.newWalletTypeViewModel.itemSelection[type] ?? false);
-
   void onTypeTap(WalletType type) {
-    if (widget.inGroup) {
-      widget.newWalletTypeViewModel.deselectAllNonBIP39();
-      widget.newWalletTypeViewModel.toggleSelection(type);
-    } else {
       widget.newWalletTypeViewModel.deselectAll();
       for (var item in types) {
         if (item == type) {
           widget.newWalletTypeViewModel.itemSelection[item] = true;
-        }
       }
     }
   }
@@ -249,18 +239,6 @@ class WalletTypeFormState extends State<WalletTypeForm> {
                               key: ValueKey(
                                   'new_wallet_type_${type.name}_button_key'),
                               padding: EdgeInsets.only(left: 12, right: 30),
-                              leading: widget.inGroup
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(right: 12),
-                                      child: StandardCheckbox(
-                                        value: viewModel.itemSelection[type] ??
-                                            false,
-                                        caption: '',
-                                        onChanged: (_) =>
-                                            viewModel.toggleSelection(type),
-                                      ),
-                                    )
-                                  : null,
                               image: Image.asset(
                                 walletTypeToCryptoCurrency(type).iconPath ?? '',
                                 height: 24,
@@ -269,7 +247,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
                               text: walletTypeToDisplayName(type),
                               showTrailingIcon: false,
                               height: 54,
-                              isSelected: isSelected(type),
+                              isSelected: widget.newWalletTypeViewModel.itemSelection[type] ?? false,
                               onTap: () => onTypeTap(type),
                               deviceConnectionTypes: widget.isHardwareWallet
                                   ? DeviceConnectionType
@@ -360,7 +338,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
   Future<void> onTypeSelected() async {
     final viewModel = widget.newWalletTypeViewModel;
 
-    final mergedTypes = <WalletType>[
+    var mergedTypes = <WalletType>[
       ...?widget.preselectedTypes,
       ...viewModel.selectedTypes,
     ];
@@ -379,7 +357,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
         }
 
         // Single-wallet creation flow
-        if (mergedTypes.length == 1) {
+        if (mergedTypes.length == 1 && !widget.inGroup) {
           final selected = mergedTypes.first;
 
           // Not a BIP39 wallet or no existing wallet, go to new wallet creation flow
@@ -397,7 +375,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
         }
 
         // Multi-wallet creation flow
-        if (mergedTypes.length > 1) {
+        if (widget.inGroup) {
           if (!onlyBIP39Selected(mergedTypes)) {
             throw Exception(
                 'Multi-wallet creation supports only BIP39 wallet types.');
@@ -434,10 +412,21 @@ class WalletTypeFormState extends State<WalletTypeForm> {
             return;
           }
 
+          mergedTypes = filteredTypes = widget.filteredAvailableWalletTypes
+              .where((element) =>
+          !widget.isHardwareWallet ||
+              DeviceConnectionType.supportedConnectionTypes(
+                  element, widget.hardwareWalletType!, Platform.isIOS)
+                  .isNotEmpty)
+              .toList();
+
+          final selectedType = viewModel.selectedTypes.first;
+          mergedTypes = mergedTypes.where((type) => type != selectedType).toList();
+
           // Pure multi-wallet creation flow
           final arguments = WalletGroupArguments(
             types: mergedTypes,
-            currentType: mergedTypes.first,
+            currentType: selectedType,
           );
           Navigator.of(context)
               .pushNamed(Routes.newWalletGroup, arguments: arguments);
@@ -518,8 +507,8 @@ class WalletTypeFormState extends State<WalletTypeForm> {
 
   Future<void> _createRestWalletsInGroup({
     required BuildContext context,
-    required String groupKey,
     required WalletBase current,
+    required String groupKey,
     required List<WalletType> allSelectedTypes,
     required Set<WalletType> alreadyInGroup,
     required NewWalletTypeViewModel viewModel,
@@ -532,38 +521,8 @@ class WalletTypeFormState extends State<WalletTypeForm> {
           'Shared mnemonic is unavailable from the current wallet.');
     }
 
-    final rawToAdd =
+    final toAdd =
         allSelectedTypes.where((t) => !alreadyInGroup.contains(t)).toList();
-
-    final excluded = <WalletType>[];
-    final toAdd = <WalletType>[];
-
-    for (final type in rawToAdd) {
-      final passphraseUnsupported = !viewModel.isPassPhraseSupported(type);
-      if (passphraseUnsupported && sharedPassphrase.isNotEmpty) {
-        excluded.add(type);
-      } else {
-        toAdd.add(type);
-      }
-    }
-
-    if (excluded.isNotEmpty) {
-      await showPopUp<void>(
-        context: context,
-        builder: (dialogCtx) => AlertWithOneAction(
-          key:
-              const ValueKey('new_wallet_group_page_excluded_types_dialog_key'),
-          buttonKey: const ValueKey(
-              'new_wallet_group_page_excluded_types_dialog_button_key'),
-          alertTitle: S.current.alert_notice,
-          alertContent:
-              'The following wallet types cannot be added because they do not support passphrase protection\n'
-              '${excluded.map((e) => walletTypeToDisplayName(e)).join(', ')}',
-          buttonText: S.of(dialogCtx).ok,
-          buttonAction: () => Navigator.of(dialogCtx).pop(),
-        ),
-      );
-    }
 
     if (toAdd.isEmpty) {
       return;
@@ -581,7 +540,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
 
     final groupVM = getIt<WalletGroupNewVM>(param1: args);
 
-    await groupVM.createRestWallets(
+    await groupVM.createWalletPlaceholders(
       WalletGroupParams(
         restTypes: toAdd,
         sharedMnemonic: sharedMnemonic,

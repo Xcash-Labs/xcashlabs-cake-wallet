@@ -24,13 +24,13 @@ part 'new_wallet_group_view_model.g.dart';
 class WalletGroupNewVM = WalletGroupNewVMBase with _$WalletGroupNewVM;
 
 abstract class WalletGroupNewVMBase with Store {
-  WalletGroupNewVMBase(this.appStore,
-      this.walletCreationService,
-      this.advancedPrivacySettingsViewModel, {
-        required this.walletNewVMBuilder,
-        required this.args,
-      })
-      : state = InitialExecutionState(),
+  WalletGroupNewVMBase(
+    this.appStore,
+    this.walletCreationService,
+    this.advancedPrivacySettingsViewModel, {
+    required this.walletNewVMBuilder,
+    required this.args,
+  })  : state = InitialExecutionState(),
         name = '';
 
   final AppStore appStore;
@@ -66,8 +66,7 @@ abstract class WalletGroupNewVMBase with Store {
   String? error;
 
   bool isPassPhraseSupported(WalletType type) {
-    return AdvancedPrivacySettingsViewModelBase
-        .hasPassphraseOptionWalletTypes
+    return AdvancedPrivacySettingsViewModelBase.hasPassphraseOptionWalletTypes
         .contains(type);
   }
 
@@ -76,22 +75,23 @@ abstract class WalletGroupNewVMBase with Store {
   bool groupNameExists(String name) =>
       walletCreationService.groupNameExists(name);
 
-  bool isGroupCreationDeferredType(WalletType type) =>
-      deferredGroupCreationTypes(type);
+  Future<String> _uniquePerTypeName(WalletType type, String groupName) async {
+    final typeSuffix = walletTypeSuffix(type);
 
-  Future<String> _uniquePerTypeName(WalletType type) async {
-    final base = walletTypeToString(type);
+    final baseName = '$groupName $typeSuffix';
+    var candidate = baseName;
+
     var i = 1;
-    while (await walletCreationService.exists('$base $i')) {
+    while (await nameExists(candidate)) {
+      candidate = '$baseName $i';
       i++;
     }
-    return '$base $i';
+
+    return candidate;
   }
 
   String _uniqueGroupName(String preferred) {
-    var base = preferred
-        .trim()
-        .isEmpty ? 'Group' : preferred.trim();
+    var base = preferred.trim().isEmpty ? 'Group' : preferred.trim();
     if (!groupNameExists(base)) return base;
 
     var i = 2;
@@ -101,44 +101,10 @@ abstract class WalletGroupNewVMBase with Store {
     return '$base ($i)';
   }
 
-  Future<void> _createPlaceholderForType({
-    required WalletType type,
-    required String finalName,
-    required String groupKey,
-  }) async {
-
-    // Reserve the future paths but DO NOT create files now
-    final dirPath = await pathForWalletDir(name: finalName, type: type);
-    final path = await pathForWallet(name: finalName, type: type);
-
-    final info = WalletInfo.external(
-      id: WalletBase.idFor(finalName, type),
-      name: finalName,
-      type: type,
-      isRecovery: false,
-      restoreHeight: 0,
-      date: DateTime.now(),
-      path: path,
-      dirPath: dirPath,
-      address: '',
-      showIntroCakePayCard: false,
-      derivationInfoId: null,
-      hardwareWalletType: null,
-      hashedWalletIdentifier: groupKey,
-      isReady: false,
-    );
-
-    await info.save();
-    printV('[INFO] Created placeholder for wallet type $type with name $finalName');
-  }
-
   @action
   Future<void> createNewGroup({dynamic options}) async {
     try {
       state = IsExecutingState();
-      error = null;
-      done = [];
-      progress = 0;
 
       final types = args.types;
       final currentType = args.currentType;
@@ -149,16 +115,13 @@ abstract class WalletGroupNewVMBase with Store {
         throw 'Only BIP39-based wallet types are supported in a group.';
 
       var groupNameCandidate =
-      name
-          .trim()
-          .isEmpty ? await generateName() : name.trim();
+          name.trim().isEmpty ? await generateName() : name.trim();
       final groupName = _uniqueGroupName(groupNameCandidate);
 
       final providedMnemonic = args.mnemonic;
       if (providedMnemonic != null && providedMnemonic.isEmpty) {
         throw 'Provided mnemonic is empty.';
       }
-
 
       dynamic options;
 
@@ -167,7 +130,7 @@ abstract class WalletGroupNewVMBase with Store {
         options = defaultMoneroOptions;
       }
 
-      final currentWalletName = await _uniquePerTypeName(currentType);
+      final currentWalletName = await _uniquePerTypeName(currentType, groupName);
       await _createSingleWallet(
         type: currentType,
         finalName: currentWalletName,
@@ -176,8 +139,6 @@ abstract class WalletGroupNewVMBase with Store {
         options: options,
         makeCurrent: true,
       );
-      done = [...done, currentType];
-      progress = done.length / types.length;
 
       final currentWallet = appStore.wallet;
       if (currentWallet == null)
@@ -194,7 +155,6 @@ abstract class WalletGroupNewVMBase with Store {
         throw Exception('Failed to resolve mnemonic (shared) for group.');
       }
 
-
       final String? sharedPassphrase =
           args.passphrase ?? currentWallet.passphrase;
 
@@ -204,7 +164,8 @@ abstract class WalletGroupNewVMBase with Store {
       final restTypes = <WalletType>[];
 
       for (final type in restTypesRaw) {
-        if (!isPassPhraseSupported(type) && sharedPassphrase != null &&
+        if (!isPassPhraseSupported(type) &&
+            sharedPassphrase != null &&
             sharedPassphrase.isNotEmpty) {
           excluded.add(type);
         } else {
@@ -222,6 +183,7 @@ abstract class WalletGroupNewVMBase with Store {
           sharedPassphrase: sharedPassphrase,
           isChildWallet: true,
           groupKey: groupKey,
+          groupName: groupName,
         ),
       );
     } catch (e, s) {
@@ -232,58 +194,35 @@ abstract class WalletGroupNewVMBase with Store {
     }
   }
 
-  Future<void> createRestWallets(WalletGroupParams params) async {
+  Future<void> createWalletPlaceholders(WalletGroupParams params) async {
     await Future<void>.delayed(Duration.zero); // run on next event loop turn
 
-    final total = params.restTypes.length;
-    var completed = 0;
-
+    final groupName = params.groupName ?? 'Group';
     for (final type in params.restTypes) {
-      final walletName = await _uniquePerTypeName(type);
+      final finalName = await _uniquePerTypeName(type, groupName);
 
-      // If this type is deferred, create a DB placeholder only.
-      if (isGroupCreationDeferredType(type)) {
-        await _createPlaceholderForType(
-          type: type,
-          finalName: walletName,
-          groupKey: params.groupKey,
-        );
-        printV('[INFO] Deferred creation for wallet type $type with name $walletName');
-        done = [...done, type];
-        completed += 1;
-        progress = total == 0 ? 1.0 : completed / total;
-        continue;
-      }
+      // Reserve the future paths but DO NOT create files now
+      final dirPath = await pathForWalletDir(name: finalName, type: type);
+      final path = await pathForWallet(name: finalName, type: type);
 
-      // Otherwise, create the real wallet now.
-      dynamic options;
-
-      // default options for monero
-      if (type == WalletType.monero) {
-        options = defaultMoneroOptions;
-      }
-
-      if (params.sharedPassphrase != null &&
-          params.sharedPassphrase!.isNotEmpty) {
-        final sharedPassphraseMap = {'passphrase': params.sharedPassphrase!};
-        if (options is List) {
-          options = [...options, sharedPassphraseMap];
-        } else {
-          options = [sharedPassphraseMap];
-        }
-      }
-
-      await _createSingleWallet(
+      final info = WalletInfo.external(
+        id: WalletBase.idFor(finalName, type),
+        name: finalName,
         type: type,
-        finalName: walletName,
-        isChildWallet: params.isChildWallet,
-        mnemonic: params.sharedMnemonic,
-        options: options,
-        makeCurrent: false,
+        isRecovery: false,
+        restoreHeight: 0,
+        date: DateTime.now(),
+        path: path,
+        dirPath: dirPath,
+        address: '',
+        showIntroCakePayCard: false,
+        derivationInfoId: null,
+        hardwareWalletType: null,
+        hashedWalletIdentifier: params.groupKey,
+        isReady: false,
       );
-      done = [...done, type];
-      completed += 1;
-      progress = total == 0 ? 1.0 : completed / total;
+
+      await info.save();
     }
   }
 

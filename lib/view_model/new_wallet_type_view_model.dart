@@ -3,15 +3,13 @@ import 'package:cake_wallet/view_model/advanced_privacy_settings_view_model.dart
 import 'package:cw_core/wallet_type.dart';
 import 'package:mobx/mobx.dart';
 
-import '../reactions/wallet_utils.dart' show isBIP39Wallet;
-
 part 'new_wallet_type_view_model.g.dart';
 
 class NewWalletTypeViewModel = NewWalletTypeViewModelBase
     with _$NewWalletTypeViewModel;
 
 abstract class NewWalletTypeViewModelBase with Store {
-  NewWalletTypeViewModelBase(this.hasExisitingWallet, this.appStore, this.advancedPrivacySettingsViewModel) {
+  NewWalletTypeViewModelBase(this.hasExisitingWallet, this.appStore) {
     itemSelection = ObservableMap<WalletType, bool>.of({
       WalletType.monero: false,
       WalletType.bitcoin: false,
@@ -23,14 +21,12 @@ abstract class NewWalletTypeViewModelBase with Store {
       WalletType.solana: false,
       WalletType.tron: false,
       WalletType.nano: false,
-      WalletType.wownero: false,
     });
   }
 
 
   final bool hasExisitingWallet;
   final AppStore appStore;
-  final AdvancedPrivacySettingsViewModel advancedPrivacySettingsViewModel;
 
   late final ObservableMap<WalletType, bool> itemSelection;
 
@@ -49,24 +45,9 @@ abstract class NewWalletTypeViewModelBase with Store {
       itemSelection.entries.where((e) => e.value).map((e) => e.key).toList();
 
   @action
-  void deselectAllNonBIP39 () {
-    for (var type in itemSelection.keys) {
-      if (!isBIP39Wallet(type)) {
-        itemSelection[type] = false;
-      }
-    }
-  }
-
-  @action
   void deselectAll () {
     for (var type in itemSelection.keys) {
       itemSelection[type] = false;
     }
-  }
-
-  @action
-  void toggleSelection(WalletType type) {
-    final newValue = !(itemSelection[type] ?? false);
-    itemSelection[type] = newValue;
   }
 }

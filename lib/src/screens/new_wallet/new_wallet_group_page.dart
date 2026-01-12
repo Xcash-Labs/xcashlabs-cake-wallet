@@ -110,7 +110,7 @@ class _WalletNameFormState extends State<WalletNameForm> {
         if (walletGroupParams != null) {
           Future<void>(() async {
             await widget._walletGroupVM
-                .createRestWallets(walletGroupParams);
+                .createWalletPlaceholders(walletGroupParams);
           });
         }
       }

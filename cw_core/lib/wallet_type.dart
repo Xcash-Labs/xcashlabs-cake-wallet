@@ -244,6 +244,15 @@ String walletTypeToDisplayName(WalletType type) {
   }
 }
 
+String walletTypeSuffix(WalletType type) {
+  final name = walletTypeToDisplayName(type);
+  final index = name.indexOf('(');
+  if (index != -1) {
+    return name.substring(index);
+  }
+  return '';
+}
+
 WalletType? cryptoCurrencyToWalletType(CryptoCurrency type) {
   switch (type) {
     case CryptoCurrency.xmr:

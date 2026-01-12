@@ -33,6 +33,7 @@ class WalletGroupParams {
   final String? sharedPassphrase;
   final bool isChildWallet;
   final String groupKey;
+  final String? groupName;
   const WalletGroupParams({
     required this.restTypes,
     this.excludedTypes = const [],
@@ -40,5 +41,6 @@ class WalletGroupParams {
     this.sharedPassphrase,
     required this.isChildWallet,
     required this.groupKey,
+    this.groupName,
   });
 }

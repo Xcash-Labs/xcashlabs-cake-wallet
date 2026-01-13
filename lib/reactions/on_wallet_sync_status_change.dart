@@ -33,12 +33,6 @@ void startWalletSyncStatusChangeReaction(
         await WakelockPlus.disable();
         SyncingSyncStatus.resetSyncStartTime();
         SyncingSyncStatus.blockHistory.clear();
-        try {
-          final walletListViewModel = getIt.get<WalletListViewModel>();
-          await walletListViewModel.updateList();
-        } catch (e) {
-          printV("Error refreshing wallet list after sync: $e");
-        }
       }
 
       if (status is FailedSyncStatus) {

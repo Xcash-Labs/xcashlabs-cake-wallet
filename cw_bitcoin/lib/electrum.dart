@@ -205,6 +205,7 @@ class ElectrumClient {
         return [];
       });
 
+  // Will need to write a batch version of this method
   Future<Map<String, dynamic>> getBalance(String scriptHash, {bool throwOnError = false}) async {
     try {
       final result = await call(method: 'blockchain.scripthash.get_balance', params: [scriptHash]);
@@ -222,6 +223,52 @@ class ElectrumClient {
         rethrow;
       }
       return <String, dynamic>{};
+    }
+  }
+
+  // This function is designed for when we invoke multiple of the same method with different scriptHashes
+  // Future<Map<String, Map<String, dynamic>>> batchGetData(
+  Future<dynamic> batchGetData(List<String> scriptHashes, String method) async {
+    if (scriptHashes.isEmpty) {
+      return {};
+    }
+
+    try {
+      // Build batch request payload
+      final List<Map<String, dynamic>> batchRequest = [];
+      for (int i = 0; i < scriptHashes.length; i++) {
+        batchRequest.add({
+          'jsonrpc': '2.0',
+          'id': i + 1,
+          'method': method,
+          'params': [scriptHashes[i]],
+        });
+      }
+
+      final batchRequestJson = json.encode(batchRequest);
+      printV('batchGetData: Batch request JSON: $batchRequestJson');
+
+      // Send batch request
+      if (!isConnected) {
+        throw Exception('Not connected to Electrum server');
+      }
+
+      final completer = Completer<dynamic>();
+      _id += 1;
+      final requestId = _id;
+      _registryTask(requestId, completer);
+
+      // Write the batch request directly to socket
+      socket!.write(batchRequestJson + '\n');
+      printV('batchGetData: Batch request sent with ID: $requestId');
+
+      final response = await completer.future;
+      printV('batchGetData: Server response received: $response');
+      
+      return response;
+    } catch (e) {
+      printV('batchGetBalances error: $e');
+      return {};
     }
   }
 
@@ -570,10 +617,11 @@ class ElectrumClient {
   }
 
   void _handleResponse(Map<String, dynamic> response) {
+    printV(response);
     final method = response['method'];
     final id = response['id'] as String?;
     final result = response['result'];
-
+    printV("method: $method, id: $id, result: $result");
     try {
       final error = response['error'] as Map<String, dynamic>?;
       if (error != null) {

@@ -18,7 +18,6 @@ String jsonrpcparams(List<Object> params) {
 }
 
 String jsonrpc(
-        {required String method,
         required List<Object> params,
         required int id,
         double version = 2.0}) =>
@@ -144,8 +143,14 @@ class ElectrumClient {
 
   void _parseResponse(String message) {
     try {
-      final response = json.decode(message) as Map<String, dynamic>;
-      _handleResponse(response);
+      final decoded = json.decode(message);
+      // KB: TODO: verify if this functionality is working as intended
+      // Check if it's a batch response (array) or single response (map)
+      if (decoded is List) {
+        _batchHandleResponse(decoded);
+      } else if (decoded is Map<String, dynamic>) {
+        _handleResponse(decoded);
+      }
     } on FormatException catch (e) {
       final msg = e.message.toLowerCase();
 
@@ -159,8 +164,13 @@ class ElectrumClient {
       }
 
       if (isJSONStringCorrect(unterminatedString)) {
-        final response = json.decode(unterminatedString) as Map<String, dynamic>;
-        _handleResponse(response);
+        final decoded = json.decode(unterminatedString);
+        
+        if (decoded is List) {
+          _batchHandleResponse(decoded);
+        } else if (decoded is Map<String, dynamic>) {
+          _handleResponse(decoded);
+        }
         unterminatedString = '';
       }
     } on TypeError catch (e) {
@@ -172,13 +182,31 @@ class ElectrumClient {
       unterminatedString += message;
 
       if (isJSONStringCorrect(unterminatedString)) {
-        final response = json.decode(unterminatedString) as Map<String, dynamic>;
-        _handleResponse(response);
-        // unterminatedString = null;
+        final decoded = json.decode(unterminatedString);
+        
+        if (decoded is List) {
+          _batchHandleResponse(decoded);
+        } else if (decoded is Map<String, dynamic>) {
+          _handleResponse(decoded);
+        }
         unterminatedString = '';
       }
     } catch (e) {
-      printV("parse $e");
+      // Just so we notice issues identifying batches versus single responses
+      printV("!!!!! NODE COMMUNICATION REALLY BROKE !!!!!: FormatException in _parseResponse: $e");
+    }
+  }
+
+  // TODO: verify batchHandleResponse works with transactions
+  void _batchHandleResponse(List<dynamic> batchResponse) {
+    printV("Handling batch response with ${batchResponse.length} items");
+    // Since we register a single task for the entire batch, complete it with the full array
+    if (_tasks.isNotEmpty) {
+      final taskIds = _tasks.keys.map((k) => int.tryParse(k) ?? 0).where((id) => id > 0);
+      if (taskIds.isNotEmpty) {
+        final latestTaskId = taskIds.reduce((a, b) => a > b ? a : b);
+        _finish(latestTaskId.toString(), batchResponse);
+      }
     }
   }
 

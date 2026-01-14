@@ -98,7 +98,7 @@ jobs:
         run: |
           set -x -e
           pushd scripts/linux
-            ./build_zcash.sh
+            echo ./build_zcash.sh
           popd
 
       - name: Execute Build and Setup Commands

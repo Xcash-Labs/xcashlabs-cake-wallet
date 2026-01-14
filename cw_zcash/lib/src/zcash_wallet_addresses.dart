@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/wallet_addresses.dart';
 import 'package:cw_core/wallet_info.dart';
 import 'package:cw_zcash/cw_zcash.dart';
 import 'package:cw_zcash/src/zcash_taddress_rotation.dart';
 import 'package:mobx/mobx.dart';
-import 'package:warp_api/warp_api.dart';
+import 'package:cw_zcash/src/warp_api/warp_api.dart';
 
 part 'zcash_wallet_addresses.g.dart';
 
@@ -13,6 +15,19 @@ class ZcashWalletAddresses = ZcashWalletAddressesBase with _$ZcashWalletAddresse
 abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
   ZcashWalletAddressesBase(this.accountId, final WalletInfo walletInfo) : super(walletInfo) {
     addressPageType = ZcashReceivePageOption.typeFromString(walletInfo.addressPageType ?? "");
+    // trigger the getters
+    transparentAddress;
+    transparentAddressRotated;
+    transparentAddress;
+    saplingAddress;
+    orchardAddress;
+    unifiedAddress;
+    // *jumps over sofa*
+    // *in Steve Carell voice*: PARKOUR!
+    unawaited(Future.delayed(Duration(seconds: 1)).then((final _) => address = latestAddress));
+    // can this be done better? Yes.
+    // will it? yes.
+    // now? no.
   }
 
   final int accountId;
@@ -23,6 +38,7 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
   static const int unifiedType = 3;
 
   String? _transparentAddress;
+  String? _transparentAddressRotated;
   String? _saplingAddress;
   String? _orchardAddress;
   String? _unifiedAddress;
@@ -50,10 +66,7 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
       case ZcashAddressType.shieldedOrchard:
         return orchardAddress;
       case ZcashAddressType.unifiedType:
-        if (_unifiedAddress == null) {
-          _unifiedAddress = WarpApi.getAddress(ZcashWalletBase.coin, accountId, 7);
-        }
-        return _unifiedAddress ?? "";
+        return unifiedAddress;
     }
   }
 
@@ -80,7 +93,10 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
   String get transparentAddress {
     try {
       if (_transparentAddress == null) {
-        _transparentAddress = WarpApi.getTAddr(ZcashWalletBase.coin, accountId);
+        WarpApi.getTAddr(
+          ZcashWalletBase.coin,
+          accountId,
+        ).then((final n) => _transparentAddress = n);
       }
       return _transparentAddress ?? "";
     } catch (e) {
@@ -91,7 +107,12 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
   @computed
   String? get transparentAddressRotated {
     try {
-      return ZcashTaddressRotation.addressForAccount(accountId);
+      if (_transparentAddressRotated == null) {
+        ZcashTaddressRotation.addressForAccount(
+          accountId,
+        ).then((final v) => _transparentAddressRotated = v);
+      }
+      return _transparentAddressRotated;
     } catch (e) {
       return null;
     }
@@ -100,7 +121,11 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
   String get saplingAddress {
     try {
       if (_saplingAddress == null) {
-        _saplingAddress = WarpApi.getAddress(ZcashWalletBase.coin, accountId, 2);
+        WarpApi.getAddress(
+          ZcashWalletBase.coin,
+          accountId,
+          2,
+        ).then((final v) => _saplingAddress = v.saddr);
       }
       return _saplingAddress ?? "";
     } catch (e) {
@@ -111,7 +136,26 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
   String get orchardAddress {
     try {
       if (_orchardAddress == null) {
-        _orchardAddress = WarpApi.getAddress(ZcashWalletBase.coin, accountId, 4);
+        WarpApi.getAddress(
+          ZcashWalletBase.coin,
+          accountId,
+          4,
+        ).then((final v) => _orchardAddress = v.oaddr);
+      }
+      return _orchardAddress ?? "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  String get unifiedAddress {
+    try {
+      if (_unifiedAddress == null) {
+        WarpApi.getAddress(
+          ZcashWalletBase.coin,
+          accountId,
+          7,
+        ).then((final v) => _unifiedAddress = v.ua);
       }
       return _orchardAddress ?? "";
     } catch (e) {
@@ -144,7 +188,7 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
     int accountIndex = 0;
     addressInfos = {
       0:
-          ZcashTaddressRotation.allAddressesForAccount(accountId)?.map((final v) {
+          (await ZcashTaddressRotation.allAddressesForAccount(accountId))?.map((final v) {
             return WalletInfoAddressInfo(
               walletInfoId: walletInfo.internalId,
               mapKey: ++accountIndex,
@@ -155,11 +199,12 @@ abstract class ZcashWalletAddressesBase extends WalletAddresses with Store {
           }).toList() ??
           [],
     };
-    hiddenAddresses = ZcashTaddressRotation.allUsedAddressesForAccount(accountId)?.toSet() ?? {};
+    hiddenAddresses =
+        (await ZcashTaddressRotation.allUsedAddressesForAccount(accountId))?.toSet() ?? {};
 
     addressInfos[0]?.removeWhere((final test) => hiddenAddresses.contains(test.address));
     if (_addressPageType == ZcashAddressType.transparentRotated) {
-      final addr = ZcashTaddressRotation.addressForAccount(accountId);
+      final addr = await ZcashTaddressRotation.addressForAccount(accountId);
       if (addr != null) {
         address = addr;
       }

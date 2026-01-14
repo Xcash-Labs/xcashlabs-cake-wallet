@@ -50,7 +50,7 @@ class ZcashReceivePageOption implements ReceivePageOption {
     ZcashReceivePageOption.shieldedOrchard,
     ZcashReceivePageOption.shieldedSapling,
     ZcashReceivePageOption.unified,
-    ZcashReceivePageOption.transparentRotated,
+    // ZcashReceivePageOption.transparentRotated,
     ZcashReceivePageOption.transparent,
   ];
 

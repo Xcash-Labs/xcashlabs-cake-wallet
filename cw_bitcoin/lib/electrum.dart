@@ -18,10 +18,11 @@ String jsonrpcparams(List<Object> params) {
 }
 
 String jsonrpc(
-        required List<Object> params,
-        required int id,
-        double version = 2.0}) =>
-    '{"jsonrpc": "$version", "method": "$method", "id": "$id",  "params": ${json.encode(params)}}\n';
+    {required String method, required List<Object> params, required int id, double version = 2.0}) {
+  printV(
+      '{"jsonrpc": "$version", "method": "$method", "id": "$id",  "params": ${json.encode(params)}}\n');
+  return '{"jsonrpc": "$version", "method": "$method", "id": "$id",  "params": ${json.encode(params)}}\n';
+}
 
 class SocketTask {
   SocketTask({required this.isSubscription, this.completer, this.subject});
@@ -152,6 +153,8 @@ class ElectrumClient {
         _handleResponse(decoded);
       }
     } on FormatException catch (e) {
+      // Just so we notice issues identifying batches versus single responses
+      printV("!!!!! Node communication possibly broke !!!!!: FormatException in _parseResponse: $e");
       final msg = e.message.toLowerCase();
 
       if (e.source is String) {

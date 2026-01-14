@@ -586,6 +586,7 @@ abstract class ElectrumWalletBase
     }
   }
 
+  // KB: Results in call to blockchain.estimatefee, low value relative to work for batching
   @action
   Future<void> updateFeeRates() async {
     if (await checkIfMempoolAPIIsEnabled() && type == WalletType.bitcoin) {
@@ -620,7 +621,8 @@ abstract class ElectrumWalletBase
   }
 
   Node? node;
-
+  
+  // KB: Not easily batchable / high work, little reward
   Future<bool> getNodeIsElectrs() async {
     if (node == null) {
       return false;
@@ -1725,7 +1727,8 @@ abstract class ElectrumWalletBase
     await updateCoins(newUnspentCoins ?? []);
   }
 
-  @action
+  // KB: added new batch function for this to dogecoin_wallet.dart
+  // This file is a batch candidate
   Future<List<BitcoinUnspent>?> fetchUnspent(BitcoinAddressRecord address) async {
     List<BitcoinUnspent> updatedUnspentCoins = [];
 

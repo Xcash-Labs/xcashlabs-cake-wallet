@@ -118,7 +118,7 @@ class TransactionExportData {
             'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
       case WalletType.dogecoin:
       case WalletType.bitcoin:
-      case WalletType.litecoin: 
+      case WalletType.litecoin:
       case WalletType.bitcoinCash:
         headerString =
             'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Recipient Address,Explorer Link';
@@ -354,7 +354,7 @@ class TransactionExportFormatter {
 
       var formattedString = "'" + formattedData + "'";
       return formattedString;
-    } catch (e) {      
+    } catch (e) {
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -418,7 +418,6 @@ class TransactionExportFormatter {
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
-      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -465,7 +464,6 @@ class TransactionExportFormatter {
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
-      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -510,7 +508,6 @@ class TransactionExportFormatter {
       return formattedString;
     } catch (e) {
       // rethrow;
-      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -550,7 +547,6 @@ class TransactionExportFormatter {
       // );
       throw UnimplementedError();
     } catch (e) {
-      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -594,7 +590,6 @@ class TransactionExportFormatter {
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
-      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -646,8 +641,7 @@ class TransactionExportFormatter {
       return formattedString;
     } catch (e) {
       // rethrow;
-      return e.toString();
-      return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
+      return "Not implemented yet";
     }
   }
 

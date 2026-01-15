@@ -1268,6 +1268,7 @@ abstract class DashboardViewModelBase with Store {
       rethrow;
     } finally {
       isExporting = false;
+      return '';
     }
   }
 
@@ -1291,6 +1292,7 @@ abstract class DashboardViewModelBase with Store {
       );
     } finally {
       isExporting = false;
+      return;
     }
   }
 }

@@ -110,8 +110,23 @@ class TransactionExportData {
   }
 
   /// Returns generic CSV header row
-  static String csvHeader() {
-    return 'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
+  static String csvHeader({WalletType? walletType}) {
+    var headerString = '';
+    switch (walletType) {
+      case WalletType.monero:
+        headerString =
+            'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
+      case WalletType.dogecoin:
+      case WalletType.bitcoin:
+      case WalletType.litecoin: 
+      case WalletType.bitcoinCash:
+        headerString =
+            'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Recipient Address,Explorer Link';
+      default:
+        headerString =
+            'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
+    }
+    return headerString;
   }
 }
 
@@ -299,8 +314,7 @@ class TransactionExportFormatter {
       // final confirmations = tx.confirmations?.toString() ?? 'N/A';
       final txId = tx.txHash.toString();
       final fee = electrumProp.feeFormatted().toString();
-      final subwalletNumber = electrumProp.key.toString();
-      final key = electrumProp.key.toString();
+      final subwalletNumber = 'N/A';
       // final note = electrumProp.note?.toString() ?? '';
       // Try to get recipient from transaction
       if (electrumProp.to != null && electrumProp.to.toString().isNotEmpty) {
@@ -334,14 +348,13 @@ class TransactionExportFormatter {
         _escapeCsvField(txId),
         _escapeCsvField(fee),
         _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
         _escapeCsvField(recipientAddress),
         _escapeCsvField(explorerLink),
       ].join("','");
 
       var formattedString = "'" + formattedData + "'";
       return formattedString;
-    } catch (e) {
+    } catch (e) {      
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -405,6 +418,7 @@ class TransactionExportFormatter {
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
+      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -427,13 +441,14 @@ class TransactionExportFormatter {
       final subwalletNumber = solanaProp.addressIndex.toString();
       final key = solanaProp.key.toString();
 
-      if (solanaProp.recipientAddress != null && solanaProp.recipientAddress.toString().isNotEmpty) {
+      if (solanaProp.recipientAddress != null &&
+          solanaProp.recipientAddress.toString().isNotEmpty) {
         recipientAddress = solanaProp.recipientAddress.toString();
       }
 
       final explorerLink = 'https://explorer.solana.com/tx/$txId';
 
-     final formattedData = [
+      final formattedData = [
         _escapeCsvField(timestamp),
         _escapeCsvField(amount),
         _escapeCsvField(type),
@@ -450,6 +465,7 @@ class TransactionExportFormatter {
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
+      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -471,8 +487,7 @@ class TransactionExportFormatter {
       final subwalletNumber = tronProp.addressIndex.toString();
       final key = tronProp.key.toString();
       //final note = tronProp.note?.toString() ?? '';
-      if (tronProp.recipientAddress != null &&
-          tronProp.recipientAddress.toString().isNotEmpty) {
+      if (tronProp.recipientAddress != null && tronProp.recipientAddress.toString().isNotEmpty) {
         recipientAddress = tronProp.recipientAddress.toString();
       }
 
@@ -495,6 +510,7 @@ class TransactionExportFormatter {
       return formattedString;
     } catch (e) {
       // rethrow;
+      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -534,6 +550,7 @@ class TransactionExportFormatter {
       // );
       throw UnimplementedError();
     } catch (e) {
+      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -576,8 +593,8 @@ class TransactionExportFormatter {
 
       var formattedString = "'" + formattedData + "'";
       return formattedString;
-
     } catch (e) {
+      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -592,7 +609,6 @@ class TransactionExportFormatter {
     // To be finished
 
     try {
-
       final dynamic genericProp = tx;
 
       //final amount = genericProp.amount?.toString() ?? 'N/A';
@@ -630,6 +646,7 @@ class TransactionExportFormatter {
       return formattedString;
     } catch (e) {
       // rethrow;
+      return e.toString();
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }

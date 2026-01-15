@@ -32,7 +32,7 @@ class ExportHistoryService {
 
     // Build CSV string
     final buffer = StringBuffer();
-    buffer.writeln(TransactionExportData.csvHeader());
+    buffer.writeln(TransactionExportData.csvHeader(walletType: wallet.type));
 
     for (final data in formattedData) {
       buffer.writeln(data);

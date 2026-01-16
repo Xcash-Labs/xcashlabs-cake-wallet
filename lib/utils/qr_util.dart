@@ -41,6 +41,8 @@ String getQrImage(WalletType type, {int? selectedChainId}) {
       return 'assets/images/dcr_chain_qr.svg';
     case WalletType.dogecoin:
       return 'assets/images/doge_chain_qr.svg';
+    case WalletType.zcash:
+      return 'assets/images/zec_icon_qr.svg';
     case WalletType.banano:
     case WalletType.haven:
     case WalletType.none:

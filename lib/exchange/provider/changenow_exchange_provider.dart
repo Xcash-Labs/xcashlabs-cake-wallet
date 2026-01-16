@@ -21,13 +21,8 @@ import 'package:cake_wallet/utils/exchange_provider_logger.dart';
 class ChangeNowExchangeProvider extends ExchangeProvider {
   ChangeNowExchangeProvider({required SettingsStore settingsStore})
       : _settingsStore = settingsStore,
-        _lastUsedRateId = '',
-        super(pairList: supportedPairs(_notSupported));
+        _lastUsedRateId = '';
 
-  static const List<CryptoCurrency> _notSupported = [
-    CryptoCurrency.zaddr,
-    CryptoCurrency.xhv,
-  ];
 
   static final apiKey =
       isMoneroOnly ? secrets.changeNowMoneroApiKey : secrets.changeNowCakeWalletApiKey;

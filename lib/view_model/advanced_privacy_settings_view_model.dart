@@ -57,6 +57,7 @@ abstract class AdvancedPrivacySettingsViewModelBase with Store {
       case WalletType.arbitrum:
       case WalletType.solana:
       case WalletType.tron:
+      case WalletType.zcash:
         return true;
 
       case WalletType.bitcoin:
@@ -103,6 +104,7 @@ abstract class AdvancedPrivacySettingsViewModelBase with Store {
         WalletType.wownero,
         WalletType.zano,
         WalletType.dogecoin,
+        WalletType.zcash,
       ].contains(type);
 
   @computed

@@ -15,9 +15,7 @@ import 'package:cw_core/crypto_currency.dart';
 import 'package:cake_wallet/utils/exchange_provider_logger.dart';
 
 class StealthExExchangeProvider extends ExchangeProvider {
-  StealthExExchangeProvider() : super(pairList: supportedPairs(_notSupported));
-
-  static const List<CryptoCurrency> _notSupported = [];
+  StealthExExchangeProvider();
 
   static final apiKey = secrets.stealthExBearerToken;
   static final _additionalFeePercent = double.tryParse(secrets.stealthExAdditionalFeePercent);

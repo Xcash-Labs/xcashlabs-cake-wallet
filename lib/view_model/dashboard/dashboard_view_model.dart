@@ -957,6 +957,7 @@ abstract class DashboardViewModelBase with Store {
         return true;
       case WalletType.zano:
       case WalletType.haven:
+      case WalletType.zcash:
       case WalletType.none:
         return false;
     }
@@ -1284,6 +1285,7 @@ abstract class DashboardViewModelBase with Store {
 
     if (wallet.chainId == 1 && tx.evmSignatureName == 'approval')
       return ' (${tx.evmSignatureName})';
+    
     return '';
   }
 

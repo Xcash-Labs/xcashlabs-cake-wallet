@@ -11,6 +11,7 @@ const zanoOutputPath = 'lib/zano/zano.dart';
 const decredOutputPath = 'lib/decred/decred.dart';
 const dogecoinOutputPath = 'lib/dogecoin/dogecoin.dart';
 const evmOutputPath = 'lib/evm/evm.dart';
+const zcashOutputPath = 'lib/zcash/zcash.dart';
 const walletTypesPath = 'lib/wallet_types.g.dart';
 const secureStoragePath = 'lib/core/secure_storage.dart';
 const pubspecDefaultPath = 'pubspec_default.yaml';
@@ -33,6 +34,7 @@ Future<void> main(List<String> args) async {
   final hasDogecoin = args.contains('${prefix}dogecoin');
   final hasBase = args.contains('${prefix}base');
   final hasArbitrum = args.contains('${prefix}arbitrum');
+  final hasZcash = args.contains('${prefix}zcash');
   final hasEVM = hasEthereum || hasPolygon || hasBase || hasArbitrum;
   final excludeFlutterSecureStorage = args.contains('${prefix}excludeFlutterSecureStorage');
 
@@ -48,6 +50,7 @@ Future<void> main(List<String> args) async {
   await generateDecred(hasDecred);
   await generateDogecoin(hasDogecoin);
   await generateEVM(hasEVM);
+  await generateZcash(hasZcash);
 
   await generatePubspec(
     hasMonero: hasMonero,
@@ -66,6 +69,7 @@ Future<void> main(List<String> args) async {
     hasDogecoin: hasDogecoin,
     hasBase: hasBase,
     hasArbitrum: hasArbitrum,
+    hasZcash: hasZcash,
   );
   await generateWalletTypes(
     hasMonero: hasMonero,
@@ -83,6 +87,7 @@ Future<void> main(List<String> args) async {
     hasDogecoin: hasDogecoin,
     hasBase: hasBase,
     hasArbitrum: hasArbitrum,
+    hasZcash: hasZcash,
   );
   await injectSecureStorage(!excludeFlutterSecureStorage);
 }
@@ -149,7 +154,7 @@ import 'package:mobx/mobx.dart';
 """;
   const bitcoinCwPart = "part 'cw_bitcoin.dart';";
   const bitcoinContent = """
-  
+
   class ElectrumSubAddress {
   ElectrumSubAddress({
     required this.id,
@@ -396,7 +401,7 @@ abstract class MoneroWalletDetails {
 
 abstract class Monero {
   MoneroAccountList getAccountList(Object wallet);
-  
+
   MoneroSubaddressList getSubaddressList(Object wallet);
 
   TransactionHistoryBase getTransactionHistory(Object wallet);
@@ -414,7 +419,7 @@ abstract class Monero {
   TransactionPriority deserializeMoneroTransactionPriority({required int raw});
   List<TransactionPriority> getTransactionPriorities();
   List<String> getMoneroWordList(String language);
-  
+
   List<Unspent> getUnspents(Object wallet);
   Future<void> updateUnspents(Object wallet);
 
@@ -603,7 +608,7 @@ abstract class WowneroWalletDetails {
 
 abstract class Wownero {
   WowneroAccountList getAccountList(Object wallet);
-  
+
   WowneroSubaddressList getSubaddressList(Object wallet);
 
   TransactionHistoryBase getTransactionHistory(Object wallet);
@@ -621,7 +626,7 @@ abstract class Wownero {
   TransactionPriority deserializeWowneroTransactionPriority({required int raw});
   List<TransactionPriority> getTransactionPriorities();
   List<String> getWowneroWordList(String language);
-  
+
   List<Unspent> getUnspents(Object wallet);
   Future<void> updateUnspents(Object wallet);
 
@@ -729,18 +734,21 @@ abstract class BitcoinCash {
   TransactionPriority getDefaultTransactionPriority();
 
   List<TransactionPriority> getTransactionPriorities();
-  
+
   TransactionPriority getBitcoinCashTransactionPrioritySlow();
 }
   """;
 
   const bitcoinCashEmptyDefinition = 'BitcoinCash? bitcoinCash;\n';
-  const bitcoinCashCWDefinition = 'BitcoinCash? bitcoinCash = CWBitcoinCash();\n';
+  const bitcoinCashCWDefinition =
+      'BitcoinCash? bitcoinCash = CWBitcoinCash();\n';
 
   final output = '$bitcoinCashCommonHeaders\n' +
       (hasImplementation ? '$bitcoinCashCWHeaders\n' : '\n') +
       (hasImplementation ? '$bitcoinCashCwPart\n\n' : '\n') +
-      (hasImplementation ? bitcoinCashCWDefinition : bitcoinCashEmptyDefinition) +
+      (hasImplementation
+          ? bitcoinCashCWDefinition
+          : bitcoinCashEmptyDefinition) +
       '\n' +
       bitcoinCashContent;
 
@@ -806,7 +814,7 @@ abstract class Nano {
     WalletInfo? walletInfo,
     String? passphrase,
   });
-  
+
   WalletCredentials createNanoRestoreWalletFromSeedCredentials({
     required String name,
     required String password,
@@ -875,7 +883,8 @@ abstract class NanoUtil {
   """;
 
   const nanoEmptyDefinition = 'Nano? nano;\nNanoUtil? nanoUtil;\n';
-  const nanoCWDefinition = 'Nano? nano = CWNano();\nNanoUtil? nanoUtil = CWNanoUtil();\n';
+  const nanoCWDefinition =
+      'Nano? nano = CWNano();\nNanoUtil? nanoUtil = CWNanoUtil();\n';
 
   final output = '$nanoCommonHeaders\n' +
       (hasImplementation ? '$nanoCWHeaders\n' : '\n') +
@@ -1023,7 +1032,7 @@ abstract class Tron {
   Future<void> addTronToken(WalletBase wallet, CryptoCurrency token, String contractAddress);
   Future<void> deleteTronToken(WalletBase wallet, CryptoCurrency token);
   Future<CryptoCurrency?> getTronToken(WalletBase wallet, String contractAddress);
-  
+
   double getTransactionAmountRaw(TransactionInfo transactionInfo);
   CryptoCurrency assetOfTransaction(WalletBase wallet, TransactionInfo transaction);
   String getTokenAddress(CryptoCurrency asset);
@@ -1031,7 +1040,7 @@ abstract class Tron {
 
   String? getTronNativeEstimatedFee(WalletBase wallet);
   String? getTronTRC20EstimatedFee(WalletBase wallet);
-  
+
   void updateTronGridUsageState(WalletBase wallet, bool isEnabled);
   List<String> getDefaultTokenContractAddresses();
   bool isTokenAlreadyAdded(WalletBase wallet, String contractAddress);
@@ -1498,6 +1507,104 @@ class ChainInfo {
   await outputFile.writeAsString(output);
 }
 
+Future<void> generateZcash(bool hasImplementation) async {
+  final outputFile = File(zcashOutputPath);
+  const zcashCommonHeaders = """
+import 'package:cake_wallet/view_model/send/output.dart';
+import 'package:cw_core/balance.dart';
+import 'package:cw_core/crypto_amount_format.dart';
+import 'package:cw_core/crypto_currency.dart';
+import 'package:cw_core/output_info.dart';
+import 'package:cw_core/transaction_history.dart';
+import 'package:cw_core/transaction_info.dart';
+import 'package:cw_core/transaction_priority.dart';
+import 'package:cw_core/monero_transaction_priority.dart';
+import 'package:cw_core/wallet_base.dart';
+import 'package:cw_core/wallet_credentials.dart';
+import 'package:cw_core/wallet_info.dart';
+import 'package:cw_core/wallet_service.dart';
+import 'package:cw_core/receive_page_option.dart';
+
+""";
+  const zcashCWHeaders = """
+import 'package:cw_zcash/cw_zcash.dart';
+import 'package:cw_zcash/src/zcash_wallet_addresses.dart';
+
+""";
+  const zcashCwPart = "part 'cw_zcash.dart';";
+  const zcashContent = """
+abstract class Zcash {
+  List<String> getZcashWordList(String language);
+  WalletService createZcashWalletService(bool isDirect);
+  WalletCredentials createZcashNewWalletCredentials(
+      {required String name,
+      WalletInfo? walletInfo,
+      String? password,
+      String? mnemonic,
+      required String? passphrase});
+  WalletCredentials createZcashRestoreWalletFromSeedCredentials(
+      {required String name,
+      required String mnemonic,
+      required String password,
+      String? passphrase,
+      required int? height});
+  WalletCredentials createZcashRestoreWalletFromPrivateKey(
+      {required String name, required String privateKey, required String password});
+  String getAddress(WalletBase wallet);
+  String getPrivateKey(WalletBase wallet);
+  String getPublicKey(WalletBase wallet);
+  Map<String, String> getKeys(Object wallet);
+
+  Object createZcashTransactionCredentials(
+    List<Output> outputs, {
+    required CryptoCurrency currency,
+    int? feeRate,
+  });
+
+  Object createZcashTransactionCredentialsRaw(
+    List<OutputInfo> outputs, {
+    required CryptoCurrency currency,
+    required int feeRate,
+  });
+
+  int formatterZcashParseAmount(String amount);
+  double formatterZcashAmountToDouble({TransactionInfo? transaction, BigInt? amount});
+  String formatterZcashAmountToString({required int amount});
+
+  List<WalletInfoAddressInfo> getAddressInfos(Object wallet);
+
+  TransactionPriority getDefaultTransactionPriority();
+  TransactionPriority getZcashTransactionPriorityAutomatic();
+  TransactionPriority deserializeZcashTransactionPriority({required int raw});
+  List<TransactionPriority> getTransactionPriorities();
+  List<ReceivePageOption> getZcashReceivePageOptions(Object wallet);
+  ReceivePageOption getSelectedAddressType(Object wallet);
+  ZcashAddressType getZcashAddressType(ReceivePageOption option);
+  Future<void> setAddressType(Object wallet, dynamic option);
+  ZcashAddressType getOptionToType(ReceivePageOption option);
+  void unlockDatabase(String password);
+  Future<int> getHeightByDate(DateTime date);
+}
+
+  """;
+
+  const zcashEmptyDefinition = 'Zcash? zcash;\n';
+  const zcashCWDefinition = 'Zcash? zcash = CWZcash();\n';
+
+  final output = '$zcashCommonHeaders\n' +
+      (hasImplementation ? '$zcashCWHeaders\n' : '\n') +
+      (hasImplementation ? '$zcashCwPart\n\n' : '\n') +
+      (hasImplementation ? zcashCWDefinition : zcashEmptyDefinition) +
+      '\n' +
+      zcashContent;
+
+  if (outputFile.existsSync()) {
+    await outputFile.delete();
+  }
+
+  await outputFile.writeAsString(output);
+}
+
 Future<void> generatePubspec({
   required bool hasMonero,
   required bool hasBitcoin,
@@ -1515,6 +1622,7 @@ Future<void> generatePubspec({
   required bool hasDogecoin,
   required bool hasBase,
   required bool hasArbitrum,
+  required bool hasZcash,
 }) async {
   const cwCore = """
   cw_core:
@@ -1575,12 +1683,18 @@ Future<void> generatePubspec({
   cw_dogecoin:
       path: ./cw_dogecoin
   """;
+  const cwZcash = """
+  cw_zcash:
+      path: ./cw_zcash
+  """;
+
   final inputFile = File(pubspecOutputPath);
   final inputText = await inputFile.readAsString();
   final inputLines = inputText.split('\n');
   final dependenciesIndex = inputLines.indexWhere((line) => Platform.isWindows
       // On Windows it could contains `\r` (Carriage Return). It could be fixed in newer dart versions.
-      ? line.toLowerCase() == 'dependencies:\r' || line.toLowerCase() == 'dependencies:'
+      ? line.toLowerCase() == 'dependencies:\r' ||
+          line.toLowerCase() == 'dependencies:'
       : line.toLowerCase() == 'dependencies:');
   var output = cwCore;
 
@@ -1636,6 +1750,10 @@ Future<void> generatePubspec({
     output += '\n$cwDogecoin';
   }
 
+  if (hasZcash) {
+    output += '\n$cwZcash';
+  }
+
   final outputLines = output.split('\n');
   inputLines.insertAll(dependenciesIndex + 1, outputLines);
   final outputContent = inputLines.join('\n');
@@ -1664,6 +1782,7 @@ Future<void> generateWalletTypes({
   required bool hasDogecoin,
   required bool hasBase,
   required bool hasArbitrum,
+  required bool hasZcash,
 }) async {
   final walletTypesFile = File(walletTypesPath);
 
@@ -1687,12 +1806,28 @@ Future<void> generateWalletTypes({
     outputContent += '\tWalletType.ethereum,\n';
   }
 
-  if (hasBitcoin) {
-    outputContent += '\tWalletType.litecoin,\n';
+  if (hasSolana) {
+    outputContent += '\tWalletType.solana,\n';
+  }
+
+  if (hasTron) {
+    outputContent += '\tWalletType.tron,\n';
   }
 
   if (hasDogecoin) {
     outputContent += '\tWalletType.dogecoin,\n';
+  }
+
+  if (hasBitcoinCash) {
+    outputContent += '\tWalletType.bitcoinCash,\n';
+  }
+
+  if (hasZcash) {
+    outputContent += '\tWalletType.zcash,\n';
+  }
+
+  if (hasBitcoin) {
+    outputContent += '\tWalletType.litecoin,\n';
   }
 
   if (hasBase) {
@@ -1703,24 +1838,16 @@ Future<void> generateWalletTypes({
     outputContent += '\tWalletType.arbitrum,\n';
   }
 
-  if (hasBitcoinCash) {
-    outputContent += '\tWalletType.bitcoinCash,\n';
-  }
-
   if (hasPolygon) {
     outputContent += '\tWalletType.polygon,\n';
   }
 
-  if (hasSolana) {
-    outputContent += '\tWalletType.solana,\n';
-  }
-
-  if (hasTron) {
-    outputContent += '\tWalletType.tron,\n';
-  }
-
   if (hasNano) {
     outputContent += '\tWalletType.nano,\n';
+  }
+
+  if (hasDecred) {
+    outputContent += '\tWalletType.decred,\n';
   }
 
   if (hasZano) {
@@ -1729,10 +1856,6 @@ Future<void> generateWalletTypes({
 
   if (hasBanano) {
     outputContent += '\tWalletType.banano,\n';
-  }
-
-  if (hasDecred) {
-    outputContent += '\tWalletType.decred,\n';
   }
 
   // if (hasWownero) {
@@ -1769,7 +1892,7 @@ class DefaultSecureStorage extends SecureStorage {
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   ));
-   
+
   final FlutterSecureStorage _secureStorage;
 
   @override
@@ -1787,7 +1910,7 @@ class DefaultSecureStorage extends SecureStorage {
 
   @override
   Future<void> delete({required String key}) async => _secureStorage.delete(key: key);
-  
+
   @override
   Future<void> deleteAll() async => _secureStorage.deleteAll();
 

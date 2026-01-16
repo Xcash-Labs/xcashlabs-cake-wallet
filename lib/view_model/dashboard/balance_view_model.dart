@@ -320,6 +320,7 @@ abstract class BalanceViewModelBase with Store {
       case WalletType.wownero:
       case WalletType.zano:
       case WalletType.decred:
+      case WalletType.zcash:
         return true;
       default:
         return false;

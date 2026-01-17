@@ -17,28 +17,15 @@ import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/utils/proxy_wrapper.dart';
 
 class JupiterExchangeProvider extends ExchangeProvider {
-  JupiterExchangeProvider() : super(pairList: _getSupportedPairs());
+  JupiterExchangeProvider();
 
   // Jupiter only supports Solana tokens
   static const List<CryptoCurrency> _notSupported = [];
 
-  static List<ExchangePair> _getSupportedPairs() {
-    // Only support Solana and Solana tokens
-    final solanaCurrencies = CryptoCurrency.all
+  static final List<CryptoCurrency> _supportedCurrencies = CryptoCurrency.all
         .where((c) => c.tag == 'SOL' || c == CryptoCurrency.sol)
         .where((c) => !_notSupported.contains(c))
         .toList();
-
-    final pairs = <ExchangePair>[];
-    for (final from in solanaCurrencies) {
-      for (final to in solanaCurrencies) {
-        if (from != to) {
-          pairs.add(ExchangePair(from: from, to: to, reverse: true));
-        }
-      }
-    }
-    return pairs;
-  }
 
   static const _baseUrl = 'api.jup.ag';
   static const _orderPath = '/ultra/v1/order';
@@ -148,6 +135,10 @@ class JupiterExchangeProvider extends ExchangeProvider {
     required bool isReceiveAmount,
   }) async {
     try {
+      // must support both
+      if (!_supportedCurrencies.contains(from) || !_supportedCurrencies.contains(to)) {
+        return 0.0;
+      }
       final inputMint = _getTokenMint(from);
       final outputMint = _getTokenMint(to);
 
@@ -235,6 +226,12 @@ class JupiterExchangeProvider extends ExchangeProvider {
     required bool isSendAll,
   }) async {
     try {
+      // must support both
+      if (!_supportedCurrencies.contains(request.fromCurrency) ||
+          !_supportedCurrencies.contains(request.toCurrency)) {
+        throw "not supported currencies";
+      }
+
       final inputMint = _getTokenMint(request.fromCurrency);
       final outputMint = _getTokenMint(request.toCurrency);
 

@@ -213,7 +213,7 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
       ].contains(wallet.type);
 
   bool get hideAddressAfterExchange =>
-      [WalletType.monero, WalletType.wownero].contains(wallet.type);
+      [WalletType.monero, WalletType.wownero, WalletType.zcash].contains(wallet.type);
 
   bool _useTorOnly;
   final Box<Trade> trades;

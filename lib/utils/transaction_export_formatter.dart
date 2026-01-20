@@ -361,10 +361,8 @@ class TransactionExportFormatter {
     String recipientAddress,
   ) {
     try {
-
       final dynamic solanaProp = tx;
       final amount = solanaProp.amountFormatted();
-      final height = tx.height.toString();
       final txId = tx.txHash.toString();
       final fee = solanaProp.feeFormatted().toString();
       final note = solanaProp.note?.toString() ?? '';
@@ -549,44 +547,7 @@ class TransactionExportFormatter {
       // If tokenSymbol property doesn't exist or throws error, fall through to default
     }
 
+    return walletType.toString();
     // Return wallet's default currency symbol for wallets without multi-token support
-    switch (walletType) {
-      case WalletType.monero:
-        return 'XMR';
-      case WalletType.bitcoin:
-        return 'BTC';
-      case WalletType.litecoin:
-        return 'LTC';
-      case WalletType.haven:
-        return 'XHV';
-      case WalletType.ethereum:
-        return 'ETH';
-      case WalletType.bitcoinCash:
-        return 'BCH';
-      case WalletType.nano:
-        return 'NANO';
-      case WalletType.banano:
-        return 'BAN';
-      case WalletType.polygon:
-        return 'MATIC';
-      case WalletType.solana:
-        return 'SOL';
-      case WalletType.tron:
-        return 'TRX';
-      case WalletType.wownero:
-        return 'WOW';
-      case WalletType.zano:
-        return 'ZANO';
-      case WalletType.arbitrum:
-        return 'ETH';
-      case WalletType.base:
-        return 'ETH';
-      case WalletType.dogecoin:
-        return 'DOGE';
-      case WalletType.decred:
-        return 'DCR';
-      default:
-        return 'UNKNOWN';
-    }
   }
 }

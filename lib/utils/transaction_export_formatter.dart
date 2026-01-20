@@ -111,20 +111,20 @@ class TransactionExportData {
     switch (walletType) {
       case WalletType.monero:
         headerString =
-            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
+            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Recipient Address,Note,Explorer Link';
       case WalletType.dogecoin:
       case WalletType.bitcoin:
       case WalletType.litecoin:
       case WalletType.bitcoinCash:
         headerString =
-            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Fee,Recipient Address,Explorer Link';
+            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Fee,Recipient Address,Note,Explorer Link';
       case WalletType.solana:
       case WalletType.ethereum:
         headerString =
-            'Timestamp,Amount,Received/Sent,Transaction ID,Fee,Recipient Address,Explorer Link';
+            'Timestamp,Amount,Received/Sent,Transaction ID,Fee,Recipient Address,Note,Explorer Link';
       default:
         headerString =
-            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Fee,Recipient Address,Explorer Link';
+            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Recipient Address,Note,Explorer Link';
     }
     return headerString;
   }
@@ -213,6 +213,7 @@ class TransactionExportFormatter {
       final amount = tx.amountFormatted().toString();
       final txId = tx.txHash.toString();
       final fee = moneroProp.feeFormatted();
+      final note = moneroProp.note?.toString() ?? '';
       if (moneroProp.recipientAddress != null &&
           moneroProp.recipientAddress.toString().isNotEmpty) {
         recipientAddress = moneroProp.recipientAddress.toString();
@@ -226,6 +227,7 @@ class TransactionExportFormatter {
         _escapeCsvField(fee.toString()),
         _escapeCsvField(txId),
         _escapeCsvField(recipientAddress),
+        _escapeCsvField(note),
         _escapeCsvField(explorerLink),
       ].join("','");
 
@@ -234,51 +236,6 @@ class TransactionExportFormatter {
     } catch (e) {
       printV(e);
       // rethrow;
-      return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
-    }
-  }
-
-  /// Formats Wownero transaction (similar to Monero)
-  static String _formatWowneroTransaction(
-    TransactionInfo tx,
-    String timestamp,
-    String type,
-    String recipientAddress,
-  ) {
-    // throw UnimplementedError("TODO: Implement Wownero transaction formatting");
-    try {
-      final dynamic wowneroProp = tx;
-
-      final amount = tx.amountFormatted().toString();
-      final height = tx.height.toString();
-      final txId = tx.txHash.toString();
-      final fee = wowneroProp.feeFormatted().toString();
-      final subwalletNumber = wowneroProp.addressIndex.toString();
-      final key = wowneroProp.key.toString();
-      // final note = wowneroProp.note?.toString() ?? '';
-      // Override recipient address if available in tx
-      if (wowneroProp.recipientAddress != null &&
-          wowneroProp.recipientAddress.toString().isNotEmpty) {
-        recipientAddress = wowneroProp.recipientAddress.toString();
-      }
-
-      final explorerLink = 'https://explore.wownero.com/tx/$txId';
-      final formattedData = [
-        _escapeCsvField(timestamp),
-        _escapeCsvField(amount),
-        _escapeCsvField(type),
-        _escapeCsvField(height),
-        _escapeCsvField(txId),
-        _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
-        _escapeCsvField(recipientAddress),
-        _escapeCsvField(explorerLink),
-      ].join("','");
-
-      var formattedString = "'" + formattedData + "'";
-      return formattedString;
-    } catch (e) {
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -295,13 +252,13 @@ class TransactionExportFormatter {
       final dynamic electrumProp = tx;
 
       final amount = tx.amountFormatted().toString();
-      final height = tx.height.toString();
       final txId = tx.txHash.toString();
       final fee = electrumProp.feeFormatted().toString();
       // Try to get recipient from transaction
       if (electrumProp.to != null && electrumProp.to.toString().isNotEmpty) {
         recipientAddress = electrumProp.to.toString();
       }
+      final note = electrumProp.note?.toString() ?? '';
 
       String explorerLink = 'N/A';
       switch (walletType) {
@@ -325,10 +282,10 @@ class TransactionExportFormatter {
         _escapeCsvField(timestamp),
         _escapeCsvField(amount),
         _escapeCsvField(type),
-        _escapeCsvField(height),
-        _escapeCsvField(txId),
         _escapeCsvField(fee.toString()),
+        _escapeCsvField(txId),
         _escapeCsvField(recipientAddress),
+        _escapeCsvField(note),
         _escapeCsvField(explorerLink),
       ].join("','");
 
@@ -351,9 +308,9 @@ class TransactionExportFormatter {
       final dynamic evmProp = tx;
 
       final amount = evmProp.amountFormatted();
-      final height = tx.height.toString();
       final txId = tx.id;
       final fee = evmProp.feeFormatted().toString() ?? 'N/A';
+      final note = evmProp.note?.toString() ?? '';
 
       if (evmProp.to != null && evmProp.to.toString().isNotEmpty) {
         recipientAddress = evmProp.to.toString();
@@ -384,6 +341,7 @@ class TransactionExportFormatter {
         _escapeCsvField(txId),
         _escapeCsvField(fee.toString()),
         _escapeCsvField(recipientAddress),
+        _escapeCsvField(note),
         _escapeCsvField(explorerLink),
       ].join("','");
 
@@ -409,6 +367,7 @@ class TransactionExportFormatter {
       final height = tx.height.toString();
       final txId = tx.txHash.toString();
       final fee = solanaProp.feeFormatted().toString();
+      final note = solanaProp.note?.toString() ?? '';
       var to = '';
       if (solanaProp.to != null && solanaProp.to.toString().isNotEmpty) {
         to = solanaProp.to.toString();
@@ -423,6 +382,7 @@ class TransactionExportFormatter {
         _escapeCsvField(txId),
         _escapeCsvField(fee),
         _escapeCsvField(to),
+        _escapeCsvField(note),
         _escapeCsvField(explorerLink),
       ].join("','");
 
@@ -444,11 +404,9 @@ class TransactionExportFormatter {
     try {
       final dynamic tronProp = tx;
       final amount = tx.amountFormatted().toString();
-      final height = tx.height.toString();
       final txId = tx.txHash.toString();
       final fee = tronProp.feeFormatted().toString();
-      final subwalletNumber = tronProp.addressIndex.toString();
-      final key = tronProp.key.toString();
+      final note = tronProp.note?.toString() ?? '';
       if (tronProp.recipientAddress != null && tronProp.recipientAddress.toString().isNotEmpty) {
         recipientAddress = tronProp.recipientAddress.toString();
       }
@@ -458,13 +416,10 @@ class TransactionExportFormatter {
         _escapeCsvField(timestamp),
         _escapeCsvField(amount),
         _escapeCsvField(type),
-        _escapeCsvField(height),
-        //_escapeCsvField(note),
-        _escapeCsvField(txId),
         _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
+        _escapeCsvField(txId),
         _escapeCsvField(recipientAddress),
+        _escapeCsvField(note),
         _escapeCsvField(explorerLink),
       ].join("','");
 
@@ -472,45 +427,6 @@ class TransactionExportFormatter {
       return formattedString;
     } catch (e) {
       // rethrow;
-      return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
-    }
-  }
-
-  /// Formats Nano transaction
-  static String _formatNanoTransaction(
-    TransactionInfo tx,
-    String timestamp,
-    String type,
-    String recipientAddress,
-  ) {
-    try {
-      // final dynamic nanoProp = tx;
-
-      // final amount = nanoProp.amountFormatted?.toString() ?? 'N/A';
-      // final height = nanoProp.height?.toString() ?? 'N/A';
-      // final confirmations = nanoProp.confirmed == true ? '1' : '0';
-      // final txId = tx.id;
-
-      // if (nanoProp.to != null && nanoProp.to.toString().isNotEmpty) {
-      //   recipientAddress = nanoProp.to.toString();
-      // }
-
-      // final explorerLink = 'https://nanolooker.com/block/$txId';
-
-      // return TransactionExportData(
-      //   timestamp: timestamp,
-      //   amount: amount,
-      //   type: type,
-      //   height: height,
-      //   confirmations: confirmations,
-      //   txId: txId,
-      //   subwalletNumber: 'N/A',
-      //   key: 'N/A',
-      //   recipientAddress: recipientAddress,
-      //   explorerLink: explorerLink,
-      // );
-      throw UnimplementedError();
-    } catch (e) {
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -529,8 +445,7 @@ class TransactionExportFormatter {
       final height = tx.height.toString();
       final txId = tx.txHash.toString();
       final fee = decredProp.feeFormatted().toString();
-      final subwalletNumber = decredProp.addressIndex.toString();
-      final key = decredProp.key.toString();
+      final note = decredProp.note?.toString() ?? '';
       if (decredProp.recipientAddress != null &&
           decredProp.recipientAddress.toString().isNotEmpty) {
         recipientAddress = decredProp.recipientAddress.toString();
@@ -545,6 +460,7 @@ class TransactionExportFormatter {
         _escapeCsvField(txId),
         _escapeCsvField(fee),
         _escapeCsvField(recipientAddress),
+        _escapeCsvField(note),
         _escapeCsvField(explorerLink),
       ].join("','");
 
@@ -570,6 +486,7 @@ class TransactionExportFormatter {
       final height = tx.height.toString();
       final txId = tx.txHash.toString();
       final fee = genericProp.feeFormatted().toString();
+      final note = genericProp.note?.toString() ?? '';
       final recipientAddress = tx.to;
 
       final explorerLink = 'N/A';
@@ -582,6 +499,7 @@ class TransactionExportFormatter {
         _escapeCsvField(txId),
         _escapeCsvField(fee),
         _escapeCsvField(recipientAddress!),
+        _escapeCsvField(note),
         _escapeCsvField(explorerLink),
       ].join("','");
 

@@ -83,12 +83,7 @@ class HeaderRow extends StatelessWidget {
                               rightButtonText: S.of(context).save,
                               actionLeftButton: () async {
                                 Navigator.of(context).pop();
-                                final swapData = await dashboardViewModel.exportSwaps() as String;
-                                final transactionData =
-                                    await dashboardViewModel.exportTransactionsAsCSV();
-                                // We need to combine the two CSV data strings into one unified CSV string for sharing
-
-                                final combinedData = transactionData + swapData;
+                                final combinedData = await dashboardViewModel.exportCombinedHistory();
 
                                 ShareUtil.share(
                                   text: combinedData,
@@ -97,12 +92,7 @@ class HeaderRow extends StatelessWidget {
                               },
                               actionRightButton: () async {
                                 Navigator.of(context).pop();
-                                final swapData = await dashboardViewModel.exportSwaps() as String;
-                                final transactionData =
-                                    await dashboardViewModel.exportTransactionsAsCSV();
-                                // We need to combine the two CSV data strings into one unified CSV string for sharing
-
-                                final combinedData = transactionData + swapData;
+                                final combinedData = await dashboardViewModel.exportCombinedHistory();
 
                                 final now = DateTime.now();
                                 final formatter = DateFormat('yyyy-MM-dd_HHmm');

@@ -1273,26 +1273,24 @@ abstract class DashboardViewModelBase with Store {
   }
 
   @action
-  Future<void> exportToClipboard(BuildContext context) async {
-    if (isExporting) return;
-
+  Future<String> exportCombinedHistory() async {
     try {
       isExporting = true;
-      await ExportHistoryService.exportToClipboard(
+      final csvContent = ExportHistoryService.generateCombinedCSV(
         wallet: wallet,
         tradesStore: tradesStore,
-        context: context,
       );
+      return csvContent;
     } catch (e) {
-      printV('Error copying to clipboard: $e');
+      printV('Error exporting combined history: $e');
       Fluttertoast.showToast(
         msg: 'Export failed: ${e.toString()}',
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
       );
+      return '';
     } finally {
       isExporting = false;
-      return;
     }
   }
 }

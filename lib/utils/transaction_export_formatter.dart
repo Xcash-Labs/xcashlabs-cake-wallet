@@ -70,8 +70,6 @@ class TransactionExportData {
       _escapeCsvField(type),
       _escapeCsvField(height),
       _escapeCsvField(confirmations),
-      _escapeCsvField(subwalletNumber),
-      _escapeCsvField(key),
       _escapeCsvField(recipientAddress),
       _escapeCsvField(explorerLink),
       "\n"
@@ -89,8 +87,6 @@ class TransactionExportData {
       'type': type,
       'height': height,
       'confirmations': confirmations,
-      'subwalletNumber': subwalletNumber,
-      'key': key,
       'recipientAddress': recipientAddress,
       'explorerLink': explorerLink,
     };
@@ -109,22 +105,26 @@ class TransactionExportData {
     return field;
   }
 
-  /// Returns generic CSV header row
+  /// Returns CSV header row
   static String csvHeader({WalletType? walletType}) {
     var headerString = '';
     switch (walletType) {
       case WalletType.monero:
         headerString =
-            'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
+            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
       case WalletType.dogecoin:
       case WalletType.bitcoin:
       case WalletType.litecoin:
       case WalletType.bitcoinCash:
         headerString =
-            'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Recipient Address,Explorer Link';
+            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Fee,Recipient Address,Explorer Link';
+      case WalletType.solana:
+      case WalletType.ethereum:
+        headerString =
+            'Timestamp,Amount,Received/Sent,Transaction ID,Fee,Recipient Address,Explorer Link';
       default:
         headerString =
-            'Timestamp,Amount,Type,Fee,Block Height,Transaction ID,Fee,Subwallet Number,Key,Recipient Address,Explorer Link';
+            'Timestamp,Amount,Received/Sent,Fee,Transaction ID,Fee,Recipient Address,Explorer Link';
     }
     return headerString;
   }
@@ -153,7 +153,6 @@ class TransactionExportFormatter {
     try {
       // Format timestamp
       final timestamp = _dateFormat.format(tx.date);
-      final timeString = '"$timestamp';
       // Format transaction type
       final type = tx.direction == TransactionDirection.incoming ? 'Received' : 'Sent';
 
@@ -169,26 +168,23 @@ class TransactionExportFormatter {
       // Extract wallet-type-specific fields
       switch (walletType) {
         case WalletType.monero:
-          return _formatMoneroTransaction(tx, timestamp, type, recipientAddress);
         case WalletType.wownero:
-          return _formatWowneroTransaction(tx, timestamp, type, recipientAddress);
+        case WalletType.nano:
+          return _formatMoneroTransaction(tx, timestamp, type, recipientAddress);
         case WalletType.bitcoin:
         case WalletType.litecoin:
         case WalletType.bitcoinCash:
         case WalletType.dogecoin:
           return _formatElectrumTransaction(tx, timestamp, type, recipientAddress, walletType);
-        case WalletType.ethereum:
         case WalletType.polygon:
         case WalletType.arbitrum:
         case WalletType.base:
+        case WalletType.ethereum:
           return _formatEVMTransaction(tx, timestamp, type, recipientAddress, walletType);
         case WalletType.solana:
           return _formatSolanaTransaction(tx, timestamp, type, recipientAddress);
         case WalletType.tron:
           return _formatTronTransaction(tx, timestamp, type, recipientAddress);
-        case WalletType.nano:
-        case WalletType.banano:
-          return _formatNanoTransaction(tx, timestamp, type, recipientAddress);
         case WalletType.decred:
           return _formatDecredTransaction(tx, timestamp, type, recipientAddress);
         default:
@@ -214,16 +210,9 @@ class TransactionExportFormatter {
     try {
       final dynamic moneroProp = tx;
 
-      //final amount = moneroProp.amount?.toString() ?? 'N/A';
       final amount = tx.amountFormatted().toString();
-      final height = tx.height.toString();
-      //final confirmations = moneroProp.confirmations?.toString() ?? 'N/A';
       final txId = tx.txHash.toString();
-      final fee = moneroProp.feeFormatted().toString();
-      final subwalletNumber = moneroProp.addressIndex.toString();
-      final key = moneroProp.key.toString();
-      //final note = moneroProp.note?.toString() ?? '';
-      // Override recipient address if available in Monero tx
+      final fee = moneroProp.feeFormatted();
       if (moneroProp.recipientAddress != null &&
           moneroProp.recipientAddress.toString().isNotEmpty) {
         recipientAddress = moneroProp.recipientAddress.toString();
@@ -234,12 +223,8 @@ class TransactionExportFormatter {
         _escapeCsvField(timestamp),
         _escapeCsvField(amount),
         _escapeCsvField(type),
-        _escapeCsvField(height),
-        //_escapeCsvField(note),
+        _escapeCsvField(fee.toString()),
         _escapeCsvField(txId),
-        _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
         _escapeCsvField(recipientAddress),
         _escapeCsvField(explorerLink),
       ].join("','");
@@ -247,6 +232,7 @@ class TransactionExportFormatter {
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
+      printV(e);
       // rethrow;
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
@@ -282,7 +268,6 @@ class TransactionExportFormatter {
         _escapeCsvField(amount),
         _escapeCsvField(type),
         _escapeCsvField(height),
-        //_escapeCsvField(note),
         _escapeCsvField(txId),
         _escapeCsvField(fee),
         _escapeCsvField(subwalletNumber),
@@ -309,13 +294,10 @@ class TransactionExportFormatter {
     try {
       final dynamic electrumProp = tx;
 
-      final amount = tx.amountFormatted().toString() ?? 'N/A';
-      final height = tx.height.toString() ?? 'N/A';
-      // final confirmations = tx.confirmations?.toString() ?? 'N/A';
+      final amount = tx.amountFormatted().toString();
+      final height = tx.height.toString();
       final txId = tx.txHash.toString();
       final fee = electrumProp.feeFormatted().toString();
-      final subwalletNumber = 'N/A';
-      // final note = electrumProp.note?.toString() ?? '';
       // Try to get recipient from transaction
       if (electrumProp.to != null && electrumProp.to.toString().isNotEmpty) {
         recipientAddress = electrumProp.to.toString();
@@ -344,10 +326,8 @@ class TransactionExportFormatter {
         _escapeCsvField(amount),
         _escapeCsvField(type),
         _escapeCsvField(height),
-        //_escapeCsvField(note),
         _escapeCsvField(txId),
-        _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
+        _escapeCsvField(fee.toString()),
         _escapeCsvField(recipientAddress),
         _escapeCsvField(explorerLink),
       ].join("','");
@@ -370,17 +350,13 @@ class TransactionExportFormatter {
     try {
       final dynamic evmProp = tx;
 
-      final amount = tx.amountFormatted().toString();
+      final amount = evmProp.amountFormatted();
       final height = tx.height.toString();
-      //final confirmations = tx.confirmations?.toString() ?? 'N/A';
       final txId = tx.id;
-      // final note = tx.note?.toString() ?? '';
-      final fee = evmProp.feeFormatted?.toString() ?? 'N/A';
-      final subwalletNumber = evmProp.addressIndex.toString();
-      final key = evmProp.key.toString();
+      final fee = evmProp.feeFormatted().toString() ?? 'N/A';
 
       if (evmProp.to != null && evmProp.to.toString().isNotEmpty) {
-        recipientAddress = evmProp.recipientAddress.toString();
+        recipientAddress = evmProp.to.toString();
       }
 
       String explorerLink = 'N/A';
@@ -403,14 +379,10 @@ class TransactionExportFormatter {
 
       final formattedData = [
         _escapeCsvField(timestamp),
-        _escapeCsvField(amount),
+        _escapeCsvField(amount.toString()),
         _escapeCsvField(type),
-        _escapeCsvField(height),
-        //_escapeCsvField(note),
         _escapeCsvField(txId),
-        _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
+        _escapeCsvField(fee.toString()),
         _escapeCsvField(recipientAddress),
         _escapeCsvField(explorerLink),
       ].join("','");
@@ -418,6 +390,7 @@ class TransactionExportFormatter {
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
+      printV(e);
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -430,40 +403,33 @@ class TransactionExportFormatter {
     String recipientAddress,
   ) {
     try {
-      final dynamic solanaProp = tx;
 
-      final amount = tx.amountFormatted().toString();
+      final dynamic solanaProp = tx;
+      final amount = solanaProp.amountFormatted();
       final height = tx.height.toString();
-      //final confirmations = moneroProp.confirmations?.toString() ?? 'N/A';
       final txId = tx.txHash.toString();
       final fee = solanaProp.feeFormatted().toString();
-      final subwalletNumber = solanaProp.addressIndex.toString();
-      final key = solanaProp.key.toString();
-
-      if (solanaProp.recipientAddress != null &&
-          solanaProp.recipientAddress.toString().isNotEmpty) {
-        recipientAddress = solanaProp.recipientAddress.toString();
+      var to = '';
+      if (solanaProp.to != null && solanaProp.to.toString().isNotEmpty) {
+        to = solanaProp.to.toString();
       }
 
       final explorerLink = 'https://explorer.solana.com/tx/$txId';
 
       final formattedData = [
         _escapeCsvField(timestamp),
-        _escapeCsvField(amount),
+        _escapeCsvField(amount.toString()),
         _escapeCsvField(type),
-        _escapeCsvField(height),
-        //_escapeCsvField(note),
         _escapeCsvField(txId),
         _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
-        _escapeCsvField(recipientAddress),
+        _escapeCsvField(to),
         _escapeCsvField(explorerLink),
       ].join("','");
 
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
+      printV("KB: $e");
       return _formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
@@ -479,12 +445,10 @@ class TransactionExportFormatter {
       final dynamic tronProp = tx;
       final amount = tx.amountFormatted().toString();
       final height = tx.height.toString();
-      //final confirmations = moneroProp.confirmations?.toString() ?? 'N/A';
       final txId = tx.txHash.toString();
       final fee = tronProp.feeFormatted().toString();
       final subwalletNumber = tronProp.addressIndex.toString();
       final key = tronProp.key.toString();
-      //final note = tronProp.note?.toString() ?? '';
       if (tronProp.recipientAddress != null && tronProp.recipientAddress.toString().isNotEmpty) {
         recipientAddress = tronProp.recipientAddress.toString();
       }
@@ -578,11 +542,8 @@ class TransactionExportFormatter {
         _escapeCsvField(amount),
         _escapeCsvField(type),
         _escapeCsvField(height),
-        //_escapeCsvField(note),
         _escapeCsvField(txId),
         _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
         _escapeCsvField(recipientAddress),
         _escapeCsvField(explorerLink),
       ].join("','");
@@ -605,43 +566,31 @@ class TransactionExportFormatter {
 
     try {
       final dynamic genericProp = tx;
-
-      //final amount = genericProp.amount?.toString() ?? 'N/A';
-      final amount = tx.amountFormatted().toString();
+      final amount = tx.amountFormatted();
       final height = tx.height.toString();
-      //final confirmations = genericProp.confirmations?.toString() ?? 'N/A';
       final txId = tx.txHash.toString();
       final fee = genericProp.feeFormatted().toString();
-      final subwalletNumber = genericProp.addressIndex.toString();
-      final key = genericProp.key.toString();
-      //final note = genericProp.note?.toString() ?? '';
-      // Override recipient address if available in generic tx
-      if (genericProp.recipientAddress != null &&
-          genericProp.recipientAddress.toString().isNotEmpty) {
-        recipientAddress = genericProp.recipientAddress.toString();
-      }
+      final recipientAddress = tx.to;
 
       final explorerLink = 'N/A';
 
       final formattedData = [
         _escapeCsvField(timestamp),
-        _escapeCsvField(amount),
+        _escapeCsvField(amount.toString()),
         _escapeCsvField(type),
         _escapeCsvField(height),
-        //_escapeCsvField(note),
         _escapeCsvField(txId),
         _escapeCsvField(fee),
-        _escapeCsvField(subwalletNumber),
-        _escapeCsvField(key),
-        _escapeCsvField(recipientAddress),
+        _escapeCsvField(recipientAddress!),
         _escapeCsvField(explorerLink),
       ].join("','");
 
       var formattedString = "'" + formattedData + "'";
       return formattedString;
     } catch (e) {
-      // rethrow;
-      return "Not implemented yet";
+      printV(e);
+      rethrow;
+      //_formatGenericTransaction(tx, timestamp, type, recipientAddress);
     }
   }
 
@@ -664,6 +613,62 @@ class TransactionExportFormatter {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Extracts token symbol from transaction info or returns wallet's default currency
+  /// Supports: EVMChainTransactionInfo, SolanaTransactionInfo, TronTransactionInfo,
+  /// NanoTransactionInfo, ZanoTransactionInfo
+  static String getTokenSymbol(TransactionInfo tx, WalletType walletType) {
+    try {
+      final dynamic txProp = tx;
+
+      // Try to get tokenSymbol from transaction types that support it
+      if (txProp.tokenSymbol != null && txProp.tokenSymbol.toString().isNotEmpty) {
+        return txProp.tokenSymbol.toString();
+      }
+    } catch (e) {
+      // If tokenSymbol property doesn't exist or throws error, fall through to default
+    }
+
+    // Return wallet's default currency symbol for wallets without multi-token support
+    switch (walletType) {
+      case WalletType.monero:
+        return 'XMR';
+      case WalletType.bitcoin:
+        return 'BTC';
+      case WalletType.litecoin:
+        return 'LTC';
+      case WalletType.haven:
+        return 'XHV';
+      case WalletType.ethereum:
+        return 'ETH';
+      case WalletType.bitcoinCash:
+        return 'BCH';
+      case WalletType.nano:
+        return 'NANO';
+      case WalletType.banano:
+        return 'BAN';
+      case WalletType.polygon:
+        return 'MATIC';
+      case WalletType.solana:
+        return 'SOL';
+      case WalletType.tron:
+        return 'TRX';
+      case WalletType.wownero:
+        return 'WOW';
+      case WalletType.zano:
+        return 'ZANO';
+      case WalletType.arbitrum:
+        return 'ETH';
+      case WalletType.base:
+        return 'ETH';
+      case WalletType.dogecoin:
+        return 'DOGE';
+      case WalletType.decred:
+        return 'DCR';
+      default:
+        return 'UNKNOWN';
     }
   }
 }

@@ -1,22 +1,21 @@
 import 'dart:io' show Platform, File, Directory;
 
 import 'package:flutter/material.dart' show BuildContext;
-import 'package:flutter/services.dart' show ClipboardData;
 import 'package:file_picker/file_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 
-import 'package:cake_wallet/utils/clipboard_util.dart';
 import 'package:cake_wallet/utils/share_util.dart';
 import 'package:cake_wallet/utils/transaction_export_formatter.dart';
 import 'package:cake_wallet/utils/swap_export_formatter.dart';
 import 'package:cake_wallet/store/dashboard/trades_store.dart';
 import 'package:cw_core/wallet_base.dart';
 import 'package:cw_core/utils/print_verbose.dart';
-import 'package:cake_wallet/generated/i18n.dart';
+import 'package:cw_core/transaction_info.dart';
+import 'package:cw_core/currency_for_wallet_type.dart';
 
 class ExportHistoryService {
-  /// Generates CSV string from wallet transactions
+  /// Generates CSV string from wallet transactions grouped by token symbol
   static String generateTransactionCSV({
     required WalletBase wallet,
   }) {
@@ -25,17 +24,55 @@ class ExportHistoryService {
     // Sort transactions chronologically (oldest first)
     final sortedTransactions = [...allTransactions]..sort((a, b) => a.date.compareTo(b.date));
 
-    // Format transactions
-    final formattedData = sortedTransactions.map((tx) {
-      return TransactionExportFormatter.formatTransaction(tx, wallet.type);
-    }).toList();
+    // Group transactions by token symbol
+    final Map<String, List<TransactionInfo>> transactionsByToken = {};
+    
+    for (final tx in sortedTransactions) {
+      final tokenSymbol = TransactionExportFormatter.getTokenSymbol(tx, wallet.type);
+      if (!transactionsByToken.containsKey(tokenSymbol)) {
+        transactionsByToken[tokenSymbol] = [];
+      }
+      transactionsByToken[tokenSymbol]!.add(tx);
+    }
 
-    // Build CSV string
+    // Get native token symbol for prioritization
+    final nativeTokenSymbol = walletTypeToCryptoCurrency(wallet.type).title.toUpperCase();
+    
+    // Sort token symbols: native token first, then alphabetically
+    final sortedTokenSymbols = transactionsByToken.keys.toList()..sort((a, b) {
+      final aUpper = a.toUpperCase();
+      final bUpper = b.toUpperCase();
+      
+      if (aUpper == nativeTokenSymbol && bUpper != nativeTokenSymbol) return -1;
+      if (bUpper == nativeTokenSymbol && aUpper != nativeTokenSymbol) return 1;
+      return aUpper.compareTo(bUpper);
+    });
+
+    // Build CSV string with sections per token
     final buffer = StringBuffer();
-    buffer.writeln(TransactionExportData.csvHeader(walletType: wallet.type));
-
-    for (final data in formattedData) {
-      buffer.writeln(data);
+    
+    for (int i = 0; i < sortedTokenSymbols.length; i++) {
+      final tokenSymbol = sortedTokenSymbols[i];
+      final transactions = transactionsByToken[tokenSymbol]!;
+      
+      // Skip empty groups
+      if (transactions.isEmpty) continue;
+      
+      // Add section header with uppercase token symbol
+      buffer.writeln('=== ${tokenSymbol.toUpperCase()} TRANSACTIONS ===');
+      
+      // Add CSV header
+      buffer.writeln(TransactionExportData.csvHeader(walletType: wallet.type));
+      
+      // Format and add transactions for this token
+      for (final tx in transactions) {
+        buffer.writeln(TransactionExportFormatter.formatTransaction(tx, wallet.type));
+      }
+      
+      // Add blank line between sections (except after last section)
+      if (i < sortedTokenSymbols.length - 1) {
+        buffer.writeln();
+      }
     }
 
     return buffer.toString();
@@ -70,8 +107,7 @@ class ExportHistoryService {
 
     final buffer = StringBuffer();
     
-    // Add transaction section
-    buffer.writeln('=== TRANSACTIONS ===');
+    // Add transaction sections (already have their own token-based headers)
     buffer.write(transactionCSV);
     buffer.writeln();
     
@@ -80,39 +116,6 @@ class ExportHistoryService {
     buffer.write(swapCSV);
 
     return buffer.toString();
-  }
-
-  /// Exports combined transaction and swap data to clipboard
-  static Future<bool> exportToClipboard({
-    required WalletBase wallet,
-    required TradesStore tradesStore,
-    BuildContext? context,
-  }) async {
-    try {
-      final csvContent = generateCombinedCSV(wallet: wallet, tradesStore: tradesStore);
-
-      await ClipboardUtil.setSensitiveDataToClipboard(ClipboardData(text: csvContent));
-
-      if (context != null) {
-        Fluttertoast.showToast(
-          msg: S.of(context).copied_to_clipboard,
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-        );
-      }
-
-      return true;
-    } catch (e) {
-      printV('Error copying to clipboard: $e');
-      if (context != null) {
-        Fluttertoast.showToast(
-          msg: 'Export failed: ${e.toString()}',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-        );
-      }
-      return false;
-    }
   }
 
   /// Saves CSV data to file (platform-specific handling)

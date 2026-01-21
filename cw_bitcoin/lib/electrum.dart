@@ -19,6 +19,7 @@ String jsonrpcparams(List<Object> params) {
 
 String jsonrpc(
     {required String method, required List<Object> params, required int id, double version = 2.0}) {
+  if (method != "server.ping" && method != "blockchain.estimatefee")
   printV(
       '{"jsonrpc": "$version", "method": "$method", "id": "$id",  "params": ${json.encode(params)}}\n');
   return '{"jsonrpc": "$version", "method": "$method", "id": "$id",  "params": ${json.encode(params)}}\n';
@@ -154,7 +155,8 @@ class ElectrumClient {
       }
     } on FormatException catch (e) {
       // Just so we notice issues identifying batches versus single responses
-      printV("!!!!! Node communication possibly broke !!!!!: FormatException in _parseResponse: $e");
+      printV(
+          "!!!!! Node communication possibly broke !!!!!: FormatException in _parseResponse: $e");
       final msg = e.message.toLowerCase();
 
       if (e.source is String) {
@@ -168,7 +170,7 @@ class ElectrumClient {
 
       if (isJSONStringCorrect(unterminatedString)) {
         final decoded = json.decode(unterminatedString);
-        
+
         if (decoded is List) {
           _batchHandleResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
@@ -186,7 +188,7 @@ class ElectrumClient {
 
       if (isJSONStringCorrect(unterminatedString)) {
         final decoded = json.decode(unterminatedString);
-        
+
         if (decoded is List) {
           _batchHandleResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
@@ -258,6 +260,7 @@ class ElectrumClient {
   }
 
   // This function is designed for when we invoke multiple of the same method with different scriptHashes
+  // It takes responsibility for also re-ordering the results deterministically
   // Future<Map<String, Map<String, dynamic>>> batchGetData(
   Future<dynamic> batchGetData(List<String> scriptHashes, String method) async {
     if (scriptHashes.isEmpty) {
@@ -294,9 +297,21 @@ class ElectrumClient {
       printV('batchGetData: Batch request sent with ID: $requestId');
 
       final response = await completer.future;
-      printV('batchGetData: Server response received: $response');
-      
-      return response;
+      // printV('batchGetData: Server response received: $response');
+
+      // Response is already decoded by _batchHandleResponse
+      final jsonSortedList = response as List<dynamic>;
+      // Sort by id field
+      jsonSortedList.sort((a, b) {
+        if (a is Map<String, dynamic> && b is Map<String, dynamic>) {
+          final aId = a['id'] as int? ?? 0;
+          final bId = b['id'] as int? ?? 0;
+          return aId.compareTo(bId);
+        }
+        return 0;
+      });
+
+      return jsonSortedList;
     } catch (e) {
       printV('batchGetBalances error: $e');
       return {};
@@ -320,6 +335,7 @@ class ElectrumClient {
       });
 
   Future<List<Map<String, dynamic>>?> getListUnspent(String scriptHash) async {
+    printV("KB: Here?");
     final result = await call(method: 'blockchain.scripthash.listunspent', params: [scriptHash]);
 
     if (result is List) {
@@ -334,6 +350,8 @@ class ElectrumClient {
 
     return null;
   }
+
+  Future<dynamic> batchGetListUnspent(List<String> scriptHashes) async {}
 
   Future<List<Map<String, dynamic>>> getMempool(String scriptHash) =>
       call(method: 'blockchain.scripthash.get_mempool', params: [scriptHash])
@@ -648,15 +666,15 @@ class ElectrumClient {
   }
 
   void _handleResponse(Map<String, dynamic> response) {
-    printV(response);
     final method = response['method'];
     final id = response['id'] as String?;
     final result = response['result'];
-    printV("method: $method, id: $id, result: $result");
+    //printV("method: $method, id: $id, result: $result");
     try {
       final error = response['error'] as Map<String, dynamic>?;
       if (error != null) {
         final errorMessage = error['message'] as String?;
+        printV(errorMessage);
         if (errorMessage != null) {
           _errors[id!] = errorMessage;
         }

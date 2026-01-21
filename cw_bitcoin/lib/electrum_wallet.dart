@@ -114,6 +114,91 @@ abstract class ElectrumWalletBase
     reaction((_) => syncStatus, _syncStatusReaction);
 
     sharedPrefs.complete(SharedPreferences.getInstance());
+
+    final supportedTypes = supportedAddressTypes(walletInfo.type);
+    mainHdByType = <BitcoinAddressType, Bip32Slip10Secp256k1>{};
+    sideHdByType = <BitcoinAddressType, Bip32Slip10Secp256k1>{};
+
+    final canDeriveFromSeed = _masterHD != null && currency != null;
+
+    if (canDeriveFromSeed) {
+      final coinType = _coinTypeFor(currency);
+
+      for (final type in supportedTypes) {
+        final purpose = _purposeForType(type);
+        final accountPath = "m/$purpose'/$coinType'/0'";
+
+        mainHdByType[type] = _masterHD!.derivePath("$accountPath/0") as Bip32Slip10Secp256k1;
+        sideHdByType[type] = _masterHD!.derivePath("$accountPath/1") as Bip32Slip10Secp256k1;
+      }
+    } else {
+      // View-only wallet (xpub only)
+      for (final type in supportedTypes) {
+        mainHdByType[type] = mainHd;
+        sideHdByType[type] = sideHd;
+      }
+    }
+
+  }
+
+  int _purposeForType(BitcoinAddressType type) {
+    switch (type.value) {
+      case 'P2PKH':
+        return 44;
+      case 'P2SH/P2WPKH':
+        return 49;
+      case 'P2WPKH':
+        return 84;
+      case 'P2TR':
+        return 86;
+      default:
+        return 84;
+    }
+  }
+
+  int _coinTypeFor(CryptoCurrency cur) {
+    if (!network.isMainnet) return 1;
+    switch (cur) {
+      case CryptoCurrency.btc:
+      case CryptoCurrency.tbtc:
+        return 0;
+      case CryptoCurrency.ltc:
+        return 2;
+      case CryptoCurrency.bch:
+        return 145;
+      case CryptoCurrency.doge:
+        return 3;
+      default:
+        return 0;
+    }
+  }
+
+  /// Returns the BIP32 account derivation path (m/purpose'/coinType'/0') for STANDARD addresses.
+  /// For LEGACY addresses, returns the wallet's legacy derivation base (derivationInfo.derivationPath)
+  /// which is already the account path used historically (e.g. m/0' or m/84'/0'/0').
+  String _accountDerivationPathForRecord(BaseBitcoinAddressRecord record) {
+    if (record.isLegacyDerivation) {
+      return derivationInfo.derivationPath ?? electrum_path;
+    }
+
+    final coinType = _coinTypeFor(currency);
+    final purpose = _purposeForType(record.type);
+    return "m/$purpose'/$coinType'/0'";
+  }
+
+  List<BitcoinAddressType> supportedAddressTypes(WalletType type) {
+    switch (type) {
+      case WalletType.bitcoin:
+        return BITCOIN_ADDRESS_TYPES;
+      case WalletType.bitcoinCash:
+        return BITCOIN_CASH_ADDRESS_TYPES;
+      case WalletType.dogecoin:
+        return DOGECOIN_ADDRESS_TYPES;
+      case WalletType.litecoin:
+        return LITECOIN_ADDRESS_TYPES;
+      default:
+        return BITCOIN_ADDRESS_TYPES;
+    }
   }
 
   static Bip32Slip10Secp256k1 getAccountHDWallet(
@@ -187,7 +272,10 @@ abstract class ElectrumWalletBase
   final Bip32Slip10Secp256k1 accountHD;
   final String? _mnemonic;
 
-  Bip32Slip10Secp256k1 get hd => accountHD.childKey(Bip32KeyIndex(0));
+  late final Map<BitcoinAddressType, Bip32Slip10Secp256k1> mainHdByType;
+  late final Map<BitcoinAddressType, Bip32Slip10Secp256k1> sideHdByType;
+
+  Bip32Slip10Secp256k1 get mainHd => accountHD.childKey(Bip32KeyIndex(0));
 
   Bip32Slip10Secp256k1 get sideHd => accountHD.childKey(Bip32KeyIndex(1));
 
@@ -318,13 +406,13 @@ abstract class ElectrumWalletBase
     String? privateKey;
     String? publicKey;
     try {
-      wif = WifEncoder.encode(hd.privateKey.raw, netVer: network.wifNetVer);
+      wif = WifEncoder.encode(mainHd.privateKey.raw, netVer: network.wifNetVer);
     } catch (_) {}
     try {
-      privateKey = hd.privateKey.toHex();
+      privateKey = mainHd.privateKey.toHex();
     } catch (_) {}
     try {
-      publicKey = hd.publicKey.toHex();
+      publicKey = mainHd.publicKey.toHex();
     } catch (_) {}
     return BitcoinWalletKeys(
       wif: wif ?? '',
@@ -750,9 +838,7 @@ abstract class ElectrumWalletBase
       final address = RegexUtils.addressTypeFromStr(utx.address, network);
       ECPrivate? privkey;
       bool? isSilentPayment = false;
-
-      final hd =
-          utx.bitcoinAddressRecord.isHidden ? walletAddresses.sideHd : walletAddresses.mainHd;
+      final hd = _hdFor(record: utx.bitcoinAddressRecord);
 
       if (utx.bitcoinAddressRecord is BitcoinSilentPaymentAddressRecord) {
         final unspentAddress = utx.bitcoinAddressRecord as BitcoinSilentPaymentAddressRecord;
@@ -783,8 +869,10 @@ abstract class ElectrumWalletBase
         pubKeyHex = hd.childKey(Bip32KeyIndex(utx.bitcoinAddressRecord.index)).publicKey.toHex();
       }
 
+      final baseDerivationPath = _accountDerivationPathForRecord(utx.bitcoinAddressRecord);
+
       final derivationPath =
-          "${_hardenedDerivationPath(derivationInfo.derivationPath ?? electrum_path)}"
+          "${_hardenedDerivationPath(baseDerivationPath)}"
           "/${utx.bitcoinAddressRecord.isHidden ? "1" : "0"}"
           "/${utx.bitcoinAddressRecord.index}";
       publicKeys[address.pubKeyHash()] = PublicKeyWithDerivationPath(pubKeyHex, derivationPath);
@@ -998,9 +1086,11 @@ abstract class ElectrumWalletBase
       isChange: true,
     ));
 
-    // Get Derivation path for change Address since it is needed in Litecoin and BitcoinCash hardware Wallets
+
+    // Must match the address' account root (purpose/coinType) and legacy derivation when applicable.
+    final changeBaseDerivationPath = _accountDerivationPathForRecord(changeAddress);
     final changeDerivationPath =
-        "${_hardenedDerivationPath(derivationInfo.derivationPath ?? "m/0'")}"
+        "${_hardenedDerivationPath(changeBaseDerivationPath)}"
         "/${changeAddress.isHidden ? "1" : "0"}"
         "/${changeAddress.index}";
     utxoDetails.publicKeys[address.pubKeyHash()] =
@@ -1887,8 +1977,11 @@ abstract class ElectrumWalletBase
         final addressRecord =
             walletAddresses.allAddresses.firstWhere((element) => element.address == address);
         final btcAddress = RegexUtils.addressTypeFromStr(addressRecord.address, network);
+
+        final hd = _hdFor(record: addressRecord);
+
         final privkey = generateECPrivate(
-            hd: addressRecord.isHidden ? walletAddresses.sideHd : walletAddresses.mainHd,
+            hd: hd,
             index: addressRecord.index,
             network: network);
 
@@ -1971,10 +2064,11 @@ abstract class ElectrumWalletBase
 
         for (final utxo in unusedUtxos) {
           final address = RegexUtils.addressTypeFromStr(utxo.address, network);
+
+          final hd = _hdFor(record: utxo.bitcoinAddressRecord);
+
           final privkey = generateECPrivate(
-            hd: utxo.bitcoinAddressRecord.isHidden
-                ? walletAddresses.sideHd
-                : walletAddresses.mainHd,
+            hd: hd,
             index: utxo.bitcoinAddressRecord.index,
             network: network,
           );
@@ -2292,6 +2386,7 @@ abstract class ElectrumWalletBase
                   .then((history) => history.isNotEmpty ? address.address : null);
             },
             type: type,
+            isLegacyDerivation: addressRecord.isLegacyDerivation,
           );
 
           final newLength = walletAddresses.allAddresses.length;
@@ -2577,11 +2672,19 @@ abstract class ElectrumWalletBase
 
   @override
   Future<String> signMessage(String message, {String? address = null}) async {
-    final index = address != null
-        ? walletAddresses.allAddresses.firstWhere((element) => element.address == address).index
+    final addressRecord = address != null
+        ? walletAddresses.allAddresses.firstWhereOrNull((addr) => addr.address == address)
         : null;
-    final HD = index == null ? hd : hd.childKey(Bip32KeyIndex(index));
-    final priv = ECPrivate.fromHex(HD.privateKey.privKey.toHex());
+
+    if (addressRecord != null && addressRecord.type == SegwitAddresType.p2tr) {
+      throw UnsupportedError("Cannot sign message with Taproot address");
+    }
+
+    final hd = addressRecord != null
+        ? _hdFor(record: addressRecord).childKey(Bip32KeyIndex(addressRecord.index))
+        : mainHd;
+
+    final priv = ECPrivate.fromHex(hd.privateKey.privKey.toHex());
 
     String messagePrefix = '\x18Bitcoin Signed Message:\n';
     final hexEncoded = priv.signMessage(utf8.encode(message), messagePrefix: messagePrefix);
@@ -2938,6 +3041,15 @@ abstract class ElectrumWalletBase
 
       syncStatus = FailedSyncStatus();
     }
+  }
+
+  Bip32Slip10Secp256k1 _hdFor({required BaseBitcoinAddressRecord record}) {
+    final addrType = record.type;
+    return  record.isLegacyDerivation
+        ? (record.isHidden ? walletAddresses.legacySideHd : walletAddresses.legacyMainHd)
+        : (record.isHidden
+        ? (sideHdByType[addrType] ?? sideHd)
+        : (mainHdByType[addrType] ?? mainHd));
   }
 }
 

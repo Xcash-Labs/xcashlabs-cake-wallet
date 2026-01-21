@@ -194,36 +194,13 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
 
   // KB: Batches start here
 
-  @action // taken from electrum_wallet.dart 1729
-  Future<List<BitcoinUnspent>?> fetchUnspent(BitcoinAddressRecord address) async {
-    List<BitcoinUnspent> updatedUnspentCoins = [];
-
-    final unspents = await electrumClient.getListUnspent(address.getScriptHash(network));
-
-    // Failed to fetch unspents
-    if (unspents == null) return null;
-
-    await Future.wait(unspents.map((unspent) async {
-      try {
-        final coin = BitcoinUnspent.fromJSON(address, unspent);
-        final tx = await fetchTransactionInfo(hash: coin.hash);
-        coin.isChange = address.isHidden;
-        coin.confirmations = tx?.confirmations;
-
-        updatedUnspentCoins.add(coin);
-      } catch (_) {}
-    }));
-
-    return updatedUnspentCoins;
-  }
-
   // KB -- new batched function fetches unspents from multiple addresses at once
   // Uses batchGetData from electrum client
   Future<List<BitcoinUnspent>?> batchFetchUnspent(List<BitcoinAddressRecord> addresses) async {
     List<BitcoinUnspent> updatedUnspentCoins = [];
     // script hashes needed for all unspent coins
     final List<String> scriptHashes = [];
-
+    printV("KB: Batch fetch unspent?");
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
@@ -234,7 +211,10 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     printV(batchResult);
   }
 
-  // This function had to be implemented in electrumclient due to socket writes
+
+
+
+  // This function wraps one in electrum.dart due to socket writes
   // Future<Map<String, Map<String, dynamic>>> batchGetData(
   Future<dynamic> batchGetData(List<String> scriptHashes, String method) async {
     var batchData = await electrumClient.batchGetData(scriptHashes, method);
@@ -322,96 +302,109 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     }
   }
 
-  @override
-  Future<ElectrumBalance> fetchBalances() async {
-    printV("fetchBalances called at ${DateTime.now().toIso8601String()}");
-    final addresses = walletAddresses.allAddresses
-        .where((address) => address.address.isNotEmpty)
-        .where((address) => RegexUtils.addressTypeFromStr(address.address, network) is! MwebAddress)
-        .toList();
-
-    printV("fetchBalances: Found ${addresses.length} addresses");
-
-    if (addresses.isEmpty) {
-      printV("fetchBalances: No addresses found, returning zero balance");
-      return ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
-    }
-
-    // printV("First address: ${addresses[0].address}");
-    // printV("First scripthash: ${addresses[0].getScriptHash(network)}");
-
-    // Let's set up a fall-back based call to batchBalance fetching. If it fails, we'll just continue through all processing in fetchBalances
+  // Overrides electrum_wallet to implement try-catch method
+  Future<void> updateBalance() async {
     try {
-      final balances = await batchFetchBalances();
-      return balances;
+      balance[currency] = await batchFetchBalances();
+      await save();
+      printV("Batch fetch works! Yay!");
     } catch (e) {
-      printV("batchFetchBalances failed with error: $e");
-      // Handle this node by not supporting batch calls
+      printV("Batch fetch broke! Sad!");
+      balance[currency] = await fetchBalances();
+      await save();
     }
-
-    final balanceFutures = <Future<Map<String, dynamic>>>[];
-    for (var i = 0; i < addresses.length; i++) {
-      final addressRecord = addresses[i];
-      final sh = addressRecord.getScriptHash(network);
-      final balanceFuture = electrumClient.getBalance(sh);
-      balanceFutures.add(balanceFuture);
-    }
-
-    printV("fetchBalances: Initiated balance fetch for all addresses");
-
-    var totalFrozen = 0;
-    var totalConfirmed = 0;
-    var totalUnconfirmed = 0;
-
-    printV("Calling unspentCoinsInfo processing");
-    unspentCoinsInfo.values.forEach((info) {
-      unspentCoins.forEach((element) {
-        if (element.bitcoinAddressRecord is BitcoinSilentPaymentAddressRecord) return;
-
-        if (element.hash == info.hash &&
-            element.vout == info.vout &&
-            element.bitcoinAddressRecord.address == info.address &&
-            element.value == info.value) {
-          if (info.isFrozen) {
-            totalFrozen += element.value;
-          }
-        }
-      });
-    });
-    printV("Awaiting balance futures");
-
-    final balances = await Future.wait(balanceFutures);
-    if (balances.isNotEmpty && balances.first['confirmed'] == null) {
-      // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
-      printV("got null balance responses from the server, setting connection status to lost");
-      syncStatus = LostConnectionSyncStatus();
-      return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
-    }
-
-    for (var i = 0; i < balances.length; i++) {
-      // for each returned value from batchGetData, we need to re-order them to match the deterministic order we pass them in as
-      // TODO: Fix this, probably best in electrum.dart
-      final addressRecord = addresses[i];
-      final balance = balances[i];
-      final confirmed = balance['confirmed'] as int? ?? 0;
-      final unconfirmed = balance['unconfirmed'] as int? ?? 0;
-      totalConfirmed += confirmed;
-      totalUnconfirmed += unconfirmed;
-
-      addressRecord.balance = confirmed + unconfirmed;
-      if (confirmed > 0 || unconfirmed > 0) {
-        addressRecord.setAsUsed();
-        walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
-      }
-    }
-
-    return ElectrumBalance(
-      confirmed: totalConfirmed,
-      unconfirmed: totalUnconfirmed,
-      frozen: totalFrozen,
-    );
   }
 
+  @override
+  Future<ElectrumBalance> fetchBalances() async {
+    try {
+      balance[currency] = await batchFetchBalances();
+      await save();
+      printV("Batch fetch works! Yay!");
+    } catch (e) {
+      printV("Batch fetch broke! Sad!");
+      printV("Batch failed: $e");
+      // We use the original method of iterating through each address and making a call
+      final addresses = walletAddresses.allAddresses
+          .where((address) => address.address.isNotEmpty)
+          .where(
+              (address) => RegexUtils.addressTypeFromStr(address.address, network) is! MwebAddress)
+          .toList();
+
+      printV("fetchBalances: Found ${addresses.length} addresses");
+
+      if (addresses.isEmpty) {
+        printV("fetchBalances: No addresses found, returning zero balance");
+        return ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
+      }
+
+      final balanceFutures = <Future<Map<String, dynamic>>>[];
+      for (var i = 0; i < addresses.length; i++) {
+        final addressRecord = addresses[i];
+        final sh = addressRecord.getScriptHash(network);
+        final balanceFuture = electrumClient.getBalance(sh);
+        balanceFutures.add(balanceFuture);
+      }
+
+      printV("fetchBalances: Initiated non-batched balance fetch for all addresses");
+
+      var totalFrozen = 0;
+      var totalConfirmed = 0;
+      var totalUnconfirmed = 0;
+
+      printV("Calling unspentCoinsInfo processing");
+      unspentCoinsInfo.values.forEach((info) {
+        unspentCoins.forEach((element) {
+          if (element.bitcoinAddressRecord is BitcoinSilentPaymentAddressRecord) return;
+
+          if (element.hash == info.hash &&
+              element.vout == info.vout &&
+              element.bitcoinAddressRecord.address == info.address &&
+              element.value == info.value) {
+            if (info.isFrozen) {
+              totalFrozen += element.value;
+            }
+          }
+        });
+      });
+      printV("Awaiting balance futures");
+
+      final balances = await Future.wait(balanceFutures);
+
+      if (balances.isNotEmpty && balances.first['confirmed'] == null) {
+        // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
+        printV("got null balance responses from the server, setting connection status to lost");
+        syncStatus = LostConnectionSyncStatus();
+        return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
+      }
+
+      for (var i = 0; i < balances.length; i++) {
+        final addressRecord = addresses[i];
+        final balance = balances[i];
+        final confirmed = balance['confirmed'] as int? ?? 0;
+        final unconfirmed = balance['unconfirmed'] as int? ?? 0;
+        totalConfirmed += confirmed;
+        totalUnconfirmed += unconfirmed;
+
+        addressRecord.balance = confirmed + unconfirmed;
+        if (confirmed > 0 || unconfirmed > 0) {
+          addressRecord.setAsUsed();
+          walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
+        }
+      }
+
+      return ElectrumBalance(
+        confirmed: totalConfirmed,
+        unconfirmed: totalUnconfirmed,
+        frozen: totalFrozen,
+      );
+    }
+
+    throw Exception("This should never be possible without it being handled above");
+  }
+
+  // The intention of the batch functions is for them to be called instead of singles, and if it fails, call the method for single requests.
+  // This allows for a simple try-catch usage pattern
   // While this isn't the history (which would give us better performance enhancements), it's still good to batch this to optimise balance fetching
   // Future<void> batchFetchBalances() async {
   Future<ElectrumBalance> batchFetchBalances() async {
@@ -419,7 +412,8 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
         .where((address) => address.address.isNotEmpty)
         .where((address) => RegexUtils.addressTypeFromStr(address.address, network) is! MwebAddress)
         .toList();
-
+    printV("KB: Address is ${addresses[0].address}");
+    printV("KB: Current balance is: ${addresses[0].balance}");
     printV('batchFetchBalances: Processing ${addresses.length} addresses');
 
     // Collect all script hashes
@@ -428,13 +422,13 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
       scriptHashes.add(sh);
-      printV('Address[$i]: ${addressRecord.address} -> ScriptHash: $sh');
+      //printV('Address[$i]: ${addressRecord.address} -> ScriptHash: $sh');
     }
     final String method = "blockchain.scripthash.get_balance";
 
-    var test = await electrumClient.batchGetData(scriptHashes, method);
+    var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
 
-    printV(test);
+    //printV(test);
 
     printV('Total script hashes to query: ${scriptHashes.length}');
     printV('Script hashes list: $scriptHashes');
@@ -473,27 +467,25 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
         }
       });
     });
-
     // Make single batch call instead of parallel individual calls
-    printV('Calling batchGetBalances with ${scriptHashes.length} script hashes...');
-    final balancesMap =
+    final balancesList =
         await electrumClient.batchGetData(scriptHashes, 'blockchain.scripthash.get_balance');
-    printV('Received batch response with ${balancesMap.length} results');
-    printV('Balances map: $balancesMap');
-
-    if (balancesMap.isEmpty && scriptHashes.isNotEmpty) {
+    if (balancesList.isEmpty && scriptHashes.isNotEmpty) {
       // if we got empty response from the server, set our connection status to lost and return our last known balance:
       printV("got empty batch balance response from the server, setting connection status to lost");
       syncStatus = LostConnectionSyncStatus();
       return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
     }
-
-    // Process results
+    // Process results - balancesList is an array of response objects
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = scriptHashes[i];
-      final balanceData = balancesMap[sh] ?? {};
-
+      
+      // Get the response object at index i and extract the 'result' field
+      final responseObj = balancesList[i] as Map<String, dynamic>?;
+      final balanceData = responseObj?['result'] as Map<String, dynamic>? ?? {};
+      
+      printV("KB: result being processed: $i for ${addressRecord.address}");
       if (balanceData.isEmpty || balanceData['confirmed'] == null) {
         printV('Warning: No balance data for address ${addressRecord.address} (sh: $sh)');
         continue;

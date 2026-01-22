@@ -8,6 +8,7 @@ import 'package:cake_wallet/.secrets.g.dart' as secrets;
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
 import 'package:cake_wallet/core/create_trade_result.dart';
 import 'package:cake_wallet/core/fiat_conversion_service.dart';
+import 'package:cake_wallet/core/utilities.dart';
 import 'package:cake_wallet/core/wallet_change_listener_view_model.dart';
 import 'package:cake_wallet/entities/calculate_fiat_amount.dart';
 import 'package:cake_wallet/entities/exchange_api_mode.dart';
@@ -39,6 +40,7 @@ import 'package:cake_wallet/store/dashboard/fiat_conversion_store.dart';
 import 'package:cake_wallet/store/dashboard/trades_store.dart';
 import 'package:cake_wallet/store/settings_store.dart';
 import 'package:cake_wallet/store/templates/exchange_template_store.dart';
+import 'package:cake_wallet/evm/evm.dart';
 import 'package:cake_wallet/reactions/wallet_connect.dart';
 import 'package:cake_wallet/utils/feature_flag.dart';
 import 'package:cake_wallet/utils/token_utilities.dart';
@@ -48,6 +50,7 @@ import 'package:cake_wallet/view_model/unspent_coins/unspent_coins_list_view_mod
 import 'package:cw_core/crypto_amount_format.dart';
 import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/erc20_token.dart';
+import 'package:cw_core/format_fixed.dart';
 import 'package:cw_core/spl_token.dart';
 import 'package:cw_core/sync_status.dart';
 import 'package:cw_core/transaction_priority.dart';
@@ -192,7 +195,7 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
       await Future.delayed(const Duration(milliseconds: 100));
       receiveCurrency = wallet.currency;
       depositCurrency = wallet.currency;
-      
+
       // Only refresh ETH tokens for EVM wallets
       if (isEVMCompatibleChain(wallet.type)) {
         _injectUserEthTokensIntoCurrencyLists();
@@ -354,15 +357,17 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
     return priority;
   }
 
-  bool get hasAllAmount =>
-      [
-        WalletType.monero,
-        WalletType.bitcoin,
-        WalletType.litecoin,
-        WalletType.bitcoinCash,
-        WalletType.dogecoin,
-      ].contains(wallet.type) &&
-      depositCurrency == wallet.currency;
+  bool get hasAllAmount {
+    if ([
+      WalletType.monero,
+      WalletType.bitcoin,
+      WalletType.litecoin,
+      WalletType.bitcoinCash,
+      WalletType.dogecoin,
+    ].contains(wallet.type)) return depositCurrency == wallet.currency;
+
+    return isEVMCompatibleChain(wallet.type);
+  }
 
   bool get isMoneroWallet => wallet.type == WalletType.monero;
 
@@ -427,18 +432,38 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
 
   @action
   void changeDepositCurrency({required CryptoCurrency currency}) {
+    final previousCurrency = depositCurrency;
+    final hadAmount = depositAmount.isNotEmpty && depositAmount != S.current.fetching;
+    final previousAmount = hadAmount ? depositAmount : '';
+
     depositCurrency = currency;
     isFixedRateMode = false;
-    _onPairChange();
     isDepositAddressEnabled = !useSameWalletAddress(depositCurrency);
+
+    if (previousCurrency != currency) {
+      _onPairChangeWithAmountPreservation(
+        preserveDepositAmount: hadAmount,
+        previousDepositAmount: previousAmount,
+      );
+    }
   }
 
   @action
   void changeReceiveCurrency({required CryptoCurrency currency}) {
+    final previousCurrency = receiveCurrency;
+    final hadAmount = receiveAmount.isNotEmpty && receiveAmount != S.current.fetching;
+    final previousAmount = hadAmount ? receiveAmount : '';
+
     receiveCurrency = currency;
     isFixedRateMode = false;
-    _onPairChange();
     isDepositAddressEnabled = !useSameWalletAddress(depositCurrency);
+
+    if (previousCurrency != currency) {
+      _onPairChangeWithAmountPreservation(
+        preserveReceiveAmount: hadAmount,
+        previousReceiveAmount: previousAmount,
+      );
+    }
   }
 
   @action
@@ -813,6 +838,63 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
       final amount = await unspentCoinsListViewModel.getSendingBalance(UnspentCoinType.any);
 
       changeDepositAmount(amount: wallet.formatCryptoAmount(amount.toString()));
+    } else if (isEVMCompatibleChain(wallet.type)) {
+      final balanceCurrency = wallet.balance.keys.firstWhereOrNull(
+        (currency) =>
+            currency.title == depositCurrency.title &&
+            (currency.tag == depositCurrency.tag || currency.tag == depositCurrency.title),
+      );
+
+      final balanceForCurrency = balanceCurrency != null ? wallet.balance[balanceCurrency] : null;
+      if (balanceForCurrency == null) {
+        changeDepositAmount(amount: wallet.formatCryptoAmount('0'));
+        return;
+      }
+
+      final balanceAmount = balanceForCurrency.formattedFullAvailableBalance;
+      final balanceDouble = double.tryParse(balanceAmount.replaceAll(',', '.')) ?? 0.0;
+      if (balanceDouble <= 0) {
+        changeDepositAmount(amount: wallet.formatCryptoAmount('0'));
+        return;
+      }
+
+      final isNative = depositCurrency == wallet.currency;
+
+      if (!isNative) changeDepositAmount(amount: balanceAmount);
+
+      try {
+        final priority = _settingsStore.getPriority(wallet.type, chainId: wallet.chainId);
+
+        if (priority == null) {
+          changeDepositAmount(amount: balanceAmount);
+          return;
+        }
+
+        await wallet.updateEstimatedFeesParams(priority);
+
+        String? feeString;
+        if (isEVMCompatibleChain(wallet.type)) {
+          feeString = evm!.getEVMNativeEstimatedFee(wallet);
+        }
+
+        if (feeString == null) {
+          changeDepositAmount(amount: balanceAmount);
+          return;
+        }
+
+        final feeFormatted = formatFixed(BigInt.parse(feeString), 18, fractionalDigits: 12);
+        final feeDouble = double.tryParse(feeFormatted.replaceAll(',', '.')) ?? 0.0;
+
+        final amountAfterFee = balanceDouble - feeDouble;
+        changeDepositAmount(
+          amount: wallet.formatCryptoAmount(
+            amountAfterFee > 0 ? amountAfterFee.toString() : '0',
+          ),
+        );
+      } catch (e) {
+        printV('Error calculating send all for EVM: $e');
+        changeDepositAmount(amount: balanceAmount);
+      }
     }
   }
 
@@ -846,6 +928,62 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
     bestRate = 0.0;
     loadLimits();
     _setAvailableProviders();
+  }
+
+  @action
+  Future<void> _onPairChangeWithAmountPreservation({
+    bool preserveDepositAmount = false,
+    bool preserveReceiveAmount = false,
+    String previousDepositAmount = '',
+    String previousReceiveAmount = '',
+  }) async {
+    bestRate = 0.0;
+
+    if (preserveDepositAmount && previousDepositAmount.isNotEmpty) {
+      receiveAmount = S.current.fetching;
+    } else if (preserveReceiveAmount && previousReceiveAmount.isNotEmpty) {
+      depositAmount = S.current.fetching;
+    } else {
+      depositAmount = '';
+      receiveAmount = '';
+    }
+
+    loadLimits();
+    _setAvailableProviders();
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Calculate best rate with preserved amount
+    if (preserveDepositAmount && previousDepositAmount.isNotEmpty) {
+      await calculateBestRate();
+
+      if (bestRate <= 0) receiveAmount = '';
+
+      final enteredAmount = double.tryParse(previousDepositAmount.replaceAll(',', '.')) ?? 0;
+
+      if (enteredAmount <= 0) receiveAmount = '';
+
+      _cryptoNumberFormat.maximumFractionDigits = receiveMaxDigits;
+
+      receiveAmount = _cryptoNumberFormat
+          .format(bestRate * enteredAmount)
+          .toString()
+          .replaceAll(RegExp('\\,'), '');
+    } else if (preserveReceiveAmount && previousReceiveAmount.isNotEmpty) {
+      await calculateBestRate();
+
+      if (bestRate <= 0) depositAmount = '';
+
+      final enteredAmount = double.tryParse(previousReceiveAmount.replaceAll(',', '.')) ?? 0;
+
+      if (enteredAmount <= 0) depositAmount = '';
+
+      _cryptoNumberFormat.maximumFractionDigits = depositMaxDigits;
+
+      depositAmount = _cryptoNumberFormat
+          .format(enteredAmount / bestRate)
+          .toString()
+          .replaceAll(RegExp('\\,'), '');
+    }
   }
 
   void _initialPairBasedOnWallet() {

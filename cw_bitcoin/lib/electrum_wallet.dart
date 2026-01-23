@@ -1741,12 +1741,11 @@ abstract class ElectrumWalletBase
     await updateCoins(newUnspentCoins ?? []);
   }
 
-  // KB: TODO: move batch function for this to dogecoin_wallet.dart
+
   // This file is a batch candidate
   // This file wraps electrumClient.getListUnspent to keep socket calls in one file
   Future<List<BitcoinUnspent>?> fetchUnspent(BitcoinAddressRecord address) async {
     List<BitcoinUnspent> updatedUnspentCoins = [];
-    printV("KB: fetchUnspent for address: ${address.address}");
     final unspents = await electrumClient.getListUnspent(address.getScriptHash(network));
 
     // Failed to fetch unspents
@@ -2304,55 +2303,81 @@ abstract class ElectrumWalletBase
     final receiveAddresses = addressesByType.where((addr) => addr.isHidden == false);
     walletAddresses.hiddenAddresses.addAll(hiddenAddresses.map((e) => e.address));
     await walletAddresses.saveAddressesInBox();
-    // batch this future below
 
-    await Future.wait(addressesByType.map((addressRecord) async {
-      final history = await _fetchAddressHistory(addressRecord, await getCurrentChainTip());
+    final currentHeight = await getCurrentChainTip();
+    final addressList = addressesByType.toList();
+    
+    // Process addresses in batches of 100
+    for (int i = 0; i < addressList.length; i += 100) {
+      final batchEnd = (i + 100 < addressList.length) ? i + 100 : addressList.length;
+      final batchAddresses = addressList.sublist(i, batchEnd);
+      
+      // Collect script hashes for batch
+      final scriptHashes = batchAddresses.map((addr) => addr.getScriptHash(network)).toList();
+      
+      // Fetch histories in batch
+      final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
+      
+      // Process each address with its corresponding history
+      await Future.wait(batchAddresses.map((addressRecord) async {
+        final scriptHash = addressRecord.getScriptHash(network);
+        final history = batchHistories[scriptHash] ?? [];
+        
+        final addressHistoryDetails = await _fetchAddressHistory(
+          addressRecord, 
+          currentHeight,
+          preloadedHistory: history,
+        );
 
-      if (history.isNotEmpty) {
-        addressRecord.txCount = history.length;
-        historiesWithDetails.addAll(history);
+        if (addressHistoryDetails.isNotEmpty) {
+          addressRecord.txCount = addressHistoryDetails.length;
+          historiesWithDetails.addAll(addressHistoryDetails);
 
-        final matchedAddresses = addressRecord.isHidden ? hiddenAddresses : receiveAddresses;
-        final isUsedAddressUnderGap = matchedAddresses.toList().indexOf(addressRecord) >=
-            matchedAddresses.length -
-                (addressRecord.isHidden
-                    ? ElectrumWalletAddressesBase.defaultChangeAddressesCount
-                    : ElectrumWalletAddressesBase.defaultReceiveAddressesCount);
+          final matchedAddresses = addressRecord.isHidden ? hiddenAddresses : receiveAddresses;
+          final isUsedAddressUnderGap = matchedAddresses.toList().indexOf(addressRecord) >=
+              matchedAddresses.length -
+                  (addressRecord.isHidden
+                      ? ElectrumWalletAddressesBase.defaultChangeAddressesCount
+                      : ElectrumWalletAddressesBase.defaultReceiveAddressesCount);
 
-        if (isUsedAddressUnderGap) {
-          final prevLength = walletAddresses.allAddresses.length;
+          if (isUsedAddressUnderGap) {
+            final prevLength = walletAddresses.allAddresses.length;
 
-          // Discover new addresses for the same address type until the gap limit is respected
-          await walletAddresses.discoverAddresses(
-            matchedAddresses.toList(),
-            addressRecord.isHidden,
-            (address) async {
-              await subscribeForUpdates();
-              return _fetchAddressHistory(address, await getCurrentChainTip())
-                  .then((history) => history.isNotEmpty ? address.address : null);
-            },
-            type: type,
-          );
+            // Discover new addresses for the same address type until the gap limit is respected
+            await walletAddresses.discoverAddresses(
+              matchedAddresses.toList(),
+              addressRecord.isHidden,
+              (address) async {
+                await subscribeForUpdates();
+                return _fetchAddressHistory(address, await getCurrentChainTip())
+                    .then((history) => history.isNotEmpty ? address.address : null);
+              },
+              type: type,
+            );
 
-          final newLength = walletAddresses.allAddresses.length;
+            final newLength = walletAddresses.allAddresses.length;
 
-          if (newLength > prevLength) {
-            await fetchTransactionsForAddressType(historiesWithDetails, type);
+            if (newLength > prevLength) {
+              await fetchTransactionsForAddressType(historiesWithDetails, type);
+            }
           }
         }
-      }
-    }));
+      }));
+    }
   }
 
   Future<Map<String, ElectrumTransactionInfo>> _fetchAddressHistory(
-      BitcoinAddressRecord addressRecord, int? currentHeight) async {
+      BitcoinAddressRecord addressRecord, 
+      int? currentHeight,
+      {List<Map<String, dynamic>>? preloadedHistory}) async {
     String txid = "";
 
     try {
       final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
 
-      final history = await electrumClient.getHistory(addressRecord.getScriptHash(network));
+      // Use preloaded history if available, otherwise fetch it
+      final history = preloadedHistory ?? 
+          await electrumClient.getHistory(addressRecord.getScriptHash(network));
 
       if (history.isNotEmpty) {
         addressRecord.setAsUsed();

@@ -200,7 +200,6 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     List<BitcoinUnspent> updatedUnspentCoins = [];
     // script hashes needed for all unspent coins
     final List<String> scriptHashes = [];
-    printV("KB: Batch fetch unspent?");
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
@@ -307,9 +306,9 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     try {
       balance[currency] = await batchFetchBalances();
       await save();
-      printV("Batch fetch works! Yay!");
+      printV("Batch fetch works!");
     } catch (e) {
-      printV("Batch fetch broke! Sad!");
+      printV("Batch fetch broke!");
       balance[currency] = await fetchBalances();
       await save();
     }

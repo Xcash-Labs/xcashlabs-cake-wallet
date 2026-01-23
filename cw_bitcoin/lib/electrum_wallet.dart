@@ -2272,6 +2272,7 @@ abstract class ElectrumWalletBase
     }
   }
 
+
   Future<void> batchFetchTransactionsForAddressType(
     Map<String, ElectrumTransactionInfo> historiesWithDetails,
     BitcoinAddressType type,
@@ -2290,6 +2291,7 @@ abstract class ElectrumWalletBase
     final scriptHashes = addressesByType.map((addr) => addr.getScriptHash(network)).toList();
     printV("KB: ${scriptHashes}");
     //final history = await electrumClient.batchGetData(addressRecord.getScriptHash(network));
+    // Further batching 
   }
 
   Future<void> fetchTransactionsForAddressType(
@@ -2308,8 +2310,8 @@ abstract class ElectrumWalletBase
     final addressList = addressesByType.toList();
     
     // Process addresses in batches of 100
-    for (int i = 0; i < addressList.length; i += 100) {
-      final batchEnd = (i + 100 < addressList.length) ? i + 100 : addressList.length;
+    for (int i = 0; i < addressList.length; i += 20) {
+      final batchEnd = (i + 20 < addressList.length) ? i + 20 : addressList.length;
       final batchAddresses = addressList.sublist(i, batchEnd);
       
       // Collect script hashes for batch

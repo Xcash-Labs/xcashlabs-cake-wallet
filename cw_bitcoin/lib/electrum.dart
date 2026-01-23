@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:bitcoin_base/bitcoin_base.dart';
 import 'package:cw_bitcoin/bitcoin_amount_format.dart';
@@ -155,7 +156,7 @@ class ElectrumClient {
       }
     } on FormatException catch (e) {
       // Just so we notice issues identifying batches versus single responses
-      printV(
+      developer.log(
           "!!!!! Node communication possibly broke !!!!!: FormatException in _parseResponse: $e");
       final msg = e.message.toLowerCase();
 
@@ -333,6 +334,80 @@ class ElectrumClient {
 
         return [];
       });
+
+  Future<Map<String, List<Map<String, dynamic>>>> batchGetHistory(List<String> scriptHashes) async {
+    if (scriptHashes.isEmpty) {
+      return {};
+    }
+
+    try {
+      // Build batch request payload
+      final List<Map<String, dynamic>> batchRequest = [];
+      for (int i = 0; i < scriptHashes.length; i++) {
+        batchRequest.add({
+          'jsonrpc': '2.0',
+          'id': i + 1,
+          'method': 'blockchain.scripthash.get_history',
+          'params': [scriptHashes[i]],
+        });
+      }
+
+      final batchRequestJson = json.encode(batchRequest);
+      printV('batchGetHistory: Batch request JSON: $batchRequestJson');
+
+      // Send batch request
+      if (!isConnected) {
+        throw Exception('Not connected to Electrum server');
+      }
+
+      final completer = Completer<dynamic>();
+      _id += 1;
+      final requestId = _id;
+      _registryTask(requestId, completer);
+
+      // Write the batch request directly to socket
+      socket!.write(batchRequestJson + '\n');
+      printV('batchGetHistory: Batch request sent with ID: $requestId');
+
+      final response = await completer.future;
+
+      // Response is already decoded by _batchHandleResponse
+      final jsonSortedList = response as List<dynamic>;
+      // Sort by id field
+      jsonSortedList.sort((a, b) {
+        if (a is Map<String, dynamic> && b is Map<String, dynamic>) {
+          final aId = a['id'] as int? ?? 0;
+          final bId = b['id'] as int? ?? 0;
+          return aId.compareTo(bId);
+        }
+        return 0;
+      });
+
+      // Map results back to scriptHashes
+      final Map<String, List<Map<String, dynamic>>> resultMap = {};
+      for (int i = 0; i < scriptHashes.length && i < jsonSortedList.length; i++) {
+        final item = jsonSortedList[i];
+        if (item is Map<String, dynamic>) {
+          final result = item['result'];
+          if (result is List) {
+            resultMap[scriptHashes[i]] = result.map((dynamic val) {
+              if (val is Map<String, dynamic>) {
+                return val;
+              }
+              return <String, dynamic>{};
+            }).toList();
+          } else {
+            resultMap[scriptHashes[i]] = [];
+          }
+        }
+      }
+
+      return resultMap;
+    } catch (e) {
+      printV('batchGetHistory error: $e');
+      return {};
+    }
+  }
 
   Future<List<Map<String, dynamic>>?> getListUnspent(String scriptHash) async {
     printV("KB: Here?");

@@ -64,7 +64,6 @@ import 'package:mobx/mobx.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:cake_wallet/core/trade_monitor.dart';
 import 'package:cake_wallet/reactions/wallet_connect.dart';
 import 'package:cake_wallet/evm/evm.dart';
 
@@ -975,7 +974,7 @@ abstract class DashboardViewModelBase with Store {
 
   ReactionDisposer? _walletChangeDisposer;
 
-  // ReactionDisposer? _chainChangeDisposer;
+  ReactionDisposer? _chainChangeDisposer;
 
   @computed
   bool get hasPowNodes => [WalletType.nano, WalletType.banano].contains(wallet.type);

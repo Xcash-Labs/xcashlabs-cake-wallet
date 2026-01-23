@@ -5,7 +5,6 @@ import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/wallet_base.dart';
 import 'package:cw_core/transaction_info.dart';
 import 'package:cw_core/wallet_type.dart';
-import 'package:cake_wallet/reactions/wallet_connect.dart';
 import 'package:cake_wallet/evm/evm.dart';
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
 import 'package:cake_wallet/entities/priority_for_wallet_type.dart';
@@ -129,10 +128,10 @@ abstract class TransactionDetailsViewModelBase with Store {
       items.add(
         BlockExplorerListItem(
           title: S.current.view_in_block_explorer,
-          value: _explorerDescription(type),
+          value: _explorerDescription(type, wallet.chainId),
           onTap: () async {
             try {
-              final uri = Uri.parse(_explorerUrl(type, tx.txHash));
+              final uri = Uri.parse(_explorerUrl(type, tx.txHash, wallet.chainId));
               if (await canLaunchUrl(uri)) await launchUrl(
                   uri, mode: LaunchMode.externalApplication);
             } catch (e) {}

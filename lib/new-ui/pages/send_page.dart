@@ -7,6 +7,7 @@ import 'package:cake_wallet/di.dart';
 import 'package:cake_wallet/entities/contact_record.dart';
 import 'package:cake_wallet/entities/fiat_currency.dart';
 import 'package:cake_wallet/entities/priority_for_wallet_type.dart';
+import 'package:cake_wallet/evm/evm.dart';
 import 'package:cake_wallet/exchange/trade.dart';
 import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/monero/monero.dart';
@@ -14,7 +15,10 @@ import 'package:cake_wallet/new-ui/modal_navigator.dart';
 import 'package:cake_wallet/new-ui/widgets/animated_dropdown.dart';
 import 'package:cake_wallet/new-ui/widgets/picker.dart';
 import 'package:cake_wallet/new-ui/widgets/send_page/send_confirm_sheet.dart';
+import 'package:cake_wallet/reactions/wallet_connect.dart';
+import 'package:cake_wallet/src/widgets/bottom_sheet/token_selection_bottom_sheet.dart';
 import 'package:cake_wallet/src/widgets/new_list_row/list_item_regular_row_widget.dart';
+import 'package:cake_wallet/store/app_store.dart';
 import "package:cw_core/wallet_type.dart";
 import 'package:cake_wallet/new-ui/widgets/coins_page/wallet_info.dart';
 import 'package:cake_wallet/new-ui/widgets/modern_button.dart';
@@ -28,7 +32,6 @@ import 'package:cake_wallet/routes.dart' show Routes;
 import 'package:cake_wallet/src/screens/connect_device/connect_device_page.dart';
 import 'package:cake_wallet/src/screens/exchange/widgets/currency_picker.dart';
 import 'package:cake_wallet/src/widgets/alert_with_one_action.dart';
-import 'package:cake_wallet/src/widgets/bottom_sheet/evm_payment_flow_bottom_sheet.dart';
 import 'package:cake_wallet/src/widgets/bottom_sheet/info_bottom_sheet_widget.dart';
 import 'package:cake_wallet/src/widgets/bottom_sheet/payment_confirmation_bottom_sheet.dart';
 import 'package:cake_wallet/src/widgets/bottom_sheet/swap_confirmation_bottom_sheet.dart';
@@ -510,7 +513,6 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
       ),
     );
   }
-
   Future<void> _handlePaymentFlow(String uri, PaymentRequest paymentRequest) async {
     if (uri.contains('@') || paymentRequest.address.contains('@')) return;
 
@@ -538,11 +540,29 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
           );
           break;
         case PaymentFlowType.evmNetworkSelection:
-          await _showEVMPaymentFlow(
+          await _showTokenSelectionFlow(
             widget.paymentViewModel,
             widget.walletSwitcherViewModel,
             paymentRequest,
+            fixedNetwork: result.walletType,
           );
+          break;
+        case PaymentFlowType.solanaTokenSelection:
+          await _showTokenSelectionFlow(
+            widget.paymentViewModel,
+            widget.walletSwitcherViewModel,
+            paymentRequest,
+            fixedNetwork: WalletType.solana,
+          );
+          break;
+        case PaymentFlowType.tronTokenSelection:
+          await _showTokenSelectionFlow(
+            widget.paymentViewModel,
+            widget.walletSwitcherViewModel,
+            paymentRequest,
+            fixedNetwork: WalletType.tron,
+          );
+
           break;
         case PaymentFlowType.currentWalletCompatible:
         case PaymentFlowType.error:
@@ -556,24 +576,12 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
     }
   }
 
-  void _applyPaymentRequest(PaymentRequest paymentRequest) {
-    if (widget.sendViewModel.usePayjoin) {
-      widget.sendViewModel.payjoinUri = paymentRequest.pjUri;
-    }
-    _addressControllers[_selectedOutput].text = paymentRequest.address;
-    if (paymentRequest.amount.isNotEmpty) {
-      _fiatInputMode = false;
-      _amountControllers[_selectedOutput].text = paymentRequest.amount;
-    }
-    // noteController.text = paymentRequest.note;
-  }
-
   Future<void> _showPaymentConfirmation(
-    PaymentViewModel paymentViewModel,
-    WalletSwitcherViewModel walletSwitcherViewModel,
-    PaymentRequest paymentRequest,
-    PaymentFlowResult result,
-  ) async {
+      PaymentViewModel paymentViewModel,
+      WalletSwitcherViewModel walletSwitcherViewModel,
+      PaymentRequest paymentRequest,
+      PaymentFlowResult result,
+      ) async {
     if (!context.mounted) {
       return;
     }
@@ -600,17 +608,25 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
             paymentRequest,
             result,
           ),
-          onSwap: () => _handleSwapFlow(paymentViewModel, result),
+          onSwap: (bottomSheetContext) =>
+              _handleSwapFlow(paymentViewModel, result, bottomSheetContext),
+          onSwitchNetwork: () => _handleSwitchNetwork(
+            paymentViewModel,
+            walletSwitcherViewModel,
+            paymentRequest,
+            result,
+          ),
         );
       },
     );
   }
 
-  Future<void> _showEVMPaymentFlow(
-    PaymentViewModel paymentViewModel,
-    WalletSwitcherViewModel walletSwitcherViewModel,
-    PaymentRequest paymentRequest,
-  ) async {
+  Future<void> _showTokenSelectionFlow(
+      PaymentViewModel paymentViewModel,
+      WalletSwitcherViewModel walletSwitcherViewModel,
+      PaymentRequest paymentRequest, {
+        WalletType? fixedNetwork,
+      }) async {
     if (!context.mounted) {
       return;
     }
@@ -620,14 +636,19 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
       isDismissible: true,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return EVMPaymentFlowBottomSheet(
+        return TokenSelectionBottomSheet(
           paymentViewModel: paymentViewModel,
           paymentRequest: paymentRequest,
+          fixedNetwork: fixedNetwork,
           onNext: (PaymentFlowResult newResult) {
-            if (newResult.addressDetectionResult!.detectedWalletType ==
-                paymentViewModel.currentWalletType) {
+            final selectedChainId = newResult.chainId;
+            final isCompatible = selectedChainId == evm!.getSelectedChainId(widget.sendViewModel.wallet);
+
+            if (isCompatible) {
               widget.sendViewModel.setSelectedCryptoCurrency(
-                  newResult.addressDetectionResult!.detectedCurrency!.title);
+                newResult.addressDetectionResult!.detectedCurrency!.title,
+              );
+              _applyPaymentRequest(paymentRequest);
             } else {
               _showPaymentConfirmation(
                 paymentViewModel,
@@ -642,25 +663,12 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
     );
   }
 
-  Future<void> _handleSwapFlow(PaymentViewModel paymentViewModel, PaymentFlowResult result) async {
-    if (mounted && Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
-    final bottomSheet = getIt.get<SwapConfirmationBottomSheet>(param1: result);
-    await showModalBottomSheet<Trade?>(
-      context: context,
-      isDismissible: true,
-      isScrollControlled: true,
-      builder: (BuildContext context) => bottomSheet,
-    );
-  }
-
   Future<void> _handleSelectWallet(
-    PaymentViewModel paymentViewModel,
-    WalletSwitcherViewModel walletSwitcherViewModel,
-    PaymentRequest paymentRequest,
-    PaymentFlowResult result,
-  ) async {
+      PaymentViewModel paymentViewModel,
+      WalletSwitcherViewModel walletSwitcherViewModel,
+      PaymentRequest paymentRequest,
+      PaymentFlowResult result,
+      ) async {
     Navigator.of(context).pop();
 
     await showModalBottomSheet<WalletInfo>(
@@ -678,25 +686,79 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
     final success = await walletSwitcherViewModel.switchToSelectedWallet();
 
     if (success) {
+      if (isEVMCompatibleChain(widget.sendViewModel.wallet.type) && result.chainId != null) {
+        final appStore = getIt.get<AppStore>();
+        final node = appStore.settingsStore.getCurrentNode(
+          widget.sendViewModel.wallet.type,
+          chainId: result.chainId,
+        );
+        await evm!.selectChain(widget.sendViewModel.wallet, result.chainId!, node: node);
+      }
+
       await widget.sendViewModel.wallet.updateBalance();
-      widget.sendViewModel
-          .setSelectedCryptoCurrency(result.addressDetectionResult!.detectedCurrency!.title);
+
+      final detectedCurrency = result.addressDetectionResult!.detectedCurrency;
+      if (detectedCurrency != null) {
+        widget.sendViewModel.setSelectedCryptoCurrency(detectedCurrency.title);
+      }
+
       _applyPaymentRequest(paymentRequest);
     }
   }
 
   Future<void> _handleChangeWallet(
-    PaymentViewModel paymentViewModel,
-    WalletSwitcherViewModel walletSwitcherViewModel,
-    PaymentRequest paymentRequest,
-    PaymentFlowResult result,
-  ) async {
+      PaymentViewModel paymentViewModel,
+      WalletSwitcherViewModel walletSwitcherViewModel,
+      PaymentRequest paymentRequest,
+      PaymentFlowResult result,
+      ) async {
     if (mounted && Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
 
-    if (result.wallet != null) {
+    if (result.type == PaymentFlowType.singleWallet && result.wallet != null) {
       walletSwitcherViewModel.selectWallet(result.wallet!);
+      final success = await walletSwitcherViewModel.switchToSelectedWallet();
+      if (success) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            showModalBottomSheet<void>(
+              context: context,
+              isDismissible: false,
+              builder: (BuildContext context) {
+                loadingBottomSheetContext = context;
+                return LoadingBottomSheet(
+                  titleText: S.of(context).loading_your_wallet,
+                );
+              },
+            );
+          }
+        });
+
+        // If EVM wallet and chainId is specified, switch to that chain
+        if (isEVMCompatibleChain(widget.sendViewModel.wallet.type) && result.chainId != null) {
+          final appStore = getIt.get<AppStore>();
+          final node = appStore.settingsStore.getCurrentNode(
+            widget.sendViewModel.wallet.type,
+            chainId: result.chainId,
+          );
+          await evm!.selectChain(widget.sendViewModel.wallet, result.chainId!, node: node);
+        }
+
+        await Future.delayed(const Duration(seconds: 2));
+        if (loadingBottomSheetContext != null &&
+            loadingBottomSheetContext!.mounted &&
+            Navigator.canPop(loadingBottomSheetContext!)) {
+          Navigator.of(loadingBottomSheetContext!).pop();
+        }
+
+        await widget.sendViewModel.wallet.updateBalance();
+        widget.sendViewModel
+            .setSelectedCryptoCurrency(result.addressDetectionResult!.detectedCurrency!.title);
+        _applyPaymentRequest(paymentRequest);
+      }
+    } else if (result.wallets.isNotEmpty && result.wallets.length == 1) {
+      walletSwitcherViewModel.selectWallet(result.wallets.first);
       final success = await walletSwitcherViewModel.switchToSelectedWallet();
       if (success) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -713,6 +775,17 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
             );
           }
         });
+
+        // If EVM wallet and chainId is specified, switch to that chain
+        if (isEVMCompatibleChain(widget.sendViewModel.wallet.type) && result.chainId != null) {
+          final appStore = getIt.get<AppStore>();
+          final node = appStore.settingsStore.getCurrentNode(
+            widget.sendViewModel.wallet.type,
+            chainId: result.chainId,
+          );
+          await evm!.selectChain(widget.sendViewModel.wallet, result.chainId!, node: node);
+        }
+
         await Future.delayed(const Duration(seconds: 2));
         if (loadingBottomSheetContext != null && loadingBottomSheetContext!.mounted) {
           Navigator.of(loadingBottomSheetContext!).pop();
@@ -725,6 +798,89 @@ AnimatedDropdown(dropdownText:"Advanced Settings",content: Column(children: [
       }
     }
   }
+
+  Future<void> _handleSwitchNetwork(
+      PaymentViewModel paymentViewModel,
+      WalletSwitcherViewModel walletSwitcherViewModel,
+      PaymentRequest paymentRequest,
+      PaymentFlowResult result,
+      ) async {
+    if (result.type != PaymentFlowType.evmNetworkSelection || result.wallet == null) return;
+
+    if (context.mounted && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+
+    try {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          showModalBottomSheet<void>(
+            context: context,
+            isDismissible: false,
+            builder: (BuildContext context) {
+              loadingBottomSheetContext = context;
+              return LoadingBottomSheet(
+                titleText: S.of(context).loading_your_wallet,
+              );
+            },
+          );
+        }
+      });
+
+      await paymentViewModel.selectChain();
+
+      await Future.delayed(const Duration(seconds: 2));
+      if (loadingBottomSheetContext != null && loadingBottomSheetContext!.mounted) {
+        Navigator.of(loadingBottomSheetContext!).pop();
+      }
+
+      await widget.sendViewModel.wallet.updateBalance();
+      final detectedCurrency = result.addressDetectionResult?.detectedCurrency;
+      if (detectedCurrency != null) {
+        widget.sendViewModel.setSelectedCryptoCurrency(detectedCurrency.title);
+      }
+      _applyPaymentRequest(paymentRequest);
+    } catch (e) {
+      if (loadingBottomSheetContext != null && loadingBottomSheetContext!.mounted) {
+        Navigator.of(loadingBottomSheetContext!).pop();
+      }
+      printV('Switch network error: $e');
+    }
+  }
+
+  /// Apply payment request to current form
+  void _applyPaymentRequest(PaymentRequest paymentRequest) {
+    if (widget.sendViewModel.usePayjoin) {
+      widget.sendViewModel.payjoinUri = paymentRequest.pjUri;
+    }
+    _addressControllers[_selectedOutput].text = paymentRequest.address;
+    if (paymentRequest.amount.isNotEmpty) {
+      _amountControllers[_selectedOutput].text = paymentRequest.amount;
+    }
+    // TODO: add notes
+    // noteController.text = paymentRequest.note;
+  }
+
+  Future<void> _handleSwapFlow(
+      PaymentViewModel paymentViewModel,
+      PaymentFlowResult result,
+      BuildContext bottomSheetContext,
+      ) async {
+    Navigator.of(bottomSheetContext).pop();
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return;
+
+    final bottomSheet = getIt.get<SwapConfirmationBottomSheet>(param1: result);
+    await showModalBottomSheet<Trade?>(
+      context: context,
+      isDismissible: true,
+      isScrollControlled: true,
+      builder: (BuildContext context) => bottomSheet,
+    );
+  }
+
 
   void showErrorValidationAlert(BuildContext context) => showPopUp<void>(
         context: context,

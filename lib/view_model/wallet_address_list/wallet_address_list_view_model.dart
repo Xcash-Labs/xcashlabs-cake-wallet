@@ -112,65 +112,6 @@ abstract class WalletAddressListViewModelBase extends WalletChangeListenerViewMo
   bool get isPayjoinUnavailable =>
       wallet.type == WalletType.bitcoin && _settingsStore.usePayjoin && payjoinEndpoint.isEmpty;
 
-  @computed
-  PaymentURI get uri {
-    if (isEVMCompatibleChain(wallet.type) && selectedChainId != null) {
-      switch (selectedChainId) {
-        case 1:
-          return EthereumURI(amount: amount, address: address.address);
-        case 137:
-          return PolygonURI(amount: amount, address: address.address);
-        case 8453:
-          return BaseURI(amount: amount, address: address.address);
-        case 42161:
-          return ArbitrumURI(amount: amount, address: address.address);
-        default:
-          return EthereumURI(amount: amount, address: address.address);
-      }
-    }
-
-    switch (wallet.type) {
-      case WalletType.monero:
-        return MoneroURI(amount: amount, address: address.address);
-      case WalletType.haven:
-        return HavenURI(amount: amount, address: address.address);
-      case WalletType.bitcoin:
-        return BitcoinURI(amount: amount, address: address.address, pjUri: payjoinEndpoint);
-      case WalletType.litecoin:
-        return LitecoinURI(amount: amount, address: address.address);
-      case WalletType.ethereum:
-        return EthereumURI(amount: amount, address: address.address);
-      case WalletType.bitcoinCash:
-        return BitcoinCashURI(amount: amount, address: address.address);
-      case WalletType.banano:
-        return NanoURI(amount: amount, address: address.address);
-      case WalletType.nano:
-        return NanoURI(amount: amount, address: address.address);
-      case WalletType.polygon:
-        return PolygonURI(amount: amount, address: address.address);
-      case WalletType.solana:
-        return SolanaURI(amount: amount, address: address.address);
-      case WalletType.tron:
-        return TronURI(amount: amount, address: address.address);
-      case WalletType.wownero:
-        return WowneroURI(amount: amount, address: address.address);
-      case WalletType.zano:
-        return ZanoURI(amount: amount, address: address.address);
-      case WalletType.decred:
-        return DecredURI(amount: amount, address: address.address);
-      case WalletType.dogecoin:
-        return DogeURI(amount: amount, address: address.address);
-      case WalletType.base:
-        return BaseURI(amount: amount, address: address.address);
-      case WalletType.arbitrum:
-        return ArbitrumURI(amount: amount, address: address.address);
-      case WalletType.zcash:
-        return ZcashURI(amount: amount, address: address.address);
-      case WalletType.none:
-        throw Exception('Unexpected type: ${type.toString()}');
-      }
-    }
-
   bool get isPayjoinAvailable => !isPayjoinUnavailable && !isSilentPayments && !isLightning;
 
   @observable

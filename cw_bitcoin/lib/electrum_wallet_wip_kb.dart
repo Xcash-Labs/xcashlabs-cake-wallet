@@ -1626,6 +1626,7 @@ abstract class ElectrumWalletBase
     });
 
     // Let's batch the futures through batchFetchUnspent
+    
 
     // old code
     // final addressFutures = walletAddresses.allAddresses
@@ -1634,6 +1635,8 @@ abstract class ElectrumWalletBase
     //     .toList();
     // final results = await Future.wait(addressFutures);
     // end of old code
+
+
 
     // final addressScripthashes = walletAddresses.allAddresses
     //     .where((element) => element.type != SegwitAddresType.mweb)

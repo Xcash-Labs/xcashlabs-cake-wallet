@@ -981,10 +981,16 @@ abstract class ElectrumWalletBase
       throw BitcoinTransactionWrongBalanceException();
     }
 
+    // Do not allow creating change output with mweb if the wallet is not spending mweb inputs
+    final spendsMweb = utxoDetails.utxos.any((u) => u.utxo.scriptType == SegwitAddresType.mweb);
+    final changeCoinType = (this is LitecoinWallet && spendsMweb)
+        ? UnspentCoinType.any
+        : UnspentCoinType.nonMweb;
+
     final changeAddress = await walletAddresses.getChangeAddress(
       inputs: utxoDetails.availableInputs,
       outputs: updatedOutputs,
-      coinTypeToSpendFrom: coinTypeToSpendFrom,
+      coinTypeToSpendFrom: changeCoinType,
     );
     final address = RegexUtils.addressTypeFromStr(changeAddress.address, network);
     updatedOutputs.add(BitcoinOutput(
@@ -1221,7 +1227,14 @@ abstract class ElectrumWalletBase
       final hasMultiDestination = transactionCredentials.outputs.length > 1;
       final sendAll = !hasMultiDestination && transactionCredentials.outputs.first.sendAll;
       final memo = transactionCredentials.outputs.first.memo;
-      final coinTypeToSpendFrom = transactionCredentials.coinTypeToSpendFrom;
+
+      final bool isLtc = this is LitecoinWallet;
+      final bool mwebEnabled = isLtc ? (this as LitecoinWallet).mwebEnabled : false;
+
+      // if mweb isn't enabled for ltc transactions, don't consider spending mweb coins:
+      final coinTypeToSpendFrom =
+      (isLtc && !mwebEnabled) ? UnspentCoinType.nonMweb : transactionCredentials.coinTypeToSpendFrom;
+
 
       int credentialsAmount = 0;
       bool hasSilentPayment = false;
@@ -1417,6 +1430,7 @@ abstract class ElectrumWalletBase
         utxos: estimatedTx.utxos,
         publicKeys: estimatedTx.publicKeys,
         isViewOnly: keys.privateKey.isEmpty,
+        isMweb: mwebEnabled
       )..addListener((transaction) async {
           transactionHistory.addOne(transaction);
           if (estimatedTx.spendsSilentPayment) {

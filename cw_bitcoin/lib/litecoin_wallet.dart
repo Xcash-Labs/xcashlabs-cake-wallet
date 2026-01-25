@@ -1151,21 +1151,7 @@ abstract class LitecoinWalletBase extends ElectrumWallet with Store {
   @override
   Future<PendingTransaction> createTransaction(Object credentials) async {
     try {
-      var creds;
-      if (!mwebEnabled) {
-        BitcoinTransactionCredentials btcCreds = (credentials as BitcoinTransactionCredentials);
-        // sets unspent coin type to nonMweb:
-        creds = BitcoinTransactionCredentials(
-          btcCreds.outputs,
-          priority: btcCreds.priority,
-          feeRate: btcCreds.feeRate,
-          coinTypeToSpendFrom: UnspentCoinType.nonMweb,
-        );
-      } else {
-        creds = credentials;
-      }
-      var tx = await super.createTransaction(creds as Object) as PendingBitcoinTransaction;
-      tx.isMweb = mwebEnabled;
+      var tx = await super.createTransaction(credentials) as PendingBitcoinTransaction;
 
       if (!mwebEnabled) {
         tx.changeAddressOverride = (await (walletAddresses as LitecoinWalletAddresses)

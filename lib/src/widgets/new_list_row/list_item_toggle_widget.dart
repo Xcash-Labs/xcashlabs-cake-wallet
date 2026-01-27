@@ -25,29 +25,29 @@ class ListItemToggleWidget extends StatefulWidget {
 }
 
 class _ListItemToggleWidgetState extends State<ListItemToggleWidget> {
-  late bool _value;
 
   @override
   void initState() {
     super.initState();
-    _value = widget.value;
   }
 
   @override
   Widget build(BuildContext context) {
     return ListItemStyleWrapper(
         isFirstInSection: widget.isFirstInSection,
-        isLastInSection: widget.isFirstInSection,
+        isLastInSection: widget.isLastInSection,
+        onTap: () {
+          widget.onChanged(!widget.value);
+        },
         builder: (context, textStyle, labelStyle) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(widget.label, style: textStyle),
               StandardSwitch(
-                value: _value,
+                value: widget.value,
                 onTapped: () {
-                  final newValue = !_value;
-                  setState(() => _value = newValue);
+                  final newValue = !widget.value;
                   widget.onChanged(newValue);
                 },
               ),

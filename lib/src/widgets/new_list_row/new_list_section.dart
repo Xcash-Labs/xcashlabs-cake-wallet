@@ -97,11 +97,8 @@ class NewListSections extends StatelessWidget {
       return ListItemToggleWidget(
         keyValue: item.keyValue,
         label: item.label,
-        value: getCheckboxValue!(item.keyValue),
-        onChanged: (newValue) {
-          updateCheckboxValue!(item.keyValue, newValue);
-          item.onChanged(newValue);
-        },
+        value: item.value,
+        onChanged: item.onChanged,
         isFirstInSection: isFirst,
         isLastInSection: isLast,
       );
@@ -111,11 +108,8 @@ class NewListSections extends StatelessWidget {
       return ListItemCheckboxWidget(
         keyValue: item.keyValue,
         label: item.label,
-        value: getCheckboxValue!(item.keyValue),
-        onChanged: (newValue) {
-          updateCheckboxValue!(item.keyValue, newValue);
-          item.onChanged(newValue);
-        },
+        value: item.value,
+        onChanged: item.onChanged,
         isFirstInSection: isFirst,
         isLastInSection: isLast,
       );

@@ -30,21 +30,21 @@ class SettingsSectionData {
   const SettingsSectionData(this.title, this.titleIconPath, this.items);
 
   static SettingsSectionData walletSettings =
-      SettingsSectionData("Wallet Settings", "assets/new-ui/wallet_settings.svg", [
-    SettingsListItem("assets/new-ui/settings_row_icons/nodes.svg", "Nodes", Routes.manageNodes),
-    // SettingsListItem("assets/new-ui/settings_row_icons/privacy.svg", "Privacy features", ""),
-    SettingsListItem("assets/new-ui/settings_row_icons/seed.svg", "Seed & keys", Routes.seed,
+      SettingsSectionData(S.current.wallet_settings, "assets/new-ui/wallet_settings.svg", [
+    SettingsListItem("assets/new-ui/settings_row_icons/nodes.svg", S.current.nodes, Routes.manageNodes),
+    SettingsListItem("assets/new-ui/settings_row_icons/privacy.svg", S.current.privacy_features, Routes.privacyPage),
+    SettingsListItem("assets/new-ui/settings_row_icons/seed.svg", S.current.seed_and_keys, Routes.seed,
         routeArgs: true),
-    SettingsListItem("assets/new-ui/settings_row_icons/other.svg", "Other", Routes.otherSettingsPage),
+    SettingsListItem("assets/new-ui/settings_row_icons/other.svg", S.current.other, Routes.otherSettingsPage),
   ]);
 
   static SettingsSectionData appSettings =
-      SettingsSectionData("App Settings", "assets/new-ui/app_settings.svg", [
-    SettingsListItem("assets/new-ui/settings_row_icons/connections.svg", "Connections", Routes.connectionSync),
+      SettingsSectionData(S.current.app_settings, "assets/new-ui/app_settings.svg", [
+    SettingsListItem("assets/new-ui/settings_row_icons/connections.svg", S.current.connections, Routes.connectionSync),
     // SettingsListItem("assets/new-ui/settings_row_icons/defaults.svg", "Defaults", ""),
-    SettingsListItem("assets/new-ui/settings_row_icons/display.svg", "Display", Routes.displaySettingsPage),
-    SettingsListItem("assets/new-ui/settings_row_icons/security.svg", "Privacy & Security", Routes.privacyPage),
-    SettingsListItem("assets/new-ui/settings_row_icons/backup.svg", "Backup", Routes.backup),
+    SettingsListItem("assets/new-ui/settings_row_icons/display.svg", S.current.display, Routes.displaySettingsPage),
+    SettingsListItem("assets/new-ui/settings_row_icons/security.svg", S.current.privacy_and_security, Routes.securityBackupPage),
+    SettingsListItem("assets/new-ui/settings_row_icons/backup.svg", S.current.backup, Routes.backup),
   ]);
 
   static SettingsSectionData otherSettings = SettingsSectionData("", "", [

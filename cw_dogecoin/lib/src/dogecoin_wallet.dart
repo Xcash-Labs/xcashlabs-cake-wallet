@@ -206,8 +206,11 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
       scriptHashes.add(sh);
     }
     // We now have a batch of script hashes, invoke batchGetData with the method blockchain.scripthash.listunspent
+    // batchGetData returns a list sorted by id, so it aligns with the list of unspents
     var batchResult = await batchGetData(scriptHashes, 'blockchain.scripthash.listunspent');
-    printV(batchResult);
+
+    // TODO: Batch result handling time
+
   }
 
 
@@ -436,22 +439,6 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     var totalConfirmed = 0;
     var totalUnconfirmed = 0;
 
-    // BTC only I believe?
-    // if (hasSilentPaymentsScanning) {
-    //   // Add values from unspent coins that are not fetched by the address list
-    //   // i.e. scanned silent payments
-    //   transactionHistory.transactions.values.forEach((tx) {
-    //     if (tx.unspents != null) {
-    //       tx.unspents!.forEach((unspent) {
-    //         if (unspent.bitcoinAddressRecord is BitcoinSilentPaymentAddressRecord) {
-    //           if (unspent.isFrozen) totalFrozen += unspent.value;
-    //           totalConfirmed += unspent.value;
-    //         }
-    //       });
-    //     }
-    //   });
-    // }
-
     unspentCoinsInfo.values.forEach((info) {
       unspentCoins.forEach((element) {
         if (element.bitcoinAddressRecord is BitcoinSilentPaymentAddressRecord) return;
@@ -470,7 +457,9 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     final balancesList =
         await electrumClient.batchGetData(scriptHashes, 'blockchain.scripthash.get_balance');
     if (balancesList.isEmpty && scriptHashes.isNotEmpty) {
-      // if we got empty response from the server, set our connection status to lost and return our last known balance:
+      // Don't be surprised if this code fires if we scan a large enough wallet. It'll get disconnected in the middle of responses,
+      // leaving us in a difficult situation if we got empty response from the 
+      // server, set our connection status to lost and return our last known balance:
       printV("got empty batch balance response from the server, setting connection status to lost");
       syncStatus = LostConnectionSyncStatus();
       return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
@@ -484,16 +473,16 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
       final responseObj = balancesList[i] as Map<String, dynamic>?;
       final balanceData = responseObj?['result'] as Map<String, dynamic>? ?? {};
       
-      printV("KB: result being processed: $i for ${addressRecord.address}");
+      // printV("KB: result being processed: $i for ${addressRecord.address}");
       if (balanceData.isEmpty || balanceData['confirmed'] == null) {
-        printV('Warning: No balance data for address ${addressRecord.address} (sh: $sh)');
+        // printV('Warning: No balance data for address ${addressRecord.address} (sh: $sh)');
         continue;
       }
 
       final confirmed = balanceData['confirmed'] as int? ?? 0;
       final unconfirmed = balanceData['unconfirmed'] as int? ?? 0;
 
-      printV('Address ${addressRecord.address}: confirmed=$confirmed, unconfirmed=$unconfirmed');
+      // printV('Address ${addressRecord.address}: confirmed=$confirmed, unconfirmed=$unconfirmed');
 
       totalConfirmed += confirmed;
       totalUnconfirmed += unconfirmed;

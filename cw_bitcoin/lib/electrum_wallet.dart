@@ -119,9 +119,17 @@ abstract class ElectrumWalletBase
     mainHdByType = <BitcoinAddressType, Bip32Slip10Secp256k1>{};
     sideHdByType = <BitcoinAddressType, Bip32Slip10Secp256k1>{};
 
+    final isElectrumDerivation = derivationInfo.derivationType == DerivationType.electrum;
+
     final canDeriveFromSeed = _masterHD != null && currency != null;
 
-    if (canDeriveFromSeed) {
+    if (isElectrumDerivation) {
+      // Electrum derivation does not follow BIP44/49/84 etc. standards
+      for (final type in supportedTypes) {
+        mainHdByType[type] = mainHd; // accountHD.child(0)
+        sideHdByType[type] = sideHd; // accountHD.child(1)
+      }
+    } else if (canDeriveFromSeed) {
       final coinType = _coinTypeFor(currency);
 
       for (final type in supportedTypes) {
@@ -177,6 +185,11 @@ abstract class ElectrumWalletBase
   /// For LEGACY addresses, returns the wallet's legacy derivation base (derivationInfo.derivationPath)
   /// which is already the account path used historically (e.g. m/0' or m/84'/0'/0').
   String _accountDerivationPathForRecord(BaseBitcoinAddressRecord record) {
+
+    if (derivationInfo.derivationType == DerivationType.electrum) {
+      return derivationInfo.derivationPath ?? electrum_path; // m/0'
+    }
+
     if (record.isLegacyDerivation) {
       return derivationInfo.derivationPath ?? electrum_path;
     }

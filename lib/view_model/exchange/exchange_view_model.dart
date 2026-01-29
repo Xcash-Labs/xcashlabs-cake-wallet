@@ -435,16 +435,31 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
     final previousCurrency = depositCurrency;
     final hadAmount = depositAmount.isNotEmpty && depositAmount != S.current.fetching;
     final previousAmount = hadAmount ? depositAmount : '';
+    final wasSendAllEnabled = isSendAllEnabled;
 
     depositCurrency = currency;
     isFixedRateMode = false;
     isDepositAddressEnabled = !useSameWalletAddress(depositCurrency);
 
     if (previousCurrency != currency) {
-      _onPairChangeWithAmountPreservation(
-        preserveDepositAmount: hadAmount,
-        previousDepositAmount: previousAmount,
-      );
+      if (wasSendAllEnabled) {
+        depositAmount = '';
+        receiveAmount = '';
+        bestRate = 0.0;
+        loadLimits();
+        _setAvailableProviders();
+
+        if (hasAllAmount) {
+          calculateDepositAllAmount();
+        } else {
+          isSendAllEnabled = false;
+        }
+      } else {
+        _onPairChangeWithAmountPreservation(
+          preserveDepositAmount: hadAmount,
+          previousDepositAmount: previousAmount,
+        );
+      }
     }
   }
 
@@ -459,6 +474,9 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
     isDepositAddressEnabled = !useSameWalletAddress(depositCurrency);
 
     if (previousCurrency != currency) {
+      if (isSendAllEnabled && hasAllAmount) {
+        calculateDepositAllAmount();
+      }
       _onPairChangeWithAmountPreservation(
         preserveReceiveAmount: hadAmount,
         previousReceiveAmount: previousAmount,

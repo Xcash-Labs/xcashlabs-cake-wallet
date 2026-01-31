@@ -218,7 +218,7 @@ class _GroupedWalletExpansionTileBodyState
                                 const SizedBox(width: 7),
                               const SizedBox(width: 24),
                               Image.asset(
-                                walletTypeToCryptoCurrency(item.type).iconPath!,
+                              getCryptoCurrencyForWalletListItem(item.type).iconPath!,
                                 width: 32,
                                 height: 32,
                               ),

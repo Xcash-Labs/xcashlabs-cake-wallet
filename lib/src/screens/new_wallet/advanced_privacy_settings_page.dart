@@ -263,6 +263,14 @@ class _AdvancedPrivacySettingsBodyState extends State<_AdvancedPrivacySettingsBo
                       widget.privacySettingsViewModel.setDisableBulletin(value);
                     },
                   ),
+                  if (widget.privacySettingsViewModel.canUseBlinkProtection)
+                    SettingsSwitcherCell(
+                      title: S.current.use_blink_protection,
+                      value: widget.privacySettingsViewModel.useBlinkProtection,
+                      onValueChange: (BuildContext _, bool value) {
+                        widget.privacySettingsViewModel.setUseBlinkProtection(value);
+                      },
+                    ),
                   if (!widget.privacySettingsViewModel.isGroupCreation)
                   SettingsSwitcherCell(
                     title: S.current.add_custom_node,
@@ -299,7 +307,7 @@ class _AdvancedPrivacySettingsBodyState extends State<_AdvancedPrivacySettingsBo
         bottomSectionPadding: EdgeInsets.all(24),
         bottomSection: Column(
           children: [
-            const SizedBox(height: 24),
+            const SizedBox(height: 4),
             LayoutBuilder(
               builder: (_, constraints) => SizedBox(
                 width: constraints.maxWidth * 0.8,

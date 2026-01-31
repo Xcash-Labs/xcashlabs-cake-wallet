@@ -4,10 +4,9 @@ import 'package:cake_wallet/.secrets.g.dart' as secrets;
 import 'package:cake_wallet/anonpay/anonpay_api.dart';
 import 'package:cake_wallet/anonpay/anonpay_invoice_info.dart';
 import 'package:cake_wallet/anypay/anypay_api.dart';
-import 'package:cake_wallet/arbitrum/arbitrum.dart';
-import 'package:cake_wallet/base/base.dart';
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
 import 'package:cake_wallet/bitcoin_cash/bitcoin_cash.dart';
+import 'package:cake_wallet/evm/evm.dart';
 import 'package:cake_wallet/buy/dfx/dfx_buy_provider.dart';
 import 'package:cake_wallet/buy/moonpay/moonpay_provider.dart';
 import 'package:cake_wallet/buy/onramper/onramper_buy_provider.dart';
@@ -64,6 +63,7 @@ import 'package:cake_wallet/tron/tron.dart';
 import 'package:cake_wallet/src/screens/transaction_details/rbf_details_page.dart';
 import 'package:cake_wallet/view_model/new_wallet_group_view_model.dart';
 import 'package:cake_wallet/view_model/start_tor_view_model.dart';
+import 'package:cake_wallet/zcash/zcash.dart';
 import 'package:cw_core/receive_page_option.dart';
 import 'package:cake_wallet/entities/wallet_edit_page_arguments.dart';
 import 'package:cake_wallet/entities/wallet_manager.dart';
@@ -88,12 +88,10 @@ import 'package:cake_wallet/entities/preferences_key.dart';
 import 'package:cake_wallet/entities/qr_view_data.dart';
 import 'package:cake_wallet/entities/template.dart';
 import 'package:cake_wallet/entities/transaction_description.dart';
-import 'package:cake_wallet/ethereum/ethereum.dart';
 import 'package:cake_wallet/exchange/exchange_template.dart';
 import 'package:cake_wallet/exchange/trade.dart';
 import 'package:cake_wallet/monero/monero.dart';
 import 'package:cake_wallet/nano/nano.dart';
-import 'package:cake_wallet/polygon/polygon.dart';
 import 'package:cake_wallet/decred/decred.dart';
 import 'package:cake_wallet/reactions/on_authentication_state_change.dart';
 import 'package:cake_wallet/routes.dart';
@@ -191,7 +189,6 @@ import 'package:cake_wallet/view_model/cake_pay/cake_pay_account_view_model.dart
 import 'package:cake_wallet/view_model/cake_pay/cake_pay_cards_list_view_model.dart';
 import 'package:cake_wallet/view_model/nano_account_list/nano_account_edit_or_create_view_model.dart';
 import 'package:cake_wallet/view_model/nano_account_list/nano_account_list_view_model.dart';
-import 'package:cake_wallet/view_model/new_wallet_type_view_model.dart';
 import 'package:cake_wallet/view_model/node_list/pow_node_list_view_model.dart';
 import 'package:cake_wallet/view_model/wallet_groups_display_view_model.dart';
 import 'package:cake_wallet/view_model/seed_settings_view_model.dart';
@@ -445,7 +442,6 @@ Future<void> setup({
       newWalletArguments: newWalletArgs,
     ));
 
-
   getIt.registerFactoryParam<WalletGroupNewVM, WalletGroupArguments, void>(
           (args, _) => WalletGroupNewVM(getIt.get<AppStore>(),
           getIt.get<WalletCreationService>(param1: WalletType.none),
@@ -591,6 +587,8 @@ Future<void> setup({
     sharedPreferences: getIt.get<SharedPreferences>(),
     keyService: getIt.get<KeyService>()));
 
+  final walletList = await WalletInfo.getAll();
+  
   getIt.registerFactory<AuthService>(
         () => AuthService(
         secureStorage: getIt.get<SecureStorage>(),
@@ -1122,7 +1120,7 @@ Future<void> setup({
   getIt.registerFactory<MoonPayProvider>(() => MoonPayProvider(
         appStore: getIt.get<AppStore>(),
         wallet: getIt.get<AppStore>().wallet!,
-        isTestEnvironment: kDebugMode,
+        isTestEnvironment: kDebugMode || kProfileMode,
       ));
 
   getIt.registerFactory<OnRamperBuyProvider>(() => OnRamperBuyProvider(
@@ -1214,7 +1212,10 @@ Future<void> setup({
           SettingsStoreBase.walletPasswordDirectInput,
         );
       case WalletType.ethereum:
-        return ethereum!.createEthereumWalletService(SettingsStoreBase.walletPasswordDirectInput);
+      case WalletType.polygon:
+      case WalletType.base:
+      case WalletType.arbitrum:
+        return evm!.createEVMWalletService(param1, SettingsStoreBase.walletPasswordDirectInput);
       case WalletType.bitcoinCash:
         return bitcoinCash!.createBitcoinCashWalletService(_unspentCoinsInfoSource, SettingsStoreBase.walletPasswordDirectInput);
       case WalletType.dogecoin:
@@ -1222,8 +1223,6 @@ Future<void> setup({
       case WalletType.nano:
       case WalletType.banano:
         return nano!.createNanoWalletService(SettingsStoreBase.walletPasswordDirectInput);
-      case WalletType.polygon:
-        return polygon!.createPolygonWalletService(SettingsStoreBase.walletPasswordDirectInput);
       case WalletType.solana:
         return solana!.createSolanaWalletService(SettingsStoreBase.walletPasswordDirectInput);
       case WalletType.tron:
@@ -1234,12 +1233,10 @@ Future<void> setup({
         return zano!.createZanoWalletService();
       case WalletType.decred:
         return decred!.createDecredWalletService(_unspentCoinsInfoSource);
-      case WalletType.base:
-        return base!.createBaseWalletService(SettingsStoreBase.walletPasswordDirectInput);
-      case WalletType.arbitrum:
-        return arbitrum!.createArbitrumWalletService(SettingsStoreBase.walletPasswordDirectInput);
       case WalletType.haven:
         return HavenWalletService();
+      case WalletType.zcash:
+        return zcash!.createZcashWalletService(SettingsStoreBase.walletPasswordDirectInput);
       case WalletType.none:
         throw Exception('Unexpected token: ${param1.toString()} for generating of WalletService');
     }

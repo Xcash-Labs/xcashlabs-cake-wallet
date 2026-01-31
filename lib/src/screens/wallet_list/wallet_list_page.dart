@@ -54,20 +54,19 @@ class WalletListPage extends BasePage {
   String get title => S.current.wallets;
 
   @override
-  Widget body(BuildContext context) => Observer(
-    builder: (_) {
-      if (walletListViewModel.singleWalletsList.isEmpty && walletListViewModel.multiWalletGroups.isEmpty) {
-        return Center(
-          child: CircularProgressIndicator(),
+  Widget body(BuildContext context) => Observer(builder: (_) {
+        if (walletListViewModel.singleWalletsList.isEmpty &&
+            walletListViewModel.multiWalletGroups.isEmpty) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+        return WalletListBody(
+          walletListViewModel: walletListViewModel,
+          authService: authService,
+          onWalletLoaded: onWalletLoaded ?? (context) => Navigator.of(context).pop(),
         );
-      }
-      return WalletListBody(
-        walletListViewModel: walletListViewModel,
-        authService: authService,
-        onWalletLoaded: onWalletLoaded ?? (context) => Navigator.of(context).pop(),
-      );
-    }
-  );
+      });
 
   @override
   Widget trailing(BuildContext context) {
@@ -252,11 +251,9 @@ class WalletListBodyState extends State<WalletListBody> {
                             onChildItemTapped: (wallet) =>
                                 wallet.isCurrent ? null : _loadWallet(wallet),
                             childTrailingWidget: (item) {
-                              return item.isCurrent
-                                  ? SizedBox.shrink()
-                                  : Padding(
-                                      padding: const EdgeInsets.only(right: 12.0),
-                                      child: EditWalletButtonWidget(
+                                return item.isCurrent
+                                    ? SizedBox.shrink()
+                                    : EditWalletButtonWidget(
                                         onTap: () => Navigator.of(context).pushNamed(
                                           Routes.walletEdit,
                                           arguments: WalletEditPageArguments(
@@ -264,7 +261,7 @@ class WalletListBodyState extends State<WalletListBody> {
                                             editingWallet: item,
                                           ),
                                         ),
-                                      ));
+                                      );
                               },
                             );
                           },
@@ -322,7 +319,9 @@ class WalletListBodyState extends State<WalletListBody> {
                                           )
                                         : SizedBox(width: 6),
                                     Image.asset(
-                                      walletTypeToCryptoCurrency(wallet.type).iconPath!,
+                                      getCryptoCurrencyForWalletListItem(
+                                        wallet.type,
+                                      ).iconPath!,
                                       width: 32,
                                       height: 32,
                                     ),

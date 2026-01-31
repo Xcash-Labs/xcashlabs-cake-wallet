@@ -38,12 +38,10 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 
 class NewWalletTypePage extends BasePage {
   NewWalletTypePage({
-    required this.newWalletTypeViewModel,
     required this.newWalletTypeArguments,
     required this.seedSettingsViewModel,
   });
 
-  final NewWalletTypeViewModel newWalletTypeViewModel;
   final NewWalletTypeArguments newWalletTypeArguments;
   final SeedSettingsViewModel seedSettingsViewModel;
 
@@ -225,8 +223,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
             ),
             Expanded(
               child: ScrollableWithBottomSection(
-                  contentPadding:
-                      EdgeInsets.only(left: 24, right: 24, bottom: 24),
+                  contentPadding: EdgeInsets.only(left: 24, right: 24, bottom: 24),
                   scrollableKey: ValueKey('new_wallet_type_scrollable_key'),
                   content: Observer(
                     builder: (_) => Column(

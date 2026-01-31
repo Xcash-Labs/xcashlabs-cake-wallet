@@ -148,7 +148,7 @@ class WalletRestorePage extends BasePage {
                                       bottom: MediaQuery.of(bottomSheetContext).viewInsets.bottom,
                                     ),
                                     child: AddPassphraseBottomSheet(
-                                      titleText: S.of(context).add_passphrase,
+                                      titleText: S.of(bottomSheetContext).add_passphrase,
                                       onRestoreButtonPressed: (passphrase) async {
                                         await _onPassphraseBottomSheetRestoreButtonPressed(
                                           passphrase,

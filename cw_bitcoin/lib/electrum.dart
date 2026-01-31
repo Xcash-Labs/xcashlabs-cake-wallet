@@ -42,6 +42,14 @@ class ElectrumClient {
   static const connectionTimeout = Duration(seconds: 5);
   static const aliveTimerDuration = Duration(seconds: 5);
 
+  // ── Request metrics ──────────────────────────────────────────────────────────
+  int _requestCount = 0;
+  int _requestsThisConnection = 0;
+  DateTime? _connectionEstablishedAt;
+  DateTime? _disconnectedAt;
+  final List<DateTime> _recentRequestTimestamps = [];
+  // ─────────────────────────────────────────────────────────────────────────────
+
   bool get isConnected => socket != null && socket?.isClosed == false;
   ProxySocket? socket;
   void Function(ConnectionStatus)? onConnectionStatusChange;
@@ -127,6 +135,7 @@ class ElectrumClient {
       },
       onDone: () {
         printV("SOCKET CLOSED!!!!!");
+        printV("The socket ID was ${_id}");
         unterminatedString = '';
         try {
           _setConnectionStatus(ConnectionStatus.disconnected);
@@ -437,6 +446,7 @@ class ElectrumClient {
       }
       final subscription = BehaviorSubject<T>();
       _regisrySubscription(id, subscription);
+      printV("[ELECTRUM_SUB] id=$_id method=$method subscriptionKey=$id");
       socket!.write(jsonrpc(method: method, id: _id, params: params));
 
       return subscription;
@@ -455,6 +465,12 @@ class ElectrumClient {
     final id = _id;
     idCallback?.call(id);
     _registryTask(id, completer);
+    _requestCount++;
+    _requestsThisConnection++;
+    final _reqNow = DateTime.now();
+    _recentRequestTimestamps.add(_reqNow);
+    _recentRequestTimestamps.removeWhere((t) => _reqNow.difference(t).inSeconds > 10);
+    printV("[ELECTRUM_REQ] id=$id method=$method | session=#$_requestsThisConnection total=#$_requestCount req/s:${(_recentRequestTimestamps.length / 10.0).toStringAsFixed(2)}");
     socket!.write(jsonrpc(method: method, id: id, params: params));
 
     return completer.future;
@@ -469,6 +485,12 @@ class ElectrumClient {
       _id += 1;
       final id = _id;
       _registryTask(id, completer);
+      _requestCount++;
+      _requestsThisConnection++;
+      final _reqNow = DateTime.now();
+      _recentRequestTimestamps.add(_reqNow);
+      _recentRequestTimestamps.removeWhere((t) => _reqNow.difference(t).inSeconds > 10);
+      printV("[ELECTRUM_REQ] id=$id method=$method (timeout=${timeout}ms) | session=#$_requestsThisConnection total=#$_requestCount req/s:${(_recentRequestTimestamps.length / 10.0).toStringAsFixed(2)}");
       socket!.write(jsonrpc(method: method, id: id, params: params));
       Timer(Duration(milliseconds: timeout), () {
         if (!completer.isCompleted) {
@@ -506,6 +528,8 @@ class ElectrumClient {
     _tasks.clear();
     _errors.clear();
     unterminatedString = '';
+    _requestsThisConnection = 0;
+    _recentRequestTimestamps.clear();
   }
 
   void _registryTask(int id, Completer<dynamic> completer) =>
@@ -559,6 +583,26 @@ class ElectrumClient {
   }
 
   void _setConnectionStatus(ConnectionStatus status) {
+    final now = DateTime.now();
+    if (status == ConnectionStatus.connected) {
+      if (_disconnectedAt != null) {
+        final reconnectMs = now.difference(_disconnectedAt!).inMilliseconds;
+        printV("[ELECTRUM_CONNECT] Reconnected after ${reconnectMs}ms (disconnected at $_disconnectedAt)");
+      } else {
+        printV("[ELECTRUM_CONNECT] Connected at $now");
+      }
+      _connectionEstablishedAt = now;
+      _requestsThisConnection = 0;
+      _disconnectedAt = null;
+    } else if (status == ConnectionStatus.disconnected || status == ConnectionStatus.failed) {
+      _disconnectedAt = now;
+      if (_connectionEstablishedAt != null) {
+        final sessionSecs = now.difference(_connectionEstablishedAt!).inSeconds;
+        printV("[ELECTRUM_DISCONNECT] status=$status | session lasted ${sessionSecs}s | requests this session: $_requestsThisConnection | total requests: $_requestCount");
+      } else {
+        printV("[ELECTRUM_DISCONNECT] status=$status at $now (no prior connection recorded)");
+      }
+    }
     onConnectionStatusChange?.call(status);
     _connectionStatus = status;
     if (!isConnected) {
@@ -604,6 +648,9 @@ class ElectrumClient {
   String getErrorMessage(int id) => _errors[id.toString()] ?? '';
 
   bool get isInternalStateConsistent => _errors.isEmpty;
+
+  /// The ID of the most recently dispatched request — use for log correlation.
+  int get lastRequestId => _id;
 }
 
 // FIXME: move me

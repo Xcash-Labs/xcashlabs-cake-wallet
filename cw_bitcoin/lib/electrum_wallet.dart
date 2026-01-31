@@ -525,6 +525,8 @@ abstract class ElectrumWalletBase
   @action
   @override
   Future<void> startSync() async {
+    final _startSyncSw = Stopwatch()..start();
+    printV("[startSync] ▶ BEGIN at ${DateTime.now()}");
     try {
       if (syncStatus is SyncronizingSyncStatus) {
         return;
@@ -561,12 +563,25 @@ abstract class ElectrumWalletBase
         }
       }
 
+      printV("[startSync] ▶ subscribeForUpdates() at ${_startSyncSw.elapsedMilliseconds}ms");
       await subscribeForUpdates();
-      await updateTransactions();
+      printV("[startSync] ✅ subscribeForUpdates done at ${_startSyncSw.elapsedMilliseconds}ms");
 
+      printV("[startSync] ▶ updateTransactions() at ${_startSyncSw.elapsedMilliseconds}ms");
+      await updateTransactions();
+      printV("[startSync] ✅ updateTransactions done at ${_startSyncSw.elapsedMilliseconds}ms");
+
+      printV("[startSync] ▶ updateAllUnspents() at ${_startSyncSw.elapsedMilliseconds}ms");
       await updateAllUnspents();
+      printV("[startSync] ✅ updateAllUnspents done at ${_startSyncSw.elapsedMilliseconds}ms");
+
+      printV("[startSync] ▶ updateBalance() at ${_startSyncSw.elapsedMilliseconds}ms");
       await updateBalance();
+      printV("[startSync] ✅ updateBalance done at ${_startSyncSw.elapsedMilliseconds}ms");
+
+      printV("[startSync] ▶ updateFeeRates() at ${_startSyncSw.elapsedMilliseconds}ms");
       await updateFeeRates();
+      printV("[startSync] ✅ updateFeeRates done at ${_startSyncSw.elapsedMilliseconds}ms");
 
       _updateFeeRateTimer ??=
           Timer.periodic(const Duration(minutes: 1), (timer) async => await updateFeeRates());
@@ -579,9 +594,10 @@ abstract class ElectrumWalletBase
         }
         syncStatus = SyncedSyncStatus();
       }
+      printV("[startSync] ✅ COMPLETE at ${_startSyncSw.elapsedMilliseconds}ms");
     } catch (e, stacktrace) {
+      printV("[startSync] ❌ FAILED at ${_startSyncSw.elapsedMilliseconds}ms: $e");
       printV(stacktrace);
-      printV("startSync $e");
       syncStatus = FailedSyncStatus();
     }
   }
@@ -2110,10 +2126,14 @@ abstract class ElectrumWalletBase
     int? time;
     int? confirmations;
 
+    printV("[getTransactionExpanded] SEND getTransactionVerbose hash=$hash");
     final verboseTransaction = await electrumClient.getTransactionVerbose(hash: hash);
+    printV("[getTransactionExpanded] RECV getTransactionVerbose reqId=${electrumClient.lastRequestId} isEmpty=${verboseTransaction.isEmpty}");
 
     if (verboseTransaction.isEmpty) {
+      printV("[getTransactionExpanded] SEND getTransactionHex hash=$hash");
       transactionHex = await electrumClient.getTransactionHex(hash: hash);
+      printV("[getTransactionExpanded] RECV getTransactionHex reqId=${electrumClient.lastRequestId} hexLen=${transactionHex.length}");
 
       if (height != null && height > 0 && await checkIfMempoolAPIIsEnabled()) {
         try {
@@ -2167,12 +2187,16 @@ abstract class ElectrumWalletBase
     final ins = <BtcTransaction>[];
 
     for (final vin in original.inputs) {
+      printV("[getTransactionExpanded] SEND getTransactionVerbose (input) hash=${vin.txId}");
       final verboseTransaction = await electrumClient.getTransactionVerbose(hash: vin.txId);
+      printV("[getTransactionExpanded] RECV getTransactionVerbose (input) reqId=${electrumClient.lastRequestId} isEmpty=${verboseTransaction.isEmpty}");
 
       final String inputTransactionHex;
 
       if (verboseTransaction.isEmpty) {
+        printV("[getTransactionExpanded] SEND getTransactionHex (input) hash=${vin.txId}");
         inputTransactionHex = await electrumClient.getTransactionHex(hash: hash);
+        printV("[getTransactionExpanded] RECV getTransactionHex (input) reqId=${electrumClient.lastRequestId}");
       } else {
         inputTransactionHex = verboseTransaction['hex'] as String;
       }
@@ -2215,6 +2239,7 @@ abstract class ElectrumWalletBase
   @override
   Future<Map<String, ElectrumTransactionInfo>> fetchTransactions() async {
     try {
+      printV("[fetchTransactions] ▶ START walletType=$type");
       final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
 
       if (type == WalletType.bitcoin) {
@@ -2250,8 +2275,9 @@ abstract class ElectrumWalletBase
       });
 
       return historiesWithDetails;
-    } catch (e) {
-      printV("fetchTransactions $e");
+    } catch (e, stacktrace) {
+      printV("[fetchTransactions] ERROR: $e");
+      printV(stacktrace);
       return {};
     }
   }
@@ -2311,18 +2337,21 @@ abstract class ElectrumWalletBase
     try {
       final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
 
-      final history = await electrumClient.getHistory(addressRecord.getScriptHash(network));
+      printV("[_fetchAddressHistory] SEND getHistory address=${addressRecord.address}");
+      final _addrScripthash = addressRecord.getScriptHash(network);
 
+      final history = await electrumClient.getHistory(addressRecord.getScriptHash(network));
+      printV("[_fetchAddressHistory] RECV getHistory reqId=${electrumClient.lastRequestId} count=${history.length} address=${addressRecord.address}");
 
       if (history.isNotEmpty) {
         addressRecord.setAsUsed();
         walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
 
-        if(this is BitcoinWallet) {
+        if (this is BitcoinWallet) {
           //removes transactions no longer returned by the api, presumed replaced/invalid.
           transactionHistory.transactions.removeWhere(
-                (hash, tx) =>
-            tx.outputAddresses != null &&
+            (hash, tx) =>
+                tx.outputAddresses != null &&
                 tx.outputAddresses!.contains(addressRecord.address) &&
                 !history.any((newTransaction) => newTransaction['tx_hash'] == hash),
           );
@@ -2377,6 +2406,8 @@ abstract class ElectrumWalletBase
 
       return historiesWithDetails;
     } catch (e, stacktrace) {
+      printV("[_fetchAddressHistory] ERROR txid=$txid address=${addressRecord.address}: $e");
+      printV(stacktrace);
       _onError?.call(FlutterErrorDetails(
         exception: "$txid - $e",
         stack: stacktrace,
@@ -2409,7 +2440,6 @@ abstract class ElectrumWalletBase
           }
         }
       });
-
       if (updated) {
         await transactionHistory.save();
       }
@@ -2419,13 +2449,14 @@ abstract class ElectrumWalletBase
       walletAddresses.updateReceiveAddresses();
       _isTransactionUpdating = false;
     } catch (e, stacktrace) {
+      printV("[updateTransactions] ERROR _isTransactionUpdating=$_isTransactionUpdating: $e");
       printV(stacktrace);
-      printV(e);
       _isTransactionUpdating = false;
     }
   }
 
   Future<void> subscribeForUpdates() async {
+
     final unsubscribedScriptHashes = walletAddresses.allAddresses.where(
       (address) =>
           !_scripthashesUpdateSubject.containsKey(address.getScriptHash(network)) &&
@@ -2443,8 +2474,10 @@ abstract class ElectrumWalletBase
       }
       try {
         _scripthashesUpdateSubject[sh] = await electrumClient.scripthashUpdate(sh);
-      } catch (e) {
-        printV("failed scripthashUpdate: $e");
+        printV("[subscribeForUpdates] SENT scripthashSubscribe reqId=${electrumClient.lastRequestId} address=${address.address}");
+      } catch (e, stacktrace) {
+        printV("[subscribeForUpdates] ERROR scripthashSubscribe reqId=${electrumClient.lastRequestId} address=${address.address}: $e");
+        printV(stacktrace);
       }
       _scripthashesUpdateSubject[sh]?.listen((event) async {
         try {
@@ -2477,6 +2510,7 @@ abstract class ElectrumWalletBase
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
       final balanceFuture = electrumClient.getBalance(sh);
+      printV("[fetchBalances] getBalance reqId=${electrumClient.lastRequestId} (${i + 1}/${addresses.length}) address=${addressRecord.address}");
       balanceFutures.add(balanceFuture);
     }
 
@@ -2515,7 +2549,7 @@ abstract class ElectrumWalletBase
     });
 
     final balances = await Future.wait(balanceFutures);
-
+    printV("Fetched ${balances.length} balances from the server before bombing");
     if (balances.isNotEmpty && balances.first['confirmed'] == null) {
       // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
       printV("got null balance responses from the server, setting connection status to lost");
@@ -2546,9 +2580,15 @@ abstract class ElectrumWalletBase
   }
 
   Future<void> updateBalance() async {
-    printV("updateBalance() called!");
-    balance[currency] = await fetchBalances();
-    await save();
+    printV("[updateBalance] ▶ START");
+    try {
+      balance[currency] = await fetchBalances();
+      await save();
+      printV("[updateBalance] ✅ DONE");
+    } catch (e, stacktrace) {
+      printV("[updateBalance] ❌ ERROR: $e");
+      printV(stacktrace);
+    }
   }
 
   @override
@@ -2676,6 +2716,7 @@ abstract class ElectrumWalletBase
 
   @action
   void _onConnectionStatusChange(electrum.ConnectionStatus status) {
+    printV("[_onConnectionStatusChange] status=$status currentSyncStatus=${syncStatus.runtimeType} at ${DateTime.now()}");
     switch (status) {
       case electrum.ConnectionStatus.connected:
         if (syncStatus is NotConnectedSyncStatus ||

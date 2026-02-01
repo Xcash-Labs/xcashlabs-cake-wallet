@@ -2,7 +2,7 @@ import 'package:cake_wallet/src/widgets/new_list_row/list_Item_style_wrapper.dar
 import 'package:flutter/material.dart';
 
 class ListItemTextFieldWidget extends StatefulWidget {
-  const ListItemTextFieldWidget({
+  ListItemTextFieldWidget({
     super.key,
     required this.keyValue,
     required this.label,
@@ -13,7 +13,12 @@ class ListItemTextFieldWidget extends StatefulWidget {
     this.focusNode,
     this.isFirstInSection = false,
     this.isLastInSection = false,
-  });
+    String? initialValue
+  }) {
+    if(initialValue != null) {
+      controller.text = initialValue;
+    }
+  }
 
   final String keyValue;
   final String label;

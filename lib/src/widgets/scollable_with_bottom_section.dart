@@ -10,6 +10,7 @@ class ScrollableWithBottomSection extends StatefulWidget {
     this.bottomSectionPadding,
     this.topSectionPadding,
     this.scrollableKey,
+    this.controller
   });
 
   final Widget content;
@@ -19,6 +20,7 @@ class ScrollableWithBottomSection extends StatefulWidget {
   final EdgeInsets? bottomSectionPadding;
   final EdgeInsets? topSectionPadding;
   final Key? scrollableKey;
+  final ScrollController? controller;
 
   @override
   ScrollableWithBottomSectionState createState() => ScrollableWithBottomSectionState();
@@ -37,6 +39,7 @@ class ScrollableWithBottomSectionState extends State<ScrollableWithBottomSection
           ),
         Expanded(
           child: SingleChildScrollView(
+            controller: widget.controller,
             key: widget.scrollableKey,
             child: Padding(
               padding: widget.contentPadding ?? EdgeInsets.only(left: 20, right: 20),

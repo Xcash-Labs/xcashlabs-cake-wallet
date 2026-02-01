@@ -1,8 +1,15 @@
+import 'package:cake_wallet/core/node_address_validator.dart';
+import 'package:cake_wallet/core/node_port_validator.dart';
+import 'package:cake_wallet/core/socks_proxy_node_address_validator.dart';
+import 'package:cake_wallet/entities/new_ui_entities/list_item/list_Item_checkbox.dart';
 import 'package:cake_wallet/entities/new_ui_entities/list_item/list_item_text_field.dart';
+import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/src/widgets/new_list_row/new_list_section.dart';
 import 'package:cake_wallet/view_model/node_list/node_create_or_edit_view_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import "package:cw_core/wallet_type.dart";
 import 'package:mobx/mobx.dart';
 
 class NodeForm extends StatefulWidget {
@@ -21,25 +28,25 @@ class NodeForm extends StatefulWidget {
 class _NodeFormState extends State<NodeForm> {
   _NodeFormState({required this.vm});
 
-  final Map<String, TextEditingController> _controllers = {};
+  late final Map<String, TextEditingController> _controllers = {
+    vm.nodeLabelUIKey: TextEditingController(),
+    vm.nodeAddressUIKey: TextEditingController(),
+    vm.nodePortUIKey: TextEditingController(),
+    vm.nodePathUIKey: TextEditingController(),
+    vm.nodeUsernameUIKey: TextEditingController(),
+    vm.nodePasswordUIKey: TextEditingController(),
+    vm.socksProxyAddressUIKey: TextEditingController(),
+  };
 
   @override
   void initState() {
     super.initState();
 
-    vm.nodeFormItems.forEach((section, items) {
-      for (final item in items.whereType<ListItemTextField>()) {
-        final controller = TextEditingController(text: item.initialValue ?? '');
-
-        _controllers[item.keyValue] = controller;
-
-        controller.addListener(() {
-          final text = controller.text;
-          item.onChanged?.call(text);
-          vm.updateViewModelFromText(item.keyValue, text);
-        });
-      }
-    });
+    for(final key in _controllers.keys) {
+      _controllers[key]!.addListener(() {
+        vm.updateViewModelFromText(key, _controllers[key]!.text);
+      });
+    }
 
     _setupReactions();
   }
@@ -56,15 +63,98 @@ class _NodeFormState extends State<NodeForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-        key: widget.formKey,
-        child: NewListSections(
-          sections: vm.nodeFormItems,
+    return Observer(
+      builder: (_)=>NewListSections(
           controllers: _controllers,
+          sections: {
+            'main': [
+              ListItemTextField(
+                keyValue: vm.nodeLabelUIKey,
+                label: 'Node label',
+                initialValue: vm.label,
+              ),
+              ListItemTextField(
+                keyValue: vm.nodeAddressUIKey,
+                label: S.current.node_address,
+                initialValue: vm.address,
+                validator: vm.walletType == WalletType.decred
+                    ? NodeAddressValidatorDecredBlankException()
+                    : NodeAddressValidator(),
+              ),
+              if (vm.hasPathSupport)
+                ListItemTextField(
+                  keyValue: vm.nodePathUIKey,
+                  label: '/path',
+                  initialValue: vm.path,
+                  validator: NodePathValidator(),
+                ),
+              ListItemTextField(
+                keyValue: vm.nodePortUIKey,
+                label: S.current.node_port,
+                initialValue: vm.port,
+                //keyboardType: TextInputType.numberWithOptions(signed: false, decimal: false),
+                validator: NodePortValidator(),
+              ),
+              if (vm.hasAuthCredentials) ...[
+                ListItemTextField(
+                  keyValue: vm.nodeUsernameUIKey,
+                  label: S.current.login,
+                  initialValue: vm.login,
+                ),
+                ListItemTextField(
+                  keyValue: vm.nodePasswordUIKey,
+                  label: S.current.password,
+                  initialValue: vm.password,
+                ),
+              ]
+            ],
+            'advanced': [
+              ListItemCheckbox(
+                  keyValue: vm.useSSLUIKey,
+                  label: S.current.use_ssl,
+                  value: vm.useSSL,
+                  onChanged: (value) => vm.useSSL = value),
+              ListItemCheckbox(
+                keyValue: vm.nodeTrustedUIKey,
+                label: S.current.trusted,
+                value: vm.trusted,
+                onChanged: (value) => vm.trusted = value,
+              ),
+              if (vm.usesEmbeddedProxy)
+                ListItemCheckbox(
+                  keyValue: vm.nodeEmbeddedTorProxyUIKey,
+                  label: 'Embedded Tor SOCKS Proxy',
+                  value: vm.usesEmbeddedProxy,
+                  onChanged: (_) {},
+                ),
+              ListItemCheckbox(
+                keyValue: vm.useSocksProxyUIKey,
+                label: 'Use SOCKS Proxy',
+                value: vm.useSocksProxy,
+                onChanged: (value) {
+                  vm.socksProxyAddress = '';
+                  vm.useSocksProxy = value;
+                },
+              ),
+              if (vm.useSocksProxy)
+                ListItemTextField(
+                  keyValue: vm.socksProxyAddressUIKey,
+                  label: '[<ip>:]<port>',
+                  initialValue: vm.socksProxyAddress,
+                  validator: SocksProxyNodeAddressValidator(),
+                ),
+              ListItemCheckbox(
+                  keyValue: vm.autoSwitchingUIKey,
+                  label: S.current.enable_for_auto_switching,
+                  value: vm.isEnabledForAutoSwitching,
+                  onChanged: (value) => vm.isEnabledForAutoSwitching = value),
+            ],
+          },
           getCheckboxValue: vm.getCheckboxValue,
           updateCheckboxValue: vm.updateCheckboxValue,
           tapHandlers: tapHandlers
-        ));
+      ),
+    );
   }
 
   Map<String, VoidCallback> get tapHandlers => {

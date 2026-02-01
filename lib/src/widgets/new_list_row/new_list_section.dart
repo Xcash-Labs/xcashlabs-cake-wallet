@@ -86,6 +86,7 @@ class NewListSections extends StatelessWidget {
         onChanged: item.onChanged,
         onFieldSubmitted: item.onFieldSubmitted,
         focusNode: item.focusNode,
+        initialValue: item.initialValue,
       );
     }
 

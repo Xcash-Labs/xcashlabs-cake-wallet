@@ -517,7 +517,7 @@ class WalletListBodyState extends State<WalletListBody> {
       final activated = await _activatePlaceholder(wallet);
       _loadingWallet = false;
       if (activated == true && responsiveLayoutUtil.shouldRenderMobileUI) {
-        if (!context.mounted) return;
+        if (!mounted) return;
         await widget.onWalletLoaded.call(context);
       }
       return;
@@ -586,7 +586,7 @@ class WalletListBodyState extends State<WalletListBody> {
           if (responsiveLayoutUtil.shouldRenderMobileUI) {
             // await Future.delayed(Duration(seconds: 1));
             // if (!this.mounted) return;
-            if (!context.mounted) return;
+            if (!mounted) return;
             if (requireHardwareWalletConnection) {
               Navigator.of(context).pop();
             }

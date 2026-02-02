@@ -62,6 +62,7 @@ import 'package:cake_wallet/view_model/link_view_model.dart';
 import 'package:cake_wallet/tron/tron.dart';
 import 'package:cake_wallet/src/screens/transaction_details/rbf_details_page.dart';
 import 'package:cake_wallet/view_model/new_wallet_group_view_model.dart';
+import 'package:cake_wallet/view_model/new_wallet_type_view_model.dart';
 import 'package:cake_wallet/view_model/start_tor_view_model.dart';
 import 'package:cake_wallet/zcash/zcash.dart';
 import 'package:cw_core/receive_page_option.dart';
@@ -586,8 +587,6 @@ Future<void> setup({
     payjoinTransactionsStore: getIt.get<PayjoinTransactionsStore>(),
     sharedPreferences: getIt.get<SharedPreferences>(),
     keyService: getIt.get<KeyService>()));
-
-  final walletList = await WalletInfo.getAll();
   
   getIt.registerFactory<AuthService>(
         () => AuthService(

@@ -40,10 +40,12 @@ class NewWalletTypePage extends BasePage {
   NewWalletTypePage({
     required this.newWalletTypeArguments,
     required this.seedSettingsViewModel,
+    required this.newWalletTypeViewModel,
   });
 
   final NewWalletTypeArguments newWalletTypeArguments;
   final SeedSettingsViewModel seedSettingsViewModel;
+  final NewWalletTypeViewModel newWalletTypeViewModel;
 
   final walletTypeImage = Image.asset('assets/images/wallet_type.png');
   final walletTypeLightImage =
@@ -155,6 +157,14 @@ class WalletTypeFormState extends State<WalletTypeForm> {
   }
 
   void onTypeTap(WalletType type) {
+    if (!widget.isCreate && widget.preselectedTypes != null &&
+        widget.preselectedTypes!.isNotEmpty) {
+      // In restoration flow with preselected types, allow selecting multiple types
+      final currentSelection = widget.newWalletTypeViewModel.itemSelection[type] ?? false;
+      widget.newWalletTypeViewModel.itemSelection[type] = !currentSelection;
+      return;
+    }
+
       widget.newWalletTypeViewModel.deselectAll();
       for (var item in types) {
         if (item == type) {
@@ -321,6 +331,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
         widget.seedSettingsViewModel.setPassphrase(null);
       }
     } catch (e) {
+      if (!mounted) return;
       await showPopUp<void>(
         context: context,
         builder: (BuildContext context) => PopUpCancellableAlertDialog(
@@ -405,16 +416,18 @@ class WalletTypeFormState extends State<WalletTypeForm> {
             );
 
             if (mounted) setState(() => _isProcessing = false);
-            if (context.mounted) Navigator.of(context).pop();
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
             return;
           }
 
           mergedTypes = filteredTypes = widget.filteredAvailableWalletTypes
               .where((element) =>
-          !widget.isHardwareWallet ||
-              DeviceConnectionType.supportedConnectionTypes(
-                  element, widget.hardwareWalletType!, Platform.isIOS)
-                  .isNotEmpty)
+                  !widget.isHardwareWallet ||
+                  DeviceConnectionType.supportedConnectionTypes(
+                          element, widget.hardwareWalletType!, Platform.isIOS)
+                      .isNotEmpty)
               .toList();
 
           final selectedType = viewModel.selectedTypes.first;
@@ -479,7 +492,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
             viewModel: viewModel,
           );
 
-          if (context.mounted) {
+          if (mounted) {
             Navigator.of(context)
                 .pushNamedAndRemoveUntil(Routes.dashboard, (route) => false);
           }
@@ -489,6 +502,7 @@ class WalletTypeFormState extends State<WalletTypeForm> {
         return;
       }
     } catch (e) {
+      if (!mounted) return;
       await showPopUp<void>(
         context: context,
         builder: (BuildContext context) => PopUpCancellableAlertDialog(

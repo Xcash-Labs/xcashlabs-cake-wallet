@@ -5,6 +5,7 @@ import 'package:cake_wallet/core/auth_service.dart';
 import 'package:cake_wallet/core/new_wallet_arguments.dart';
 import 'package:cake_wallet/core/new_wallet_type_arguments.dart';
 import 'package:cake_wallet/di.dart';
+import 'package:cake_wallet/entities/seed_type.dart';
 import 'package:cake_wallet/entities/wallet_edit_page_arguments.dart';
 import 'package:cake_wallet/entities/wallet_list_order_types.dart';
 import 'package:cake_wallet/generated/i18n.dart';
@@ -21,6 +22,7 @@ import 'package:cake_wallet/src/screens/wallet_list/filtered_list.dart';
 import 'package:cake_wallet/src/screens/wallet_unlock/wallet_unlock_arguments.dart';
 import 'package:cake_wallet/src/widgets/alert_with_one_action.dart';
 import 'package:cake_wallet/src/widgets/primary_button.dart';
+import 'package:cake_wallet/src/widgets/seed_language_picker.dart';
 import 'package:cake_wallet/store/settings_store.dart';
 import 'package:cake_wallet/utils/exception_handler.dart';
 import 'package:cake_wallet/utils/responsive_layout_util.dart';
@@ -651,10 +653,12 @@ class WalletListBodyState extends State<WalletListBody> {
       newVM.name = info.name;
 
       dynamic options;
+      if (wallet.type == WalletType.monero) {
+        options = [defaultSeedLanguage, MoneroSeedType.bip39];
+      }
       if (sharedPassphrase.isNotEmpty) {
-        options = [
-          {'passphrase': sharedPassphrase},
-        ];
+        final pass = {'passphrase': sharedPassphrase};
+        options = options is List ? [...options, pass] : [pass];
       }
 
       await newVM.create(

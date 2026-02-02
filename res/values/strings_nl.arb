@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Bitcoin-betalingen vereisen 1 bevestiging, wat 20 minuten of langer kan duren. Dank voor uw geduld! U ontvangt een e-mail wanneer de betaling is bevestigd.",
   "block_height": "Blokhoogte",
   "block_remaining": "1 blok resterend",
+  "blockchain_fee": "Blockchain-vergoeding",
   "Blocks_remaining": "${status} Resterende blokken",
   "bluetooth": "Bluetooth",
   "bright_theme": "Helder",

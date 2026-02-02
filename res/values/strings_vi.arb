@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Các khoản thanh toán Bitcoin yêu cầu 1 xác nhận, có thể mất 20 phút hoặc lâu hơn. Cảm ơn bạn đã kiên nhẫn! Bạn sẽ nhận được email khi thanh toán được xác nhận.",
   "block_height": "Chiều cao khối",
   "block_remaining": "1 khối còn lại",
+  "blockchain_fee": "Phí chuỗi khối",
   "Blocks_remaining": "${status} khối còn lại",
   "bluetooth": "Bluetooth",
   "bright_theme": "Sáng",

@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Bitcoin-Zahlungen erfordern 1 Bestätigung, was 20 Minuten oder länger dauern kann. Danke für Ihre Geduld! Sie erhalten eine E-Mail, wenn die Zahlung bestätigt ist.",
   "block_height": "Blockhöhe",
   "block_remaining": "1 Block verbleibend",
+  "blockchain_fee": "Blockchain-Gebühr",
   "Blocks_remaining": "${status} verbleibende Blöcke",
   "bluetooth": "Bluetooth",
   "bright_theme": "Strahlend hell",

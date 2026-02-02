@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Les paiements Bitcoin nécessitent 1 confirmation, ce qui peut prendre 20 minutes ou plus. Merci pour votre patience ! Vous serez averti par e-mail lorsque le paiement sera confirmé.",
   "block_height": "Hauteur de bloc",
   "block_remaining": "1 bloc restant",
+  "blockchain_fee": "Frais de blockchain",
   "Blocks_remaining": "Blocs Restants : ${status}",
   "bluetooth": "Bluetooth",
   "bright_theme": "Vif",

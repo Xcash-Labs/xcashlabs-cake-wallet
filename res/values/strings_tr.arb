@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Bitcoin ödemeleri, 20 dakika veya daha uzun sürebilen 1 onay gerektirir. Sabrınız için teşekkürler! Ödeme onaylandığında e-posta ile bilgilendirileceksiniz.",
   "block_height": "Blok yüksekliği",
   "block_remaining": "Kalan 1 blok",
+  "blockchain_fee": "Blockchain Ücreti",
   "Blocks_remaining": "${status} Blok Kaldı",
   "bluetooth": "Bluetooth",
   "bright_theme": "Parlak",

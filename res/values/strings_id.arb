@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Pembayaran Bitcoin memerlukan 1 konfirmasi, yang bisa memakan waktu 20 menit atau lebih. Terima kasih atas kesabaran Anda! Anda akan diemail saat pembayaran dikonfirmasi.",
   "block_height": "Tinggi blok",
   "block_remaining": "1 blok tersisa",
+  "blockchain_fee": "Biaya Blockchain",
   "Blocks_remaining": "${status} Blok Tersisa",
   "bluetooth": "Bluetooth",
   "bright_theme": "Cerah",

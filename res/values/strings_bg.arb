@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Плащанията с Bitcoin изискват потвърждение, което може да отнеме 20 минути или повече. Благодарим за търпението! Ще получите имейл, когато плащането е потвърдено.",
   "block_height": "Височина на блока",
   "block_remaining": "1 блок останал",
+  "blockchain_fee": "Такса за блокчейн",
   "Blocks_remaining": "${status} оставащи блока",
   "bluetooth": "Bluetooth",
   "bright_theme": "Ярко",

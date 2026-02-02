@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "比特币支付需要 1 次确认，这可能需要 20 分钟或更长时间。谢谢你的耐心！确认付款后，您将收到电子邮件。",
   "block_height": "区块高度",
   "block_remaining": "剩余 1 个区块",
+  "blockchain_fee": "区块链费用",
   "Blocks_remaining": "剩余 ${status} 区块",
   "bluetooth": "蓝牙",
   "bright_theme": "明亮",

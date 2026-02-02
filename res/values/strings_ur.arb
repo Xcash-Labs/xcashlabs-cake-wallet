@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "بٹ کوائن کی ادائیگی میں 1 تصدیق کی ضرورت ہوتی ہے ، جس میں 20 منٹ یا اس سے زیادہ وقت لگ سکتا ہے۔ آپ کے صبر کا شکریہ! ادائیگی کی تصدیق ہونے پر آپ کو ای میل کیا جائے گا۔",
   "block_height": "اونچائی کو بلاک کریں",
   "block_remaining": "1 بلاک باقی",
+  "blockchain_fee": "بلاکچین فیس",
   "Blocks_remaining": "${status} بلاکس باقی ہیں۔",
   "bluetooth": "بلوٹوتھ",
   "bright_theme": "روشن",

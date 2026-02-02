@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "تتطلب مدفوعات Bitcoin تأكيدًا واحدًا ، والذي قد يستغرق 20 دقيقة أو أكثر. شكرا لصبرك! سيتم إرسال بريد إلكتروني إليك عند تأكيد الدفع.",
   "block_height": "ارتفاع كتلة",
   "block_remaining": "1 كتلة متبقية",
+  "blockchain_fee": "رسوم البلوكشين",
   "Blocks_remaining": "بلوك متبقي ${status}",
   "bluetooth": "بلوتوث",
   "bright_theme": "مشرق",

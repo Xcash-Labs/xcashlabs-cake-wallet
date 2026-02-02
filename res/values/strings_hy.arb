@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Bitcoin վճարումները պահանջում են 1 հաստատում, որը կարող է տևել 20 րոպե կամ ավելի: Շնորհակալություն ձեր համբերության համար: Դուք էլ. նամակ կստանաք, երբ վճարումը հաստատվի։",
   "block_height": "Բլոկի բարձրությունը",
   "block_remaining": "1 Բլոկ է մնացել",
+  "blockchain_fee": "Blockchain վճար",
   "Blocks_remaining": "${status} Բլոկ է մնացել",
   "bluetooth": "Bluetooth",
   "bright_theme": "Պայծառ",

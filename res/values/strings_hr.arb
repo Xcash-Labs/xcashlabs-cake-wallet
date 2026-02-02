@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Bitcoin plaćanja zahtijevaju 1 potvrdu, što može potrajati 20 minuta ili dulje. Hvala na Vašem strpljenju! Dobit ćete e-poruku kada plaćanje bude potvrđeno.",
   "block_height": "Visina bloka",
   "block_remaining": "Preostalo 1 blok",
+  "blockchain_fee": "Naknada za blockchain",
   "Blocks_remaining": "${status} preostalih blokova",
   "bluetooth": "Bluetooth",
   "bright_theme": "Jarka",

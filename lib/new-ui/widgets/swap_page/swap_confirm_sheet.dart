@@ -12,6 +12,7 @@ import 'package:cake_wallet/view_model/exchange/exchange_trade_view_model.dart';
 import 'package:cake_wallet/view_model/exchange/exchange_view_model.dart';
 import 'package:cake_wallet/view_model/send/send_view_model_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:mobx/mobx.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
@@ -101,7 +102,10 @@ class _SwapConfirmSheetState extends State<SwapConfirmSheet> {
                   spacing: 24,
                   children: [
                     Observer(
-                      builder: (_) => NewListSections(showHeader: true, sections: {
+                      builder: (_) {
+                        final hasFee = widget.exchangeTradeViewModel.sendViewModel.pendingTransaction?.feeFormatted != null;
+
+                        return NewListSections(showHeader: true, sections: {
                         S.of(context).send: [
                           ListItemRegularRow(
                               showArrow: false,
@@ -111,10 +115,11 @@ class _SwapConfirmSheetState extends State<SwapConfirmSheet> {
                               trailingText: widget.exchangeTradeViewModel.trade.amountFormatted() +
                                   " " +
                                   (widget.exchangeTradeViewModel.trade.from?.title ?? "")),
+                          if(hasFee)
                           ListItemRegularRow(
                               showArrow: false,
                               keyValue: "fee",
-                              label: S.of(context).fee,
+                              label: S.of(context).blockchain_fee,
                               trailingText:
                                   "${widget.exchangeTradeViewModel.sendViewModel.pendingTransaction?.feeFormatted} (${widget.exchangeTradeViewModel.pendingTransactionFeeFiatAmountFormatted})")
                         ],
@@ -132,11 +137,17 @@ class _SwapConfirmSheetState extends State<SwapConfirmSheet> {
                           ListItemRegularRow(
                               showArrow: false,
                               keyValue: "provider",
+                              onTap: (){
+                                Clipboard.setData(
+                                  ClipboardData(text: widget.exchangeTradeViewModel.trade.id),
+                                );
+                              },
                               label: widget.exchangeTradeViewModel.trade.provider.title,
                               iconPath: widget.exchangeTradeViewModel.trade.provider.image,
                               trailingText: widget.exchangeTradeViewModel.trade.id)
                         ]
-                      }),
+                      });
+                      },
                     ),
                     widget.exchangeViewModel.isSendFromExternal
                         ? NewPrimaryButton(

@@ -106,6 +106,7 @@
   "bitcoin_payments_require_1_confirmation": "پرداخت‌های بیت‌کوین به ۱ تایید نیاز دارند که ممکن است ۲۰ دقیقه یا بیشتر طول بکشد.\nاز صبر شما متشکریم! پس از تایید پرداخت، ایمیلی دریافت خواهید کرد.",
   "block_height": "ارتفاع بلاک",
   "block_remaining": "۱ بلاک باقی‌مانده",
+  "blockchain_fee": "کارمزد بلاک چین",
   "Blocks_remaining": "${status} بلاک باقی‌مانده",
   "bluetooth": "بلوتوث",
   "bright_theme": "روشن",

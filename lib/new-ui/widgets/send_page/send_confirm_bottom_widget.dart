@@ -149,13 +149,6 @@ class TransactionErrorActions extends StatelessWidget {
           children: [
             Flexible(
               child: NewPrimaryButton(
-                  onPressed: () {},
-                  text: S.of(context).more_details,
-                  color: Theme.of(context).colorScheme.surfaceContainer,
-                  textColor: Theme.of(context).colorScheme.primary),
-            ),
-            Flexible(
-              child: NewPrimaryButton(
                   onPressed: Navigator.of(context).pop,
                   text: S.of(context).close,
                   color: Theme.of(context).colorScheme.primary,

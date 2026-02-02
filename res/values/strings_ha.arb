@@ -108,6 +108,7 @@
   "bitcoin_payments_require_1_confirmation": "Akwatin Bitcoin na buɗe 1 sambumbu, da yake za ta samu mintuna 20 ko yawa. Ina kira ga sabuwar lafiya! Zaka sanarwa ta email lokacin da aka samu akwatin samun lambar waya.",
   "block_height": "Toshe tsawo",
   "block_remaining": "1 toshe ragowar",
+  "blockchain_fee": "Kuɗin Blockchain",
   "Blocks_remaining": "${status} Katanga ya rage",
   "bluetooth": "Bluetooth",
   "bright_theme": "Mai haske",

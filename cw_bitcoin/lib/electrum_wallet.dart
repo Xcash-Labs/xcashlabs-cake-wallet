@@ -54,6 +54,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sp_scanner/sp_scanner.dart';
 
 part 'electrum_wallet.g.dart';
+// part 'batching/electrum_get_balance.dart';
 
 class ElectrumWallet = ElectrumWalletBase with _$ElectrumWallet;
 
@@ -693,6 +694,43 @@ abstract class ElectrumWalletBase
       printV(stacktrace);
       printV("connectToNode $e");
       syncStatus = FailedSyncStatus();
+    }
+  }
+
+  Future<dynamic> getIsolateBatch(
+    List<String> scriptHashes,
+    String method, {
+    bool? useSSL,
+  }) async {
+    // Initialize Tor for proxy support
+    // CakeTor.instance = await CakeTorInstance.getInstance();
+
+    // Create ElectrumClient instance
+    final client = electrum.ElectrumClient();
+
+    try {
+      // Connect using electrum.dart's connectToUri method
+      printV("KB: GetIsolateBatch: connecting");
+      var uri = Uri.parse("btc-electrum.cakewallet.com:50002");
+
+      await client.connectToUri(uri, useSSL: useSSL).timeout(
+        Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('Connection timeout after 5s');
+        },
+      );
+      printV("Await response");
+      // Use electrum.dart's batchGetData method -- takes scriptHashes and method
+      final response = await client.batchGetData(scriptHashes, method);
+
+      // Close connection
+      await client.close();
+
+      return response;
+    } catch (e) {
+      printV('[IsolateBatcher] Error: $e');
+      await client.close();
+      rethrow;
     }
   }
 
@@ -1741,7 +1779,6 @@ abstract class ElectrumWalletBase
     await updateCoins(newUnspentCoins ?? []);
   }
 
-
   // This file is a batch candidate
   // This file wraps electrumClient.getListUnspent to keep socket calls in one file
   Future<List<BitcoinUnspent>?> fetchUnspent(BitcoinAddressRecord address) async {
@@ -2272,7 +2309,6 @@ abstract class ElectrumWalletBase
     }
   }
 
-
   Future<void> batchFetchTransactionsForAddressType(
     Map<String, ElectrumTransactionInfo> historiesWithDetails,
     BitcoinAddressType type,
@@ -2291,7 +2327,7 @@ abstract class ElectrumWalletBase
     final scriptHashes = addressesByType.map((addr) => addr.getScriptHash(network)).toList();
     printV("KB: ${scriptHashes}");
     //final history = await electrumClient.batchGetData(addressRecord.getScriptHash(network));
-    // Further batching 
+    // Further batching
   }
 
   Future<void> fetchTransactionsForAddressType(
@@ -2308,25 +2344,27 @@ abstract class ElectrumWalletBase
 
     final currentHeight = await getCurrentChainTip();
     final addressList = addressesByType.toList();
-    
+
     // Process addresses in batches of 100
-    for (int i = 0; i < addressList.length; i += 20) {
-      final batchEnd = (i + 20 < addressList.length) ? i + 20 : addressList.length;
+    for (int i = 0; i < addressList.length; i += 50) {
+      final batchEnd = (i + 50 < addressList.length) ? i + 50 : addressList.length;
       final batchAddresses = addressList.sublist(i, batchEnd);
-      
+
       // Collect script hashes for batch
       final scriptHashes = batchAddresses.map((addr) => addr.getScriptHash(network)).toList();
-      
+
       // Fetch histories in batch
+      printV("Fetching this batch of history: ${scriptHashes}");
       final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
-      
+      // final batchHistories = await electrumClient.getIsolateBranch(scriptHashes);
+
       // Process each address with its corresponding history
       await Future.wait(batchAddresses.map((addressRecord) async {
         final scriptHash = addressRecord.getScriptHash(network);
         final history = batchHistories[scriptHash] ?? [];
-        
+
         final addressHistoryDetails = await _fetchAddressHistory(
-          addressRecord, 
+          addressRecord,
           currentHeight,
           preloadedHistory: history,
         );
@@ -2369,8 +2407,7 @@ abstract class ElectrumWalletBase
   }
 
   Future<Map<String, ElectrumTransactionInfo>> _fetchAddressHistory(
-      BitcoinAddressRecord addressRecord, 
-      int? currentHeight,
+      BitcoinAddressRecord addressRecord, int? currentHeight,
       {List<Map<String, dynamic>>? preloadedHistory}) async {
     String txid = "";
 
@@ -2378,8 +2415,11 @@ abstract class ElectrumWalletBase
       final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
 
       // Use preloaded history if available, otherwise fetch it
-      final history = preloadedHistory ?? 
-          await electrumClient.getHistory(addressRecord.getScriptHash(network));
+      // INCOMING
+      // final history = preloadedHistory ??
+      //     await electrumClient.getHistory(addressRecord.getScriptHash(network));
+      // END
+      final history = await electrumClient.getHistory(addressRecord.getScriptHash(network));
 
       if (history.isNotEmpty) {
         addressRecord.setAsUsed();
@@ -2396,7 +2436,10 @@ abstract class ElectrumWalletBase
         }
 
         await Future.wait(history.map((transaction) async {
-          txid = transaction['tx_hash'] as String;
+          final txHash = transaction['tx_hash'];
+          if (txHash == null) return;
+
+          txid = txHash as String;
           final height = transaction['height'] as int;
           final storedTx = transactionHistory.transactions[txid];
 

@@ -20,9 +20,6 @@ String jsonrpcparams(List<Object> params) {
 
 String jsonrpc(
     {required String method, required List<Object> params, required int id, double version = 2.0}) {
-  if (method != "server.ping" && method != "blockchain.estimatefee")
-  printV(
-      '{"jsonrpc": "$version", "method": "$method", "id": "$id",  "params": ${json.encode(params)}}\n');
   return '{"jsonrpc": "$version", "method": "$method", "id": "$id",  "params": ${json.encode(params)}}\n';
 }
 

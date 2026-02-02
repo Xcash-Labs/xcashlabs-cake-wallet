@@ -697,6 +697,7 @@ abstract class ElectrumWalletBase
     }
   }
 
+  // This method can be called in place of batchGetData
   Future<dynamic> getIsolateBatch(
     List<String> scriptHashes,
     String method, {
@@ -711,18 +712,24 @@ abstract class ElectrumWalletBase
     try {
       // Connect using electrum.dart's connectToUri method
       printV("KB: GetIsolateBatch: connecting");
-      var uri = Uri.parse("btc-electrum.cakewallet.com:50002");
+      var node = Uri.parse("tcp://btc-electrum.cakewallet.com:50002");
 
-      await client.connectToUri(uri, useSSL: useSSL).timeout(
-        Duration(seconds: 5),
+      await client.connectToUri(node, useSSL: useSSL).timeout(
+        Duration(seconds: 60),
         onTimeout: () {
           throw TimeoutException('Connection timeout after 5s');
         },
       );
-      printV("Await response");
+
+      client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
+
+      printV("KB: GetIsolateBatch: Waiting 5 seconds...");
+      await Future.delayed(Duration(seconds: 5));
+
+      printV("KB: GetIsolateBatch: Await response");
       // Use electrum.dart's batchGetData method -- takes scriptHashes and method
       final response = await client.batchGetData(scriptHashes, method);
-
+      printV("Response: $response");
       // Close connection
       await client.close();
 
@@ -2355,10 +2362,15 @@ abstract class ElectrumWalletBase
 
       // Fetch histories in batch
       printV("Fetching this batch of history: ${scriptHashes}");
-      final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
+      // final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
+      final batchHistories =
+          await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_history');
+      // TODO: KB: I imported release changes, and I'm not quite getting the histogram structure right with Bitcoin
+      // We may want to override this in BitcoinWallet
       // final batchHistories = await electrumClient.getIsolateBranch(scriptHashes);
 
       // Process each address with its corresponding history
+
       await Future.wait(batchAddresses.map((addressRecord) async {
         final scriptHash = addressRecord.getScriptHash(network);
         final history = batchHistories[scriptHash] ?? [];
@@ -2366,7 +2378,7 @@ abstract class ElectrumWalletBase
         final addressHistoryDetails = await _fetchAddressHistory(
           addressRecord,
           currentHeight,
-          preloadedHistory: history,
+          // preloadedHistory: history,
         );
 
         if (addressHistoryDetails.isNotEmpty) {
@@ -2583,12 +2595,21 @@ abstract class ElectrumWalletBase
         .where((address) => RegexUtils.addressTypeFromStr(address.address, network) is! MwebAddress)
         .toList();
     final balanceFutures = <Future<Map<String, dynamic>>>[];
+
+    // Collect all script hashes
+    final List<String> scriptHashes = [];
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
-      final balanceFuture = electrumClient.getBalance(sh);
-      balanceFutures.add(balanceFuture);
+      scriptHashes.add(sh);
+      //printV('Address[$i]: ${addressRecord.address} -> ScriptHash: $sh');
     }
+    // final String method = "blockchain.scripthash.get_balance";
+
+    // var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
+
+    final balanceResponse =
+        await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
 
     var totalFrozen = 0;
     var totalConfirmed = 0;
@@ -2624,9 +2645,10 @@ abstract class ElectrumWalletBase
       });
     });
 
-    final balances = await Future.wait(balanceFutures);
+    // final balances = await Future.wait(balanceFutures);
+    final balances = balanceResponse as List<Map<String, dynamic>>;
 
-    if (balances.isNotEmpty && balances.first['confirmed'] == null) {
+    if (balanceResponse.length > 0 && balanceResponse.first['confirmed'] == null) {
       // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
       printV("got null balance responses from the server, setting connection status to lost");
       syncStatus = LostConnectionSyncStatus();

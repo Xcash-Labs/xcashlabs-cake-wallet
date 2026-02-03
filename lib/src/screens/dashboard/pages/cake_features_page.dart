@@ -84,8 +84,8 @@ class CakeFeaturesPage extends StatelessWidget {
                       shadowSpread: dashboardViewModel.getShadowSpread(),
                       onTap: () =>
                           Navigator.of(context).pushNamed(Routes.usdt0Bridge),
-                      title: S.of(context).usdt0_bridge,
-                      subTitle: S.of(context).usdt0_bridge_subtitle,
+                      title: "USDT0 Bridge",
+                      subTitle: "Cross-chain USDT transfers across 15+ blockchains",
                       icon: Icon(
                         Icons.swap_horiz,
                         size: 80,

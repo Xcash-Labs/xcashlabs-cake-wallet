@@ -115,7 +115,7 @@ abstract class USDT0BridgeViewModelBase extends WalletChangeListenerViewModel wi
     final amountBigInt = token.tryParseAmount(amount.replaceAll(',', '.'));
     if (amountBigInt == null || amountBigInt == BigInt.zero) return null;
     if (amountBigInt > selectedTokenBalance) {
-      return S.current.usdt0_bridge_insufficient_balance;
+      return "Insufficient balance for ${token.title} token.";
     }
 
     return null;
@@ -147,7 +147,7 @@ abstract class USDT0BridgeViewModelBase extends WalletChangeListenerViewModel wi
       return;
     }
     if (amountBigInt > selectedTokenBalance) {
-      quoteError = S.current.usdt0_bridge_insufficient_balance;
+      quoteError = "Insufficient balance for ${token.title} token.";
       return;
     }
     isQuoteLoading = true;
@@ -190,7 +190,7 @@ abstract class USDT0BridgeViewModelBase extends WalletChangeListenerViewModel wi
       return;
     }
     if (amountBigInt > selectedTokenBalance) {
-      executeError = S.current.usdt0_bridge_insufficient_balance;
+      executeError = "Insufficient balance for ${token.title} token.";
       return;
     }
     isExecuting = true;

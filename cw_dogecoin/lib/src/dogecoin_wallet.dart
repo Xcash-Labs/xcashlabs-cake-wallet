@@ -80,13 +80,12 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
 
   @override
   int feeAmountForPriority(TransactionPriority priority, int inputsCount, int outputsCount,
-      {int? size}) =>
+          {int? size}) =>
       feeRate(priority) * (size ?? estimatedDogeCoinTransactionSize(inputsCount, outputsCount));
 
   @override
   int feeAmountWithFeeRate(int feeRate, int inputsCount, int outputsCount, {int? size}) =>
       feeRate * (size ?? estimatedDogeCoinTransactionSize(inputsCount, outputsCount));
-
 
   static Future<DogeCoinWallet> create(
       {required String mnemonic,
@@ -213,11 +212,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     var batchResult = await batchGetData(scriptHashes, 'blockchain.scripthash.listunspent');
 
     // TODO: Batch result handling time
-
   }
-
-
-
 
   // This function wraps one in electrum.dart due to socket writes
   // Future<Map<String, Map<String, dynamic>>> batchGetData(
@@ -459,11 +454,10 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     // Make single batch call instead of parallel individual calls
     // final balancesList =
     //     await electrumClient.batchGetData(scriptHashes, 'blockchain.scripthash.get_balance');
-    final balancesList =
-        await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
+    final balancesList = await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
     if (balancesList.isEmpty && scriptHashes.isNotEmpty) {
       // Don't be surprised if this code fires if we scan a large enough wallet. It'll get disconnected in the middle of responses,
-      // leaving us in a difficult situation if we got empty response from the 
+      // leaving us in a difficult situation if we got empty response from the
       // server, set our connection status to lost and return our last known balance:
       printV("got empty batch balance response from the server, setting connection status to lost");
       syncStatus = LostConnectionSyncStatus();
@@ -473,11 +467,11 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = scriptHashes[i];
-      
+
       // Get the response object at index i and extract the 'result' field
       final responseObj = balancesList[i] as Map<String, dynamic>?;
       final balanceData = responseObj?['result'] as Map<String, dynamic>? ?? {};
-      
+
       // printV("KB: result being processed: $i for ${addressRecord.address}");
       if (balanceData.isEmpty || balanceData['confirmed'] == null) {
         // printV('Warning: No balance data for address ${addressRecord.address} (sh: $sh)');
@@ -523,9 +517,10 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     try {
       // Connect using electrum.dart's connectToUri method
       printV("KB: GetIsolateBatch: connecting");
-      var node = Uri.parse("tcp://dogecoin.stackwallet.com:50022");
+      var node = super.node!;
+      var uri = node.uri;
 
-      await client.connectToUri(node, useSSL: useSSL).timeout(
+      await client.connectToUri(uri, useSSL: useSSL).timeout(
         Duration(seconds: 60),
         onTimeout: () {
           throw TimeoutException('Connection timeout after 5s');
@@ -533,10 +528,10 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
       );
 
       client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
-      
+
       printV("KB: GetIsolateBatch: Waiting 5 seconds...");
       await Future.delayed(Duration(seconds: 5));
-      
+
       printV("KB: GetIsolateBatch: Await response");
       // Use electrum.dart's batchGetData method -- takes scriptHashes and method
       final response = await client.batchGetData(scriptHashes, method);

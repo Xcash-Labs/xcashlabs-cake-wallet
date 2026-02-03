@@ -107,7 +107,10 @@ class ElectrumClient {
           final msg = utf8.decode(event.toList());
           final messagesList = msg.split("\n");
           for (var message in messagesList) {
-            if (message.isEmpty) {
+            // For some reason, the existing code will serve up garbage whitespace
+            // Skip empty messages or messages with only whitespace/control chars
+            message = message.trim();
+            if (message.isEmpty || message.replaceAll(RegExp(r'[\s\x00-\x1F\x7F]'), '').isEmpty) {
               continue;
             }
             _parseResponse(message);
@@ -125,7 +128,7 @@ class ElectrumClient {
         _setConnectionStatus(ConnectionStatus.disconnected);
       },
       onDone: () {
-        printV("SOCKET CLOSED!!!!!");
+        printV("SOCKET CLOSED");
         unterminatedString = '';
         try {
           _setConnectionStatus(ConnectionStatus.disconnected);
@@ -143,6 +146,7 @@ class ElectrumClient {
 
   void _parseResponse(String message) {
     try {
+      printV(message);
       final decoded = json.decode(message);
       // KB: TODO: verify if this functionality is working as intended
       // Check if it's a batch response (array) or single response (map)
@@ -156,6 +160,7 @@ class ElectrumClient {
       developer.log(
           "!!!!! Node communication possibly broke !!!!!: FormatException in _parseResponse: $e");
       final msg = e.message.toLowerCase();
+// id":127,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":122,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":129,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":125,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":123,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":124,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":134,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":128,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":131,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":130,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":133,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":137,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":132,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":135,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":136,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":138,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":143,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":141,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":140,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":139,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":142,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":147,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":149,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":150,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":144,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":151,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":145,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":154,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":146,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":148,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":157,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":153,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":159,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":152,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":155,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":162,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":158,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":160,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":161,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":156,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":163,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":164,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":165,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":171,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":166,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":170,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":168,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":169,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":174,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":172,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":167,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":173,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":175,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":178,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":177,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":176,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":181,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":184,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":179,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":180,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":182,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":188,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":183,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":185,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":186,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":187,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":194,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":189,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":190,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":192,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":191,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":193,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":195,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}}]
 
       if (e.source is String) {
         unterminatedString += e.source as String;
@@ -196,7 +201,7 @@ class ElectrumClient {
       }
     } catch (e) {
       // Just so we notice issues identifying batches versus single responses
-      printV("!!!!! NODE COMMUNICATION REALLY BROKE !!!!!: FormatException in _parseResponse: $e");
+      printV("!!!!! NODE COMMUNICATION REALLY BROKE !!!!!: Exception in _parseResponse: $e");
     }
   }
 

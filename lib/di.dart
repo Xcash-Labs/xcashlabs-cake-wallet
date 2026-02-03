@@ -41,6 +41,7 @@ import 'package:cake_wallet/src/screens/dev/exchange_provider_logs_page.dart';
 import 'package:cake_wallet/src/screens/dev/secure_preferences_page.dart';
 import 'package:cake_wallet/src/screens/dev/shared_preferences_page.dart';
 import 'package:cake_wallet/src/screens/integrations/deuro/savings_page.dart';
+import 'package:cake_wallet/src/screens/usdt0_bridge/usdt0_bridge_page.dart';
 import 'package:cake_wallet/src/screens/settings/background_sync_page.dart';
 import 'package:cake_wallet/src/screens/start_tor/start_tor_page.dart';
 import 'package:cake_wallet/src/screens/wallet_connect/services/bottom_sheet_service.dart';
@@ -59,6 +60,7 @@ import 'package:cake_wallet/view_model/hardware_wallet/hardware_wallet_view_mode
 import 'package:cake_wallet/view_model/hardware_wallet/trezor_view_model.dart';
 import 'package:cake_wallet/view_model/integrations/deuro_view_model.dart';
 import 'package:cake_wallet/view_model/link_view_model.dart';
+import 'package:cake_wallet/view_model/usdt0_bridge/usdt0_bridge_view_model.dart';
 import 'package:cake_wallet/tron/tron.dart';
 import 'package:cake_wallet/src/screens/transaction_details/rbf_details_page.dart';
 import 'package:cake_wallet/view_model/start_tor_view_model.dart';
@@ -1618,6 +1620,9 @@ Future<void> setup({
       ));
 
   getIt.registerFactory(() => DEuroSavingsPage(getIt<DEuroViewModel>()));
+
+  getIt.registerFactory(() => USDT0BridgeViewModel(getIt<AppStore>()));
+  getIt.registerFactory(() => USDT0BridgePage(getIt<USDT0BridgeViewModel>()));
 
   getIt.registerLazySingleton(() => NodeSwitchingService(
     appStore: getIt.get<AppStore>(),

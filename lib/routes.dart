@@ -140,4 +140,5 @@ class Routes {
   static const exchangeTradeExternalSendPage = '/exchange_trade_external_send_page';
 
   static const dEuroSavings = '/integration/dEuro/savings';
+  static const usdt0Bridge = '/usdt0_bridge';
 }

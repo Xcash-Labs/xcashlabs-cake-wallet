@@ -77,6 +77,24 @@ class CakeFeaturesPage extends StatelessWidget {
 
                   return const SizedBox();
                 }),
+                Observer(builder: (_) {
+                  if (cakeFeaturesViewModel.hasUSDT0Tokens(dashboardViewModel.wallet)) {
+                    return DashBoardRoundedCardWidget(
+                      shadowBlur: dashboardViewModel.getShadowBlur(),
+                      shadowSpread: dashboardViewModel.getShadowSpread(),
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(Routes.usdt0Bridge),
+                      title: S.of(context).usdt0_bridge,
+                      subTitle: S.of(context).usdt0_bridge_subtitle,
+                      icon: Icon(
+                        Icons.swap_horiz,
+                        size: 80,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    );
+                  }
+                  return const SizedBox();
+                }),
                 DashBoardRoundedCardWidget(
                   shadowBlur: dashboardViewModel.getShadowBlur(),
                   shadowSpread: dashboardViewModel.getShadowSpread(),

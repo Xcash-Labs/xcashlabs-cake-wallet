@@ -513,4 +513,83 @@ class CWEVM extends EVM {
 
   @override
   bool hasPriorityFee(int chainId) => EVMChainUtils.hasPriorityFee(chainId);
+
+  @override
+  bool isUSDT0Token(WalletBase wallet, CryptoCurrency token) {
+    if (token is! Erc20Token) return false;
+
+    final chainId = getSelectedChainId(wallet);
+    if (chainId == null) return false;
+
+    return USDT0Config.isUSDT0Token(token, chainId);
+  }
+
+  @override
+  List<ChainInfo> getUSDT0DestinationChains(WalletBase wallet) {
+    final currentChainId = getSelectedChainId(wallet);
+    if (currentChainId == null) return [];
+
+    final result = <ChainInfo>[];
+    for (final config in _registry.getAllChains()) {
+      if (USDT0Config.isChainSupported(config.chainId) && config.chainId != currentChainId) {
+        result.add(ChainInfo(
+          chainId: config.chainId,
+          name: config.name,
+          shortCode: config.shortCode,
+        ));
+      }
+    }
+    return result;
+  }
+
+  @override
+  Future<USDT0Quote> quoteUSDT0Transfer({
+    required WalletBase wallet,
+    required int sourceChainId,
+    required int destinationChainId,
+    required BigInt amount,
+    required String recipientAddress,
+  }) {
+    final evmWallet = wallet as EVMChainWallet;
+    final client = evmWallet.getWeb3Client();
+    if (client == null) {
+      throw StateError('Wallet not connected');
+    }
+
+    return USDT0Service.quoteCrossChainTransfer(
+      client: client,
+      sourceChainId: sourceChainId,
+      destinationChainId: destinationChainId,
+      amount: amount,
+      recipientAddress: recipientAddress,
+    );
+  }
+
+  @override
+  Future<PendingTransaction> executeUSDT0Transfer({
+    required WalletBase wallet,
+    required CryptoCurrency token,
+    required int sourceChainId,
+    required int destinationChainId,
+    required BigInt amount,
+    required String recipientAddress,
+    required USDT0Quote quote,
+    required TransactionPriority priority,
+    bool useBlinkProtection = true,
+  }) {
+    final evmWallet = wallet as EVMChainWallet;
+    final tokenErc20 = token as Erc20Token;
+
+    return USDT0Service.executeCrossChainTransfer(
+      wallet: evmWallet,
+      sourceChainId: sourceChainId,
+      destinationChainId: destinationChainId,
+      amount: amount,
+      recipientAddress: recipientAddress,
+      quote: quote,
+      token: tokenErc20,
+      priority: priority as EVMChainTransactionPriority,
+      useBlinkProtection: useBlinkProtection,
+    );
+  }
 }

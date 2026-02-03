@@ -1364,7 +1364,14 @@ import 'package:cw_evm/evm_chain_wallet_creation_credentials.dart';
 import 'package:cw_evm/utils/evm_chain_utils.dart';
 import 'package:cw_evm/evm_chain_default_tokens.dart';
 import 'package:cw_evm/deuro/deuro_savings.dart';
+import 'package:cw_evm/usdt0/usdt0_config.dart';
+import 'package:cw_evm/usdt0/usdt0_quote.dart';
+import 'package:cw_evm/usdt0/usdt0_service.dart';
 import 'package:eth_sig_util/util/utils.dart';
+ ;-
+export 'package:cw_evm/evm_chain_transaction_priority.dart';
+export 'package:cw_evm/evm_erc20_balance.dart';
+export 'package:cw_evm/usdt0/usdt0_quote.dart';
 
 """;
   const evmCwPart = "part 'cw_evm.dart';";
@@ -1519,6 +1526,29 @@ abstract class EVM {
   String? getExplorerUrlForChainId(int chainId, {bool showProtocol = true});
   
   bool hasPriorityFee(int chainId);
+
+  bool isUSDT0Token(WalletBase wallet, CryptoCurrency token);
+  List<ChainInfo> getUSDT0DestinationChains(WalletBase wallet);
+
+  Future<USDT0Quote> quoteUSDT0Transfer({
+    required WalletBase wallet,
+    required int sourceChainId,
+    required int destinationChainId,
+    required BigInt amount,
+    required String recipientAddress,
+  });
+
+  Future<PendingTransaction> executeUSDT0Transfer({
+    required WalletBase wallet,
+    required CryptoCurrency token,
+    required int sourceChainId,
+    required int destinationChainId,
+    required BigInt amount,
+    required String recipientAddress,
+    required USDT0Quote quote,
+    required TransactionPriority priority,
+    bool useBlinkProtection = true,
+  });
 }
 
 class ChainInfo {

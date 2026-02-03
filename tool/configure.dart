@@ -1368,7 +1368,6 @@ import 'package:cw_evm/usdt0/usdt0_config.dart';
 import 'package:cw_evm/usdt0/usdt0_quote.dart';
 import 'package:cw_evm/usdt0/usdt0_service.dart';
 import 'package:eth_sig_util/util/utils.dart';
- ;-
 export 'package:cw_evm/evm_chain_transaction_priority.dart';
 export 'package:cw_evm/evm_erc20_balance.dart';
 export 'package:cw_evm/usdt0/usdt0_quote.dart';

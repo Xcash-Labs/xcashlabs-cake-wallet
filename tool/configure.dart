@@ -1345,6 +1345,10 @@ import 'package:web3dart/web3dart.dart';
 
 """;
   const evmCWHeaders = """
+import 'package:cake_wallet/core/fiat_conversion_service.dart';
+import 'package:cake_wallet/di.dart';
+import 'package:cake_wallet/entities/fiat_api_mode.dart';
+import 'package:cake_wallet/store/settings_store.dart';
 import 'package:cw_evm/utils/evm_chain_formatter.dart';
 import 'package:cw_evm/evm_chain_mnemonics.dart';
 import 'package:cw_evm/evm_chain_registry.dart';
@@ -1518,6 +1522,9 @@ abstract class EVM {
   String? getExplorerUrlForChainId(int chainId, {bool showProtocol = true});
   
   bool hasPriorityFee(int chainId);
+
+  Future<bool> checkTokenFiatPrice(WalletBase wallet, Erc20Token token);
+  Future<void> discoverAndAddWalletTokens(WalletBase wallet);
 }
 
 class ChainInfo {

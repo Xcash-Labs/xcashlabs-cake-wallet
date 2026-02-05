@@ -712,9 +712,9 @@ abstract class ElectrumWalletBase
     try {
       // Connect using electrum.dart's connectToUri method
       printV("KB: GetIsolateBatch: connecting");
-      var node = Uri.parse("tcp://btc-electrum.cakewallet.com:50002");
+      var uri = node!.uri;
 
-      await client.connectToUri(node, useSSL: useSSL).timeout(
+      await client.connectToUri(uri, useSSL: useSSL).timeout(
         Duration(seconds: 60),
         onTimeout: () {
           throw TimeoutException('Connection timeout after 5s');
@@ -723,8 +723,9 @@ abstract class ElectrumWalletBase
 
       client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
 
-      printV("KB: GetIsolateBatch: Waiting 5 seconds...");
-      await Future.delayed(Duration(seconds: 5));
+      // This aligns with Fulcrum's polling of bitcoind every two seconds, and gives us the ability to not hammer the server with requests
+      printV("KB: GetIsolateBatch: Waiting 2 seconds..."); 
+      await Future.delayed(Duration(seconds: 2));
 
       printV("KB: GetIsolateBatch: Await response");
       // Use electrum.dart's batchGetData method -- takes scriptHashes and method
@@ -1786,7 +1787,42 @@ abstract class ElectrumWalletBase
     await updateCoins(newUnspentCoins ?? []);
   }
 
-  // This file is a batch candidate
+  /// Batch fetch unspents for multiple addresses to reduce Electrum server load
+  /// Returns a map of scriptHash -> list of unspents, or null if the batch request failed
+  Future<Map<String, List<Map<String, dynamic>>>?> batchFetchUnspent(
+    List<BitcoinAddressRecord> addresses,
+  ) async {
+    // Create map of scriptHash -> address for later lookup
+    final Map<String, BitcoinAddressRecord> scriptHashToAddress = {};
+    final List<String> scriptHashes = [];
+
+    for (final address in addresses) {
+      final scriptHash = address.getScriptHash(network);
+      scriptHashToAddress[scriptHash] = address;
+      scriptHashes.add(scriptHash);
+    }
+
+    // Batch request to get unspents for all scripthashes at once
+    final batchResults = await electrumClient.batchGetData(
+      scriptHashes,
+      'blockchain.scripthash.listunspent',
+    );
+
+    if (batchResults == null) return null;
+
+    // Build result map
+    final Map<String, List<Map<String, dynamic>>> unspentsByScriptHash = {};
+    for (int i = 0; i < scriptHashes.length; i++) {
+      final scriptHash = scriptHashes[i];
+      final result = batchResults[i];
+      if (result != null && result is List) {
+        unspentsByScriptHash[scriptHash] = result.cast<Map<String, dynamic>>();
+      }
+    }
+
+    return unspentsByScriptHash;
+  }
+
   // This file wraps electrumClient.getListUnspent to keep socket calls in one file
   Future<List<BitcoinUnspent>?> fetchUnspent(BitcoinAddressRecord address) async {
     List<BitcoinUnspent> updatedUnspentCoins = [];
@@ -1794,6 +1830,27 @@ abstract class ElectrumWalletBase
 
     // Failed to fetch unspents
     if (unspents == null) return null;
+
+    await Future.wait(unspents.map((unspent) async {
+      try {
+        final coin = BitcoinUnspent.fromJSON(address, unspent);
+        final tx = await fetchTransactionInfo(hash: coin.hash);
+        coin.isChange = address.isHidden;
+        coin.confirmations = tx?.confirmations;
+
+        updatedUnspentCoins.add(coin);
+      } catch (_) {}
+    }));
+
+    return updatedUnspentCoins;
+  }
+
+  /// Process batched unspent results for a single address
+  Future<List<BitcoinUnspent>> processUnspentsForAddress(
+    BitcoinAddressRecord address,
+    List<Map<String, dynamic>> unspents,
+  ) async {
+    List<BitcoinUnspent> updatedUnspentCoins = [];
 
     await Future.wait(unspents.map((unspent) async {
       try {
@@ -2363,8 +2420,11 @@ abstract class ElectrumWalletBase
       // Fetch histories in batch
       printV("Fetching this batch of history: ${scriptHashes}");
       // final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
+
       final batchHistories =
           await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_history');
+
+      
       // TODO: KB: I imported release changes, and I'm not quite getting the histogram structure right with Bitcoin
       // We may want to override this in BitcoinWallet
       // final batchHistories = await electrumClient.getIsolateBranch(scriptHashes);

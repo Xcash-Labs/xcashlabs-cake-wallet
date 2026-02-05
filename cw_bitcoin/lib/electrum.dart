@@ -38,8 +38,8 @@ class ElectrumClient {
         _errors = {},
         unterminatedString = '';
 
-  static const connectionTimeout = Duration(seconds: 5);
-  static const aliveTimerDuration = Duration(seconds: 4);
+  static const connectionTimeout = Duration(seconds: 5); // fairly aggressive
+  static const aliveTimerDuration = Duration(seconds: 20); // aligns better with Fulcrum's 2s polling of bitcoind
 
   bool get isConnected => socket != null && socket?.isClosed == false;
   ProxySocket? socket;
@@ -150,6 +150,7 @@ class ElectrumClient {
       final decoded = json.decode(message);
       // KB: TODO: verify if this functionality is working as intended
       // Check if it's a batch response (array) or single response (map)
+
       if (decoded is List) {
         _batchHandleResponse(decoded);
       } else if (decoded is Map<String, dynamic>) {
@@ -284,7 +285,7 @@ class ElectrumClient {
 
       final batchRequestJson = json.encode(batchRequest);
       printV('batchGetData: Batch request JSON: $batchRequestJson');
-
+      printV('batchGetData: substring last 100 characters: ${batchRequestJson.substring(batchRequestJson.length - 100)}');
       // Send batch request
       if (!isConnected) {
         throw Exception('Not connected to Electrum server');
@@ -301,7 +302,7 @@ class ElectrumClient {
 
       final response = await completer.future;
       // printV('batchGetData: Server response received: $response');
-
+      printV('batchGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
       // Response is already decoded by _batchHandleResponse
       final jsonSortedList = response as List<dynamic>;
       // Sort by id field
@@ -622,7 +623,7 @@ class ElectrumClient {
   Future<dynamic> call(
       {required String method, List<Object> params = const [], Function(int)? idCallback}) async {
     if (!isConnected) return null;
-
+    printV("call $method");
     final completer = Completer<dynamic>();
     _id += 1;
     final id = _id;
@@ -746,7 +747,7 @@ class ElectrumClient {
     final method = response['method'];
     final id = response['id'] as String?;
     final result = response['result'];
-    //printV("method: $method, id: $id, result: $result");
+    printV("method: $method, id: $id, result: $result");
     try {
       final error = response['error'] as Map<String, dynamic>?;
       if (error != null) {

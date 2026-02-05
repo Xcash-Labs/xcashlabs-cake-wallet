@@ -198,7 +198,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
 
   // KB -- new batched function fetches unspents from multiple addresses at once
   // Uses batchGetData from electrum client
-  Future<List<BitcoinUnspent>?> batchFetchUnspent(List<BitcoinAddressRecord> addresses) async {
+  Future<List<BitcoinUnspent>?> batchFetchUnspentDoge(List<BitcoinAddressRecord> addresses) async {
     List<BitcoinUnspent> updatedUnspentCoins = [];
     // script hashes needed for all unspent coins
     final List<String> scriptHashes = [];
@@ -209,45 +209,19 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     }
     // We now have a batch of script hashes, invoke batchGetData with the method blockchain.scripthash.listunspent
     // batchGetData returns a list sorted by id, so it aligns with the list of unspents
-    var batchResult = await batchGetData(scriptHashes, 'blockchain.scripthash.listunspent');
+    var batchResult = await batchGetDogeData(scriptHashes, 'blockchain.scripthash.listunspent');
 
+    return batchResult;
     // TODO: Batch result handling time
   }
 
   // This function wraps one in electrum.dart due to socket writes
   // Future<Map<String, Map<String, dynamic>>> batchGetData(
-  Future<dynamic> batchGetData(List<String> scriptHashes, String method) async {
+  Future<dynamic> batchGetDogeData(List<String> scriptHashes, String method) async {
     var batchData = await electrumClient.batchGetData(scriptHashes, method);
     printV("Dogecoin batchGetData prepped scripthashes: $batchData");
     return await electrumClient.batchGetData(scriptHashes, method);
   }
-
-  Future<void> batchGetListUnspent(List<String> scriptHashes) async {
-    // get a list of all addresses and calculate their scriptHashes, batching them
-
-    throw UnimplementedError("batchGetListUnspent is not yet implemented");
-  }
-
-  // Original
-  // Future<List<Map<String, dynamic>>?> getListUnspent(String scriptHash) async {
-  //   try {
-  //     final result = await call(method: 'blockchain.scripthash.listunspent', params: [scriptHash]);
-
-  //     if (result is List) {
-  //       return result.map((dynamic val) {
-  //         if (val is Map<String, dynamic>) {
-  //           return val;
-  //         }
-
-  //         return <String, dynamic>{};
-  //       }).toList();
-  //     }
-
-  //     return null;
-  //   } catch (e) {
-
-  //     return null;
-  // }
 
   // Original
   Future<void> updateCoins(List<BitcoinUnspent> newUnspentCoins) async {
@@ -305,7 +279,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
   // Overrides electrum_wallet to implement try-catch method
   Future<void> updateBalance() async {
     try {
-      balance[currency] = await batchFetchBalances();
+      balance[currency] = await batchFetchDogeBalances();
       await save();
       printV("Batch fetch works!");
     } catch (e) {
@@ -318,7 +292,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
   @override
   Future<ElectrumBalance> fetchBalances() async {
     try {
-      balance[currency] = await batchFetchBalances();
+      balance[currency] = await batchFetchDogeBalances();
       await save();
       printV("Batch fetch works! Yay!");
     } catch (e) {
@@ -338,12 +312,15 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
         return ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
       }
 
-      final balanceFutures = <Future<Map<String, dynamic>>>[];
+      // Create map of scriptHash -> addressRecord for batching
+      final Map<String, BitcoinAddressRecord> scriptHashToAddress = {};
+      final List<String> scriptHashes = [];
+
       for (var i = 0; i < addresses.length; i++) {
         final addressRecord = addresses[i];
         final sh = addressRecord.getScriptHash(network);
-        final balanceFuture = electrumClient.getBalance(sh);
-        balanceFutures.add(balanceFuture);
+        scriptHashToAddress[sh] = addressRecord;
+        scriptHashes.add(sh);
       }
 
       printV("fetchBalances: Initiated non-batched balance fetch for all addresses");
@@ -367,9 +344,11 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
           }
         });
       });
-      printV("Awaiting balance futures");
+      printV("Fetching balances using batch method");
 
-      final balances = await Future.wait(balanceFutures);
+      // Use batched request instead of individual futures
+      final balances =
+          await electrumClient.batchGetData(scriptHashes, 'blockchain.scripthash.get_balance');
 
       if (balances.isNotEmpty && balances.first['confirmed'] == null) {
         // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
@@ -406,8 +385,8 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
   // The intention of the batch functions is for them to be called instead of singles, and if it fails, call the method for single requests.
   // This allows for a simple try-catch usage pattern
   // While this isn't the history (which would give us better performance enhancements), it's still good to batch this to optimise balance fetching
-  // Future<void> batchFetchBalances() async {
-  Future<ElectrumBalance> batchFetchBalances() async {
+  // Future<void> batchFetchDogeBalances() async {
+  Future<ElectrumBalance> batchFetchDogeBalances() async {
     final addresses = walletAddresses.allAddresses
         .where((address) => address.address.isNotEmpty)
         .where((address) => RegexUtils.addressTypeFromStr(address.address, network) is! MwebAddress)
@@ -427,8 +406,6 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     final String method = "blockchain.scripthash.get_balance";
 
     var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
-
-    //printV(test);
 
     printV('Total script hashes to query: ${scriptHashes.length}');
     printV('Script hashes list: $scriptHashes');
@@ -503,17 +480,19 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     );
   }
 
-  Future<dynamic> getIsolateBatch(
-    List<String> scriptHashes,
+  Future<String> getIsolateBatch(
+    List<String> addressToScriptHashes,
     String method, {
     bool? useSSL,
+    int batchSize = 30,
+    void Function(int current, int total)? onProgress,
   }) async {
     // Initialize Tor for proxy support
     // CakeTor.instance = await CakeTorInstance.getInstance();
 
     // Create ElectrumClient instance
     final client = electrum.ElectrumClient();
-
+    batchGetDogeData(scriptHashes, method);
     try {
       // Connect using electrum.dart's connectToUri method
       printV("KB: GetIsolateBatch: connecting");
@@ -521,25 +500,58 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
       var uri = node.uri;
 
       await client.connectToUri(uri, useSSL: useSSL).timeout(
-        Duration(seconds: 60),
+        Duration(seconds: 15),
         onTimeout: () {
-          throw TimeoutException('Connection timeout after 5s');
+          throw TimeoutException('Connection timeout after 15s');
         },
       );
 
       client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
 
-      printV("KB: GetIsolateBatch: Waiting 5 seconds...");
-      await Future.delayed(Duration(seconds: 5));
+      printV("KB: GetIsolateBatch: Waiting 2 seconds...");
+      await Future.delayed(Duration(seconds: 2));
 
-      printV("KB: GetIsolateBatch: Await response");
-      // Use electrum.dart's batchGetData method -- takes scriptHashes and method
-      final response = await client.batchGetData(scriptHashes, method);
-      printV("Response: $response");
+      // Split scriptHashes into batches of size batchSize.
+
+      final totalScriptHashes = addressToScriptHashes.length;
+      final numBatches = (totalScriptHashes / batchSize).ceil();
+      printV(
+          "KB: GetIsolateBatch: Processing $totalScriptHashes script hashes in $numBatches batches of $batchSize");
+
+      final List<dynamic> allResponses = [];
+
+      for (int i = 0; i < numBatches; i++) {
+        final startIndex = i * batchSize;
+        final endIndex = (startIndex + batchSize).clamp(0, totalScriptHashes);
+        final batch = addressToScriptHashes.sublist(startIndex, endIndex);
+
+        printV(
+            "KB: GetIsolateBatch: Processing batch ${i + 1}/$numBatches (${batch.length} items)");
+
+        // Call progress callback if provided
+        onProgress?.call(i + 1, numBatches);
+
+        // Use electrum.dart's batchGetData method for this batch
+        final response = await client.batchGetData(batch, method);
+        printV("KB: GetIsolateBatch: Batch ${i + 1} response received");
+
+        if (response != null) {
+          allResponses.addAll(response);
+        }
+
+        // Delay 2 seconds between batches (except for the last batch)
+        if (i < numBatches - 1) {
+          printV("KB: GetIsolateBatch: Waiting 2 seconds before next batch...");
+          await Future.delayed(Duration(seconds: 2));
+        }
+      }
+
+      printV("KB: GetIsolateBatch: All batches processed. Total responses: ${allResponses.length}");
+
       // Close connection
       await client.close();
 
-      return response;
+      return allResponses.join();
     } catch (e) {
       printV('[IsolateBatcher] Error: $e');
       await client.close();

@@ -732,18 +732,16 @@ abstract class ElectrumWalletBase
 
       client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
 
+      var maxBatchSize = 50;
       
-      
-      List<dynamic> responses = [];
-      var DateTime _lastBatchResponse = DateTime.now();
+      List<String> responses = [];
+      DateTime _lastBatchResponse = DateTime.now();
       List<String> batchScripthashes = [];
       for (var x = 0; x < scriptHashes.length; x++) {
-        for (var i = 0; i < 50; i++) {
+        for (var i = 0; i < maxBatchSize; i++) {
           batchScripthashes.add(scriptHashes[i]);
-          scriptHashes.
+          scriptHashes.removeRange(0, maxBatchSize);
         }
-        //await Future.delayed(Duration(seconds: 10));
-
         printV("KB: GetIsolateBatch: Await response");
         final DateTime _currentBatchStart = DateTime.now();
         if (_currentBatchStart.difference(_lastBatchStart).inMilliseconds < 5000) {
@@ -753,13 +751,12 @@ abstract class ElectrumWalletBase
         }
         final response = await client.batchGetData(batchScripthashes, method);
         printV("Response: $response");
-        responses.add(response);
+        responses.add(response as String);
         _lastBatchResponse = DateTime.now();
-
       }
       // Close connection
       await client.close();
-      return responses;
+      return responses.join();
     } catch (e) {
       printV('[IsolateBatcher] Error: $e');
       await client.close();
@@ -2450,8 +2447,10 @@ abstract class ElectrumWalletBase
       final batchHistories =
           await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_history');
 
-      var responseJson = jsonDecode(batchHistories as String);
-
+      var responseJson = jsonDecode(batchHistories);
+      //printV(responseJson);
+      // print the last 200 chars of responseJson
+      printV(batchHistories.substring(responseJson.toString().length - 200));
       printV("Received batch histories for: ${scriptHashes}");
       // TODO: KB: I imported release changes, and I'm not quite getting the histogram structure right with Bitcoin
       // We may want to override this in BitcoinWallet
@@ -2459,10 +2458,15 @@ abstract class ElectrumWalletBase
 
       // Process each address with its corresponding history
 
-      await Future.wait(batchAddresses.map((addressRecord) async {
-        final scriptHash = addressRecord.getScriptHash(network);
-        final history = batchHistories[scriptHash] ?? [];
+      // final scriptHash = addressRecord.getScriptHash(network);
+      final history = batchHistories;
 
+      await Future.wait(batchAddresses.map((addressRecord) async {
+        
+        final scriptHash = addressRecord.getScriptHash(network);
+        final history = batchHistories;
+
+        // This will be a doozy
         final addressHistoryDetails = await _fetchAddressHistory(
           addressRecord,
           currentHeight,
@@ -2736,12 +2740,13 @@ abstract class ElectrumWalletBase
     // final balances = await Future.wait(balanceFutures);
     final balances = balanceResponse as List<Map<String, dynamic>>;
 
-    if (balanceResponse.length > 0 && balanceResponse.first['confirmed'] == null) {
-      // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
-      printV("got null balance responses from the server, setting connection status to lost");
-      syncStatus = LostConnectionSyncStatus();
-      return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
-    }
+    // Is this 'if' necessary? TCP sockets take care of this themselves? An error would throw before this
+    // if (balanceResponse.length > 0 && balanceResponse.first['confirmed'] == null) {
+    //   // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
+    //   printV("got null balance responses from the server, setting connection status to lost");
+    //   syncStatus = LostConnectionSyncStatus();
+    //   return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
+    // }
 
     for (var i = 0; i < balances.length; i++) {
       final addressRecord = addresses[i];

@@ -194,6 +194,9 @@ abstract class ElectrumWalletBase
 
   final EncryptionFileUtils encryptionFileUtils;
 
+  DateTime _lastBatchStart = DateTime.now();
+  DateTime _lastBatchResponse = DateTime.now();
+
   @override
   final String? passphrase;
 
@@ -697,8 +700,13 @@ abstract class ElectrumWalletBase
     }
   }
 
-  // This method can be called in place of batchGetData
-  Future<dynamic> getIsolateBatch(
+  // This method will batch and retrieve a list of data for a list of scriptHashes
+  // It returns the JSON string
+  // It implements a minimum 2 second wait before sending additional data, and is designed to 
+  // not overwhelm the server with requests while waiting to receive data back
+  // Lastly, it is in line with what certain experts consider best practice in terms 
+  // of the idea of batches of 50 being normal for Fulcrum
+  Future<String> getIsolateBatch(
     List<String> scriptHashes,
     String method, {
     bool? useSSL,
@@ -720,21 +728,38 @@ abstract class ElectrumWalletBase
           throw TimeoutException('Connection timeout after 5s');
         },
       );
+      
 
       client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
 
-      // This aligns with Fulcrum's polling of bitcoind every two seconds, and gives us the ability to not hammer the server with requests
-      printV("KB: GetIsolateBatch: Waiting 2 seconds..."); 
-      await Future.delayed(Duration(seconds: 2));
+      
+      
+      List<dynamic> responses = [];
+      var DateTime _lastBatchResponse = DateTime.now();
+      List<String> batchScripthashes = [];
+      for (var x = 0; x < scriptHashes.length; x++) {
+        for (var i = 0; i < 50; i++) {
+          batchScripthashes.add(scriptHashes[i]);
+          scriptHashes.
+        }
+        //await Future.delayed(Duration(seconds: 10));
 
-      printV("KB: GetIsolateBatch: Await response");
-      // Use electrum.dart's batchGetData method -- takes scriptHashes and method
-      final response = await client.batchGetData(scriptHashes, method);
-      printV("Response: $response");
+        printV("KB: GetIsolateBatch: Await response");
+        final DateTime _currentBatchStart = DateTime.now();
+        if (_currentBatchStart.difference(_lastBatchStart).inMilliseconds < 5000) {
+          // Wait before sending next batch
+          await Future.delayed(Duration(
+              milliseconds: 2000 - _currentBatchStart.difference(_lastBatchResponse).inMilliseconds));
+        }
+        final response = await client.batchGetData(batchScripthashes, method);
+        printV("Response: $response");
+        responses.add(response);
+        _lastBatchResponse = DateTime.now();
+
+      }
       // Close connection
       await client.close();
-
-      return response;
+      return responses;
     } catch (e) {
       printV('[IsolateBatcher] Error: $e');
       await client.close();
@@ -2421,10 +2446,13 @@ abstract class ElectrumWalletBase
       printV("Fetching this batch of history: ${scriptHashes}");
       // final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
 
+      printV("Invoked getIsolateBatch for batch history: ${scriptHashes}");
       final batchHistories =
           await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_history');
 
-      
+      var responseJson = jsonDecode(batchHistories as String);
+
+      printV("Received batch histories for: ${scriptHashes}");
       // TODO: KB: I imported release changes, and I'm not quite getting the histogram structure right with Bitcoin
       // We may want to override this in BitcoinWallet
       // final batchHistories = await electrumClient.getIsolateBranch(scriptHashes);

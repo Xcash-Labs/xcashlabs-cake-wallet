@@ -382,6 +382,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     throw Exception("This should never be possible without it being handled above");
   }
 
+  // We're having problems retrieving balances now. This will be due to _parseResponse
   // The intention of the batch functions is for them to be called instead of singles, and if it fails, call the method for single requests.
   // This allows for a simple try-catch usage pattern
   // While this isn't the history (which would give us better performance enhancements), it's still good to batch this to optimise balance fetching
@@ -431,7 +432,9 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     // Make single batch call instead of parallel individual calls
     // final balancesList =
     //     await electrumClient.batchGetData(scriptHashes, 'blockchain.scripthash.get_balance');
-    final balancesList = await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
+    final balancesBatch = await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
+    var balancesList = json.decode(balancesBatch);
+
     if (balancesList.isEmpty && scriptHashes.isNotEmpty) {
       // Don't be surprised if this code fires if we scan a large enough wallet. It'll get disconnected in the middle of responses,
       // leaving us in a difficult situation if we got empty response from the
@@ -508,8 +511,8 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
 
       client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
 
-      printV("KB: GetIsolateBatch: Waiting 2 seconds...");
-      await Future.delayed(Duration(seconds: 2));
+      printV("KB: GetIsolateBatch: Waiting 1 seconds...");
+      await Future.delayed(Duration(seconds: 1));
 
       // Split scriptHashes into batches of size batchSize.
 
@@ -529,10 +532,14 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
             "KB: GetIsolateBatch: Processing batch ${i + 1}/$numBatches (${batch.length} items)");
 
         // Call progress callback if provided
-        onProgress?.call(i + 1, numBatches);
+        //onProgress?.call(i + 1, numBatches);
 
         // Use electrum.dart's batchGetData method for this batch
         final response = await client.batchGetData(batch, method);
+        printV("KB: Response mutation");
+        printV(response);
+        final decodedResponse = jsonDecode(response);
+        printV(decodedResponse);
         printV("KB: GetIsolateBatch: Batch ${i + 1} response received");
 
         if (response != null) {
@@ -542,7 +549,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
         // Delay 2 seconds between batches (except for the last batch)
         if (i < numBatches - 1) {
           printV("KB: GetIsolateBatch: Waiting 2 seconds before next batch...");
-          await Future.delayed(Duration(seconds: 2));
+          await Future.delayed(Duration(seconds: 1));
         }
       }
 

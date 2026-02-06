@@ -7,7 +7,6 @@ import 'package:cake_wallet/dogecoin/dogecoin.dart';
 import 'package:cake_wallet/evm/evm.dart';
 import 'package:cake_wallet/monero/monero.dart';
 import 'package:cake_wallet/nano/nano.dart';
-import 'package:cake_wallet/polygon/polygon.dart';
 import 'package:cake_wallet/reactions/wallet_utils.dart';
 import 'package:cake_wallet/reactions/wallet_connect.dart';
 import 'package:cake_wallet/solana/solana.dart';

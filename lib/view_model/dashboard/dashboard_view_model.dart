@@ -240,7 +240,7 @@ abstract class DashboardViewModelBase with Store {
           (transaction) => TransactionListItem(
             transaction: transaction,
             balanceViewModel: balanceViewModel,
-            settingsStore: appStore.settingsStore,
+            appStore: appStore,
             key: ValueKey('monero_transaction_history_item_${transaction.id}_key'),
           ),
         ),
@@ -270,7 +270,7 @@ abstract class DashboardViewModelBase with Store {
           (transaction) => TransactionListItem(
             transaction: transaction,
             balanceViewModel: balanceViewModel,
-            settingsStore: appStore.settingsStore,
+            appStore: appStore,
             key: ValueKey('wownero_transaction_history_item_${transaction.id}_key'),
           ),
         ),
@@ -284,7 +284,7 @@ abstract class DashboardViewModelBase with Store {
           (transaction) => TransactionListItem(
             transaction: transaction,
             balanceViewModel: balanceViewModel,
-            settingsStore: appStore.settingsStore,
+            appStore: appStore,
             key: ValueKey('${_wallet.type.name}_transaction_history_item_${transaction.id}_key'),
           ),
         ),
@@ -359,7 +359,7 @@ abstract class DashboardViewModelBase with Store {
         (transaction) => TransactionListItem(
           transaction: transaction,
           balanceViewModel: balanceViewModel,
-          settingsStore: appStore.settingsStore,
+          appStore: appStore,
           key: ValueKey('${wallet.type.name}_transaction_history_item_${transaction.id}_key'),
         ),
       ),
@@ -443,7 +443,7 @@ abstract class DashboardViewModelBase with Store {
       transactions.addAll(relevantTxs.map((tx) => TransactionListItem(
             transaction: tx,
             balanceViewModel: balanceViewModel,
-            settingsStore: appStore.settingsStore,
+            appStore: appStore,
             key: ValueKey('${wallet.type.name}_transaction_history_item_${tx.id}_key'),
           )));
     } finally {
@@ -1166,7 +1166,7 @@ abstract class DashboardViewModelBase with Store {
           (transaction) => TransactionListItem(
             transaction: transaction,
             balanceViewModel: balanceViewModel,
-            settingsStore: appStore.settingsStore,
+            appStore: appStore,
             key: ValueKey('monero_transaction_history_item_${transaction.id}_key'),
           ),
         ),
@@ -1186,7 +1186,7 @@ abstract class DashboardViewModelBase with Store {
           (transaction) => TransactionListItem(
             transaction: transaction,
             balanceViewModel: balanceViewModel,
-            settingsStore: appStore.settingsStore,
+            appStore: appStore,
             key: ValueKey('wownero_transaction_history_item_${transaction.id}_key'),
           ),
         ),

@@ -711,6 +711,7 @@ abstract class ElectrumWalletBase
     String method, {
     bool? useSSL,
   }) async {
+    if (scriptHashes.length == 0) return '';
     // Initialize Tor for proxy support
     // CakeTor.instance = await CakeTorInstance.getInstance();
 
@@ -758,10 +759,9 @@ abstract class ElectrumWalletBase
       }
       // We close connection using closeIsolateBatch() so as to not mess with the primary connection
       await client.closeIsolateBatch();
-      return responses.join();
+      return responses.join();  
     } catch (e) {
       printV('[IsolateBatcher] Error: $e');
-
       rethrow;
     } finally {
       await client.close();

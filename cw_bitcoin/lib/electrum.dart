@@ -668,6 +668,16 @@ class ElectrumClient {
     _resetInternalStateCompletely();
   }
 
+  Future<void> closeIsolateBatch() async {    
+    try {
+      await socket?.close();
+      socket = null;
+    } catch (e) {
+      printV(e.toString());
+    }
+
+  }
+
   void _resetInternalState() {
     // Only clears errors and unterminated string, leaves tasks or reset ID
     // This preserves active subscriptions while clearing error state

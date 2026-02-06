@@ -401,11 +401,11 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
       scriptHashes.add(sh);
-      //printV('Address[$i]: ${addressRecord.address} -> ScriptHash: $sh');
+      printV('Address[$i]: ${addressRecord.address} -> ScriptHash: $sh');
     }
     final String method = "blockchain.scripthash.get_balance";
 
-    var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
+    var balanceResponse = await getIsolateBatch(scriptHashes, method);
 
     printV('Total script hashes to query: ${scriptHashes.length}');
     printV('Script hashes list: $scriptHashes');
@@ -549,12 +549,12 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
       printV("KB: GetIsolateBatch: All batches processed. Total responses: ${allResponses.length}");
 
       // Close connection
-      await client.close();
+      await client.closeIsolateBatch();
 
       return allResponses.join();
     } catch (e) {
       printV('[IsolateBatcher] Error: $e');
-      await client.close();
+      await client.closeIsolateBatch();
       rethrow;
     }
   }

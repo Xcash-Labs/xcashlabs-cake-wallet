@@ -19,6 +19,7 @@ import 'package:cake_wallet/src/widgets/alert_with_one_action.dart';
 import 'package:cake_wallet/store/dashboard/order_filter_store.dart';
 import 'package:cake_wallet/utils/device_info.dart';
 import 'package:cake_wallet/utils/show_pop_up.dart';
+import 'package:cake_wallet/zcash/zcash.dart';
 import 'package:cw_core/utils/proxy_wrapper.dart';
 import 'package:cake_wallet/utils/tor.dart';
 import 'package:cake_wallet/wownero/wownero.dart' as wow;
@@ -580,6 +581,13 @@ abstract class DashboardViewModelBase with Store {
     ];
     return errors;
   }
+  
+  @computed
+  bool get showZcashMissingFundsCard {
+    if (wallet.type != WalletType.zcash) return false;
+    if (!settingsStore.showZcashMissingFundsCard) return false;
+    return zcash!.showMissingFundsCard(wallet);
+  }
 
   @computed
   bool get hasSilentPayments =>
@@ -852,6 +860,16 @@ abstract class DashboardViewModelBase with Store {
     mwebEnabled = false;
     bitcoin!.setMwebEnabled(wallet, false);
   }
+  
+  @action 
+  Future<void> rescanInternalChangeZcash() async {
+    await zcash!.rescanInternalChange(wallet);
+  }
+  
+  @action
+  void dismissZcash() {
+    settingsStore.showZcashMissingFundsCard = false;
+  }
 
   @action
   void dismissDecredInfoCard() {
@@ -947,6 +965,7 @@ abstract class DashboardViewModelBase with Store {
       case WalletType.polygon:
       case WalletType.base:
       case WalletType.arbitrum:
+      case WalletType.bsc:
       case WalletType.solana:
       case WalletType.nano:
       case WalletType.banano:

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'dart:math';
 
 import 'package:cake_wallet/.secrets.g.dart' as secrets;
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
@@ -26,10 +27,8 @@ import 'package:cake_wallet/zcash/zcash.dart';
 import 'package:cw_core/utils/proxy_wrapper.dart';
 import 'package:cake_wallet/utils/tor.dart';
 import 'package:cake_wallet/wownero/wownero.dart' as wow;
-import 'package:cake_wallet/nano/nano.dart';
 import 'package:cake_wallet/store/anonpay/anonpay_transactions_store.dart';
 import 'package:cake_wallet/store/app_store.dart';
-import 'package:cake_wallet/store/dashboard/order_filter_store.dart';
 import 'package:cake_wallet/store/dashboard/orders_store.dart';
 import 'package:cake_wallet/store/dashboard/payjoin_transactions_store.dart';
 import 'package:cake_wallet/store/dashboard/trade_filter_store.dart';
@@ -37,9 +36,6 @@ import 'package:cake_wallet/store/dashboard/trades_store.dart';
 import 'package:cake_wallet/store/dashboard/transaction_filter_store.dart';
 import 'package:cake_wallet/store/settings_store.dart';
 import 'package:cake_wallet/store/yat/yat_store.dart';
-import 'package:cake_wallet/utils/device_info.dart';
-import 'package:cake_wallet/utils/show_pop_up.dart';
-import 'package:cake_wallet/utils/tor.dart';
 import 'package:cake_wallet/view_model/dashboard/action_list_item.dart';
 import 'package:cake_wallet/view_model/dashboard/anonpay_transaction_list_item.dart';
 import 'package:cake_wallet/view_model/dashboard/balance_view_model.dart';
@@ -50,7 +46,6 @@ import 'package:cake_wallet/view_model/dashboard/payjoin_transaction_list_item.d
 import 'package:cake_wallet/view_model/dashboard/trade_list_item.dart';
 import 'package:cake_wallet/view_model/dashboard/transaction_list_item.dart';
 import 'package:cake_wallet/view_model/settings/sync_mode.dart';
-import 'package:cake_wallet/wownero/wownero.dart' as wow;
 import 'package:cryptography/cryptography.dart';
 import 'package:cw_core/balance.dart';
 import 'package:cw_core/card_design.dart';
@@ -61,7 +56,6 @@ import 'package:cw_core/transaction_history.dart';
 import 'package:cw_core/transaction_info.dart';
 import 'package:cw_core/utils/file.dart';
 import 'package:cw_core/utils/print_verbose.dart';
-import 'package:cw_core/utils/proxy_wrapper.dart';
 import 'package:cw_core/wallet_base.dart';
 import 'package:cw_core/wallet_info.dart';
 import 'package:cw_core/wallet_type.dart';
@@ -211,6 +205,7 @@ abstract class DashboardViewModelBase with Store {
         type = appStore.wallet!.type,
         transactions = ObservableList<TransactionListItem>(),
         cardDesigns = ObservableList<CardDesign>(),
+        cardOrder = ObservableMap<int, int>(),
         wallet = appStore.wallet! {
     showDecredInfoCard = wallet.type == WalletType.decred &&
         (sharedPreferences.getBool(PreferencesKey.showDecredInfoCard) ?? true);
@@ -392,14 +387,10 @@ abstract class DashboardViewModelBase with Store {
     return false;
   }
 
-
+  @action
   Future<void> loadCardDesigns() async {
-    if (cardDesigns.isNotEmpty) {
-      cardDesigns.clear();
-    }
-
     final accountStyleSettings =
-          await BalanceCardStyleSettings.getAll(wallet.walletInfo.internalId);
+        await BalanceCardStyleSettings.getAll(wallet.walletInfo.internalId);
 
       late final int numAccounts;
       if (wallet.type == WalletType.monero) {
@@ -412,34 +403,48 @@ abstract class DashboardViewModelBase with Store {
       } else {
         numAccounts = 1;
       }
+    cardDesigns.clear();
+    cardOrder.clear();
 
-      for (int i = 0; i < numAccounts; i++) {
-        late final int index;
-        if(balanceViewModel.hasAccounts) {
-          index = i;
-        } else if(wallet.type == WalletType.bitcoin && i == 1) {
-          index = 0;
-        } else {
-          index = -1;
-        }
-
-
-        final setting = accountStyleSettings
-            .where((e) => e.accountIndex == index)
-            .firstOrNull;
-
-        late final CryptoCurrency curr;
-        if(wallet.type == WalletType.bitcoin && i == 1) {
-          curr = CryptoCurrency.btcln;
-        } else {
-          curr = wallet.currency;
-        }
-
-
-        cardDesigns.add(CardDesign.fromStyleSettings(setting, curr));
+    for (int i = 0; i < numAccounts; i++) {
+      late final int index;
+      if(balanceViewModel.hasAccounts) {
+        index = i;
+      } else if(wallet.type == WalletType.bitcoin && i == 1) {
+        index = 0;
+      } else {
+        index = -1;
       }
-  }
 
+
+      final setting = accountStyleSettings
+          .where((e) => e.accountIndex == index)
+          .firstOrNull;
+
+
+      late final CryptoCurrency curr;
+      if(wallet.type == WalletType.bitcoin && i == 1) {
+        curr = CryptoCurrency.btcln;
+      } else {
+        curr = wallet.currency;
+      }
+
+
+      cardDesigns.add(CardDesign.fromStyleSettings(setting, curr));
+      if(setting?.cardOrder != null) {
+        if(!(wallet.type != WalletType.bitcoin && i == 1)) {
+          cardOrder[setting!.cardOrder] = i;
+        }
+      }
+    }
+
+    // making sure ALL accounts have numbers, even the ones that existed before this feature was a thing
+    for(int i=0; i<numAccounts; i++) {
+      if (!cardOrder.containsKey(i) && !(wallet.type != WalletType.bitcoin && i == 1)) {
+        cardOrder[i] = cardOrder.isEmpty ? i : cardOrder.values.reduce(max)+1;
+      }
+    }
+  }
 
   void _transactionDisposerCallback(int _) async {
     // Simple check to prevent the callback from being called multiple times in the same frame
@@ -511,6 +516,9 @@ abstract class DashboardViewModelBase with Store {
 
   @observable
   ObservableList<CardDesign> cardDesigns;
+
+  @observable
+  ObservableMap<int, int> cardOrder;
 
   @computed
   bool get isDarkTheme => appStore.themeStore.currentTheme.isDark;

@@ -1,4 +1,6 @@
 // ignore_for_file: overridden_fields, annotate_overrides
+import 'dart:math';
+
 import 'package:cw_core/format_amount.dart';
 import 'package:cw_core/format_fixed.dart';
 import 'package:cw_core/transaction_direction.dart';

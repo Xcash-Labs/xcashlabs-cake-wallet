@@ -90,7 +90,7 @@ abstract class EVMChainWalletBase
         _isTransactionUpdating = false,
         _client = client,
         selectedChainId = initialChainId ?? _getInitialChainId(walletInfo.type),
-        walletAddresses = EVMChainWalletAddresses(walletInfo),
+        walletAddresses = EVMChainWalletAddresses(walletInfo, initialChainId ?? _getInitialChainId(walletInfo.type)),
         balance = ObservableMap<CryptoCurrency, EVMChainERC20Balance>.of(
           {
             nativeCurrency: initialBalance ?? EVMChainERC20Balance(BigInt.zero),

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cake_wallet/core/amount_parsing_proxy.dart';
-import 'package:cw_core/payment_uris.dart';
 import 'package:cake_wallet/entities/calculate_fiat_amount.dart';
 import 'package:cake_wallet/entities/fiat_currency.dart';
 import 'package:cake_wallet/exchange/exchange_provider_description.dart';
@@ -31,6 +30,7 @@ import 'package:cake_wallet/view_model/send/fees_view_model.dart';
 import 'package:cake_wallet/view_model/send/output.dart';
 import 'package:cake_wallet/view_model/send/send_view_model.dart';
 import 'package:cw_core/crypto_currency.dart';
+import 'package:cw_core/payment_uris.dart';
 import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/wallet_base.dart';
 import 'package:cw_core/wallet_type.dart';
@@ -450,7 +450,7 @@ abstract class ExchangeTradeViewModelBase with Store {
       case WalletType.bitcoinCash:
         return BitcoinCashURI(address: inputAddress, amount: amount);
       case WalletType.dogecoin:
-        return PaymentURI(scheme: "doge", address: inputAddress, amount: amount);
+        return DogeURI(address: inputAddress, amount: amount);
       case WalletType.ethereum:
         return _createERC681URI(fromCurrency, inputAddress, amount);
       // TODO: Expand ERC681URI support to Polygon(modify decoding flow for QRs, pay anything, and deep link handling)
@@ -470,14 +470,10 @@ abstract class ExchangeTradeViewModelBase with Store {
         return MoneroURI(address: inputAddress, amount: amount);
       case WalletType.wownero:
         return MoneroURI(
-            scheme: walletTypeToString(wallet.type).toLowerCase(),
             address: inputAddress,
             amount: amount);
       default:
-        return PaymentURI(
-            scheme: walletTypeToString(wallet.type).toLowerCase(),
-            address: inputAddress,
-            amount: amount);
+        return null;
     }
   }
 

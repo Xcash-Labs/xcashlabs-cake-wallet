@@ -36,10 +36,15 @@ class ElectrumClient {
       : _id = 0,
         _tasks = {},
         _errors = {},
-        unterminatedString = '';
+        unterminatedString = '',
+        _isolateId = 0,
+        _isolateTasks = {},
+        _isolateErrors = {},
+        isolateUnterminatedString = '';
 
   static const connectionTimeout = Duration(seconds: 5); // fairly aggressive
-  static const aliveTimerDuration = Duration(seconds: 20); // aligns better with Fulcrum's 2s polling of bitcoind
+  static const aliveTimerDuration =
+      Duration(seconds: 20); // aligns better with Fulcrum's 2s polling of bitcoind
 
   bool get isConnected => socket != null && socket?.isClosed == false;
   ProxySocket? socket;
@@ -52,6 +57,12 @@ class ElectrumClient {
   ConnectionStatus _connectionStatus = ConnectionStatus.disconnected;
   Timer? _aliveTimer;
   String unterminatedString;
+  
+  // Separate state management for isolate socket
+  int _isolateId;
+  final Map<String, SocketTask> _isolateTasks;
+  final Map<String, String> _isolateErrors;
+  String isolateUnterminatedString;
 
   Uri? uri;
   bool? useSSL;
@@ -115,13 +126,14 @@ class ElectrumClient {
             if (message.isEmpty || message.replaceAll(RegExp(r'[\s\x00-\x1F\x7F]'), '').isEmpty) {
               continue;
             }
-            _parseResponse(message);
+            _parseIsolate(message);
           }
         } catch (e) {
           printV("isolateSocket.listen: $e");
         }
       },
       onError: (Object error) {
+        printV("Isolate error");
         final errorMsg = error.toString();
         printV(errorMsg);
         unterminatedString = '';
@@ -142,8 +154,6 @@ class ElectrumClient {
       },
       cancelOnError: true,
     );
-
-    keepAlive();
   }
 
   Future<void> connect({required String host, required int port}) async {
@@ -227,6 +237,63 @@ class ElectrumClient {
     keepAlive();
   }
 
+  void _parseIsolate(String message) {
+    try {
+      printV(message);
+      final decoded = json.decode(message);
+      
+      if (decoded is List) {
+        _batchHandleIsolateResponse(decoded);
+      } else if (decoded is Map<String, dynamic>) {
+        _handleIsolateResponse(decoded);
+      }
+    } on FormatException catch (e) {
+      developer.log(
+          "!!!!! Isolate Node communication possibly broke !!!!!: FormatException in _parseIsolate: $e");
+      final msg = e.message.toLowerCase();
+
+      if (e.source is String) {
+        isolateUnterminatedString += e.source as String;
+      }
+
+      if (msg.contains("not a subtype of type")) {
+        isolateUnterminatedString += e.source as String;
+        return;
+      }
+
+      if (isJSONStringCorrect(isolateUnterminatedString)) {
+        final decoded = json.decode(isolateUnterminatedString);
+
+        if (decoded is List) {
+          _batchHandleIsolateResponse(decoded);
+        } else if (decoded is Map<String, dynamic>) {
+          _handleIsolateResponse(decoded);
+        }
+        isolateUnterminatedString = '';
+      }
+    } on TypeError catch (e) {
+      if (!e.toString().contains('Map<String, Object>') &&
+          !e.toString().contains('Map<String, dynamic>')) {
+        return;
+      }
+
+      isolateUnterminatedString += message;
+
+      if (isJSONStringCorrect(isolateUnterminatedString)) {
+        final decoded = json.decode(isolateUnterminatedString);
+
+        if (decoded is List) {
+          _batchHandleIsolateResponse(decoded);
+        } else if (decoded is Map<String, dynamic>) {
+          _handleIsolateResponse(decoded);
+        }
+        isolateUnterminatedString = '';
+      }
+    } catch (e) {
+      printV("!!!!! ISOLATE NODE COMMUNICATION REALLY BROKE !!!!!: Exception in _parseIsolate: $e");
+    }
+  }
+
   void _parseResponse(String message) {
     try {
       printV(message);
@@ -302,6 +369,18 @@ class ElectrumClient {
     }
   }
 
+  void _batchHandleIsolateResponse(List<dynamic> batchResponse) {
+    printV("Handling isolate batch response with ${batchResponse.length} items");
+    // Since we register a single task for the entire batch, complete it with the full array
+    if (_isolateTasks.isNotEmpty) {
+      final taskIds = _isolateTasks.keys.map((k) => int.tryParse(k) ?? 0).where((id) => id > 0);
+      if (taskIds.isNotEmpty) {
+        final latestTaskId = taskIds.reduce((a, b) => a > b ? a : b);
+        _finishIsolate(latestTaskId.toString(), batchResponse);
+      }
+    }
+  }
+
   void keepAlive() {
     _aliveTimer?.cancel();
     _aliveTimer = Timer.periodic(aliveTimerDuration, (_) async => ping());
@@ -368,7 +447,8 @@ class ElectrumClient {
 
       final batchRequestJson = json.encode(batchRequest);
       printV('batchGetData: Batch request JSON: $batchRequestJson');
-      printV('batchGetData: substring last 100 characters: ${batchRequestJson.substring(batchRequestJson.length - 100)}');
+      printV(
+          'batchGetData: substring last 100 characters: ${batchRequestJson.substring(batchRequestJson.length - 100)}');
       // Send batch request
       if (!isConnected) {
         throw Exception('Not connected to Electrum server');
@@ -385,7 +465,8 @@ class ElectrumClient {
 
       final response = await completer.future;
       // printV('batchGetData: Server response received: $response');
-      printV('batchGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
+      printV(
+          'batchGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
       // Response is already decoded by _batchHandleResponse
       final jsonSortedList = response as List<dynamic>;
       // Sort by id field
@@ -400,7 +481,66 @@ class ElectrumClient {
 
       return jsonSortedList;
     } catch (e) {
-      printV('batchGetBalances error: $e');
+      printV('batchGetData error: $e');
+      return {};
+    }
+  }
+
+  Future<dynamic> isolateGetData(List<String> scriptHashes, String method) async {
+    if (scriptHashes.isEmpty) {
+      return {};
+    }
+
+    try {
+      // Build batch request payload
+      final List<Map<String, dynamic>> batchRequest = [];
+      for (int i = 0; i < scriptHashes.length; i++) {
+        batchRequest.add({
+          'jsonrpc': '2.0',
+          'id': i + 1,
+          'method': method,
+          'params': [scriptHashes[i]],
+        });
+      }
+
+      final batchRequestJson = json.encode(batchRequest);
+      printV('isolateGetData: Batch request JSON: $batchRequestJson');
+      printV(
+          'isolateGetData: substring last 100 characters: ${batchRequestJson.substring(batchRequestJson.length - 100)}');
+      
+      // Send batch request via isolate socket
+      if (isolateSocket == null) {
+        throw Exception('Isolate socket not connected');
+      }
+
+      final completer = Completer<dynamic>();
+      _isolateId += 1;
+      final requestId = _isolateId;
+      _registryIsolateTask(requestId, completer);
+
+      // Write the batch request directly to isolate socket
+      isolateSocket!.write(batchRequestJson + '\n');
+      printV('isolateGetData: Batch request sent with ID: $requestId');
+
+      final response = await completer.future;
+      printV(
+          'isolateGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
+      
+      // Response is already decoded by _batchHandleIsolateResponse
+      final jsonSortedList = response as List<dynamic>;
+      // Sort by id field
+      jsonSortedList.sort((a, b) {
+        if (a is Map<String, dynamic> && b is Map<String, dynamic>) {
+          final aId = a['id'] as int? ?? 0;
+          final bId = b['id'] as int? ?? 0;
+          return aId.compareTo(bId);
+        }
+        return 0;
+      });
+
+      return jsonSortedList;
+    } catch (e) {
+      printV('isolateGetData error: $e');
       return {};
     }
   }
@@ -751,14 +891,19 @@ class ElectrumClient {
     _resetInternalStateCompletely();
   }
 
-  Future<void> closeIsolateBatch() async {    
+  Future<void> closeIsolateBatch() async {
     try {
-      await socket?.close();
-      socket = null;
+      await isolateSocket?.close();
+      isolateSocket = null;
     } catch (e) {
       printV(e.toString());
     }
-
+    
+    // Reset isolate-specific state
+    _isolateId = 0;
+    _isolateTasks.clear();
+    _isolateErrors.clear();
+    isolateUnterminatedString = '';
   }
 
   void _resetInternalState() {
@@ -781,6 +926,9 @@ class ElectrumClient {
   void _regisrySubscription(String id, BehaviorSubject<dynamic> subject) =>
       _tasks[id] = SocketTask(subject: subject, isSubscription: true);
 
+  void _registryIsolateTask(int id, Completer<dynamic> completer) =>
+      _isolateTasks[id.toString()] = SocketTask(completer: completer, isSubscription: false);
+
   void _finish(String id, Object? data) {
     if (_tasks[id] == null) {
       return;
@@ -794,6 +942,22 @@ class ElectrumClient {
       _tasks.remove(id);
     } else {
       _tasks[id]?.subject?.add(data);
+    }
+  }
+
+  void _finishIsolate(String id, Object? data) {
+    if (_isolateTasks[id] == null) {
+      return;
+    }
+
+    if (!(_isolateTasks[id]?.completer?.isCompleted ?? false)) {
+      _isolateTasks[id]?.completer!.complete(data);
+    }
+
+    if (!(_isolateTasks[id]?.isSubscription ?? false)) {
+      _isolateTasks.remove(id);
+    } else {
+      _isolateTasks[id]?.subject?.add(data);
     }
   }
 
@@ -866,6 +1030,39 @@ class ElectrumClient {
 
     if (id != null) {
       _finish(id, result);
+    }
+  }
+
+  void _handleIsolateResponse(Map<String, dynamic> response) {
+    final method = response['method'];
+    final id = response['id'] as String?;
+    final result = response['result'];
+    printV("isolate method: $method, id: $id, result: $result");
+    try {
+      final error = response['error'] as Map<String, dynamic>?;
+      if (error != null) {
+        final errorMessage = error['message'] as String?;
+        printV(errorMessage);
+        if (errorMessage != null) {
+          _isolateErrors[id!] = errorMessage;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final error = response['error'] as String?;
+      if (error != null) {
+        _isolateErrors[id!] = error;
+      }
+    } catch (_) {}
+
+    if (method is String) {
+      // Isolate socket doesn't handle method subscriptions
+      return;
+    }
+
+    if (id != null) {
+      _finishIsolate(id, result);
     }
   }
 

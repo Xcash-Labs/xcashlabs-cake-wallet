@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:isolate';
 
@@ -565,10 +566,10 @@ abstract class ElectrumWalletBase
         }
       }
 
-      await subscribeForUpdates();
-      await updateTransactions();
+      //await subscribeForUpdates();
+      //await updateTransactions();
 
-      await updateAllUnspents();
+      //await updateAllUnspents();
       await updateBalance();
       await updateFeeRates();
 
@@ -733,37 +734,39 @@ abstract class ElectrumWalletBase
       // so many other functions rely on it and might break
       // client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
 
-      const batchSize = 50;
-      String allResponses = '';
-      
+      const batchSize = 40;
+      List<dynamic> allResponses = [];
+
       while (scriptHashes.isNotEmpty) {
         // Take up to batchSize items from the front
         final batchEnd = scriptHashes.length < batchSize ? scriptHashes.length : batchSize;
         final batchScripthashes = scriptHashes.sublist(0, batchEnd);
-        
+
         // Throttle: wait if less than 3.5 seconds since last batch
         final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
         final delayNeeded = 3500 - timeSinceLastBatch;
         if (delayNeeded > 0) {
-          await Future.delayed(Duration(milliseconds: delayNeeded));
+          await Future.delayed(Duration(milliseconds: 3000));
         }
-        
+
         printV("KB: GetIsolateBatch: Sending batch of ${batchScripthashes.length} scripthashes");
         _lastBatchStart = DateTime.now();
-        
-        final response = await client.batchGetData(batchScripthashes, method);
+
+        final response = await client.isolateGetData(batchScripthashes, method);
         printV("KB: GetIsolateBatch: Response received");
-        
-        // Append response to accumulated results
-        allResponses += response.toString();
-        
+
+        // Collect all batch responses into a single list
+        if (response is List) {
+          allResponses.addAll(response);
+        }
+
         // Remove processed items from the front
         scriptHashes.removeRange(0, batchEnd);
       }
-      
+
       // We close connection using closeIsolateBatch() so as to not mess with the primary connection
       await client.closeIsolateBatch();
-      return allResponses;  
+      return json.encode(allResponses);
     } catch (e) {
       printV('[IsolateBatcher] Error: $e');
       rethrow;
@@ -2449,12 +2452,13 @@ abstract class ElectrumWalletBase
 
       // Fetch histories in batch
       printV("Fetching this batch of history: ${scriptHashes}");
-      // final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
+      //final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
 
       printV("Invoked getIsolateBatch for batch history: ${scriptHashes}");
       final batchHistories =
           await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_history');
 
+      printV("Successfully retrieved transactions for type");
       var responseJson = jsonDecode(batchHistories);
       //printV(responseJson);
       // print the last 200 chars of responseJson
@@ -2499,7 +2503,7 @@ abstract class ElectrumWalletBase
               matchedAddresses.toList(),
               addressRecord.isHidden,
               (address) async {
-                await subscribeForUpdates();
+                // await subscribeForUpdates();
                 return _fetchAddressHistory(address, await getCurrentChainTip())
                     .then((history) => history.isNotEmpty ? address.address : null);
               },
@@ -2693,22 +2697,32 @@ abstract class ElectrumWalletBase
         .where((address) => address.address.isNotEmpty)
         .where((address) => RegexUtils.addressTypeFromStr(address.address, network) is! MwebAddress)
         .toList();
-    final balanceFutures = <Future<Map<String, dynamic>>>[];
+    //final balanceFutures = <Future<Map<String, dynamic>>>[];
+    //final balanceFutures = <Future<Map<String, dynamic>>>[];
 
     // Collect all script hashes
     final List<String> scriptHashes = [];
+    final Map<String, String> scriptHashToAddress = {};
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
       scriptHashes.add(sh);
+      scriptHashToAddress[sh] = addressRecord.address;
       //printV('Address[$i]: ${addressRecord.address} -> ScriptHash: $sh');
     }
-    // final String method = "blockchain.scripthash.get_balance";
+    final String method = "blockchain.scripthash.get_balance";
 
-    // var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
+    //var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
 
     final balanceResponse =
         await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
+
+    printV(balanceResponse);
+    printV("Karl got balances");
+
+    // Process responses -- decode JSON string
+    final balanceResults = jsonDecode(balanceResponse);
+    developer.log('Balance results: $balanceResults');
 
     var totalFrozen = 0;
     var totalConfirmed = 0;

@@ -43,6 +43,7 @@ class ElectrumClient {
 
   bool get isConnected => socket != null && socket?.isClosed == false;
   ProxySocket? socket;
+  ProxySocket? isolateSocket;
   void Function(ConnectionStatus)? onConnectionStatusChange;
   int _id;
   final Map<String, SocketTask> _tasks;
@@ -55,12 +56,94 @@ class ElectrumClient {
   Uri? uri;
   bool? useSSL;
 
-  Future<void> connectToUri(Uri uri, {bool? useSSL}) async {
+  Future<void> connectToUri(Uri uri, {bool? useSSL, bool? isolateRequest}) async {
     this.uri = uri;
     if (useSSL != null) {
       this.useSSL = useSSL;
     }
     await connect(host: uri.host, port: uri.port);
+  }
+
+  Future<void> isolateConnect({required String host, required int port}) async {
+    // _setConnectionStatus(ConnectionStatus.connecting);
+
+    // Reset internal state to ensure clean connection
+    // _resetInternalState();
+
+    // try {
+    //   await socket?.close();
+    // } catch (_) {}
+    // socket = null;
+
+    final ssl = !(useSSL == false || (useSSL == null && uri.toString().contains("btc-electrum")));
+    try {
+      isolateSocket = await ProxyWrapper()
+          .getSocksSocket(ssl, host, port, connectionTimeout: connectionTimeout);
+    } catch (e) {
+      printV("isolate connect: $e");
+      if (e is HandshakeException) {
+        useSSL = !(useSSL ?? false);
+      }
+
+      // The TCP stack should be deferred to, here (this is not a primary connection)
+      // if (_connectionStatus != ConnectionStatus.connecting) {
+      //   _setConnectionStatus(ConnectionStatus.failed);
+      // }
+
+      return;
+    }
+
+    if (isolateSocket == null) {
+      // if (_connectionStatus != ConnectionStatus.connecting) {
+      //   _setConnectionStatus(ConnectionStatus.failed);
+      // }
+
+      return;
+    }
+
+    // use ping to determine actual connection status since we could've just not timed out yet:
+    // _setConnectionStatus(ConnectionStatus.connected);
+    isolateSocket!.listen(
+      (Uint8List event) {
+        try {
+          final msg = utf8.decode(event.toList());
+          final messagesList = msg.split("\n");
+          for (var message in messagesList) {
+            // For some reason, the existing code will serve up garbage whitespace
+            // Skip empty messages or messages with only whitespace/control chars
+            message = message.trim();
+            if (message.isEmpty || message.replaceAll(RegExp(r'[\s\x00-\x1F\x7F]'), '').isEmpty) {
+              continue;
+            }
+            _parseResponse(message);
+          }
+        } catch (e) {
+          printV("isolateSocket.listen: $e");
+        }
+      },
+      onError: (Object error) {
+        final errorMsg = error.toString();
+        printV(errorMsg);
+        unterminatedString = '';
+        isolateSocket?.destroy();
+        isolateSocket = null;
+        // _setConnectionStatus(ConnectionStatus.disconnected);
+      },
+      onDone: () {
+        printV("Isolate socket: Close on done");
+        unterminatedString = '';
+        try {
+          //_setConnectionStatus(ConnectionStatus.disconnected);
+          isolateSocket?.destroy();
+          isolateSocket = null;
+        } catch (e) {
+          printV("onDone: $e");
+        }
+      },
+      cancelOnError: true,
+    );
+
+    keepAlive();
   }
 
   Future<void> connect({required String host, required int port}) async {

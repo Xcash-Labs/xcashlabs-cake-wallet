@@ -723,7 +723,7 @@ abstract class ElectrumWalletBase
       printV("KB: GetIsolateBatch: connecting");
       var uri = node!.uri;
 
-      await client.connectToUri(uri, useSSL: useSSL).timeout(
+      await client.connectToUri(uri, useSSL: useSSL, isolateRequest: true).timeout(
         Duration(seconds: 60),
         onTimeout: () {
           throw TimeoutException('Connection timeout after 5s');
@@ -741,9 +741,9 @@ abstract class ElectrumWalletBase
         final batchEnd = scriptHashes.length < batchSize ? scriptHashes.length : batchSize;
         final batchScripthashes = scriptHashes.sublist(0, batchEnd);
         
-        // Throttle: wait if less than 2.5 seconds since last batch
+        // Throttle: wait if less than 3.5 seconds since last batch
         final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-        final delayNeeded = 2500 - timeSinceLastBatch;
+        final delayNeeded = 3500 - timeSinceLastBatch;
         if (delayNeeded > 0) {
           await Future.delayed(Duration(milliseconds: delayNeeded));
         }

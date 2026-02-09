@@ -427,6 +427,7 @@ class ElectrumClient {
 
   // This function is designed for when we invoke multiple of the same method with different scriptHashes
   // It takes responsibility for also re-ordering the results deterministically
+  // It will never get invoked when a connection does not exist
   // Future<Map<String, Map<String, dynamic>>> batchGetData(
   Future<dynamic> batchGetData(List<String> scriptHashes, String method) async {
     if (scriptHashes.isEmpty) {
@@ -446,13 +447,13 @@ class ElectrumClient {
       }
 
       final batchRequestJson = json.encode(batchRequest);
-      printV('batchGetData: Batch request JSON: $batchRequestJson');
-      printV(
-          'batchGetData: substring last 100 characters: ${batchRequestJson.substring(batchRequestJson.length - 100)}');
+      // printV('batchGetData: Batch request JSON: $batchRequestJson');
+      // printV(
+      //     'batchGetData: substring last 100 characters: ${batchRequestJson.substring(batchRequestJson.length - 100)}');
       // Send batch request
-      if (!isConnected) {
-        throw Exception('Not connected to Electrum server');
-      }
+      // if (!isConnected) {
+      //   throw Exception('Not connected to Electrum server');
+      // }
 
       final completer = Completer<dynamic>();
       _id += 1;
@@ -465,9 +466,9 @@ class ElectrumClient {
 
       final response = await completer.future;
       // printV('batchGetData: Server response received: $response');
-      printV(
-          'batchGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
-      // Response is already decoded by _batchHandleResponse
+      // printV(
+      //     'batchGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
+      // Response is to be handled by method that invokes this method (so not in here)
       final jsonSortedList = response as List<dynamic>;
       // Sort by id field
       jsonSortedList.sort((a, b) {

@@ -790,7 +790,7 @@ Future<String> getIsolateAddressBatch(
     try {
       final List<String> scriptHashes = addresses.map((addr) => addr.getScriptHash(network)).toList();
       // Connect using electrum.dart's connectToUri method
-      printV("KB: GetIsolateBatch: connecting");
+      printV("KB: GetIsolateAddressBatch: connecting");
       var uri = node!.uri;
 
       await client.connectToUri(uri, useSSL: useSSL, isolateRequest: true).timeout(
@@ -2488,10 +2488,19 @@ Future<String> getIsolateAddressBatch(
     printV("KB: count of ${addressesByType.length}");
     printV("KB: hidden count of ${hiddenAddresses.length}");
     printV("KB: receive count of ${receiveAddresses.length}");
-
+    
+    final addressList = addressesByType.toList();
     // Here we pivot to batching these transactions
-    final scriptHashes = addressesByType.map((addr) => addr.getScriptHash(network)).toList();
-    printV("KB: ${scriptHashes}");
+    printV("Invoked getIsolateBatch for batch history: ${scriptHashes}");
+    final batchHistories =
+        await getIsolateAddressBatch(addressList, 'blockchain.scripthash.get_history');
+
+    for (var i = 0; i < 5; i++) {
+      printV(batchHistories[i]);
+    }
+
+    // final scriptHashes = addressesByType.map((addr) => addr.getScriptHash(network)).toList();
+    // printV("KB: ${scriptHashes}");
     //final history = await electrumClient.batchGetData(addressRecord.getScriptHash(network));
     // Further batching
   }
@@ -2512,83 +2521,76 @@ Future<String> getIsolateAddressBatch(
     final addressList = addressesByType.toList();
 
     // Process addresses in batches of 100
-    for (int i = 0; i < addressList.length; i += 50) {
-      final batchEnd = (i + 50 < addressList.length) ? i + 50 : addressList.length;
-      final batchAddresses = addressList.sublist(i, batchEnd);
 
-      // Collect script hashes for batch
-      final scriptHashes = batchAddresses.map((addr) => addr.getScriptHash(network)).toList();
 
-      // Fetch histories in batch
-      printV("Fetching this batch of history: ${scriptHashes}");
-      //final batchHistories = await electrumClient.batchGetHistory(scriptHashes);
 
-      printV("Invoked getIsolateBatch for batch history: ${scriptHashes}");
-      final batchHistories =
-          await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_history');
 
-      printV("Successfully retrieved transactions for type");
-      var responseJson = jsonDecode(batchHistories);
-      //printV(responseJson);
-      // print the last 200 chars of responseJson
-      printV(batchHistories.substring(responseJson.toString().length - 200));
-      printV("Received batch histories for: ${scriptHashes}");
-      // TODO: KB: the histogram is being retrieved successfully now
-      // now to handle it
-      // final batchHistories = await electrumClient.getIsolateBranch(scriptHashes);
+    // printV("Successfully retrieved transactions for type");
+    //var responseJson = jsonDecode(batchHistories);
 
-      // Process each address with its corresponding history
+    //printV(responseJson);
+    // print the last 200 chars of responseJson
+    
+    // printV("Received batch histories for: ${scriptHashes}");
+    // TODO: KB: the histogram is being retrieved successfully now
+    // now to handle it
+    final batchHistories = await getIsolateAddressBatch(addressList, 'blockchain.scripthash.get_history');
+    printV(batchHistories);
+    // Process each address with its corresponding history
 
-      // final scriptHash = addressRecord.getScriptHash(network);
-      final history = batchHistories;
+    // final scriptHash = addressRecord.getScriptHash(network);
+    final history = batchHistories;
 
-      await Future.wait(batchAddresses.map((addressRecord) async {
-        final scriptHash = addressRecord.getScriptHash(network);
-        final history = batchHistories;
 
-        // This will be a doozy
-        final addressHistoryDetails = await _fetchAddressHistory(
-          addressRecord,
-          currentHeight,
-          // preloadedHistory: history,
-        );
+    //   await Future.wait(batchAddresses.map((addressRecord) async {
+    //     final scriptHash = addressRecord.getScriptHash(network);
+    //     final history = batchHistories;
 
-        if (addressHistoryDetails.isNotEmpty) {
-          addressRecord.txCount = addressHistoryDetails.length;
-          historiesWithDetails.addAll(addressHistoryDetails);
+    //     // This will be a doozy
+    //     final addressHistoryDetails = await _fetchAddressHistory(
+    //       addressRecord,
+    //       // currentHeight, -- optional
+    //       // preloadedHistory: history, -- optional
+    //     );
 
-          final matchedAddresses = addressRecord.isHidden ? hiddenAddresses : receiveAddresses;
-          final isUsedAddressUnderGap = matchedAddresses.toList().indexOf(addressRecord) >=
-              matchedAddresses.length -
-                  (addressRecord.isHidden
-                      ? ElectrumWalletAddressesBase.defaultChangeAddressesCount
-                      : ElectrumWalletAddressesBase.defaultReceiveAddressesCount);
+    //     if (addressHistoryDetails.isNotEmpty) {
+    //       addressRecord.txCount = addressHistoryDetails.length;
+    //       historiesWithDetails.addAll(addressHistoryDetails);
 
-          if (isUsedAddressUnderGap) {
-            final prevLength = walletAddresses.allAddresses.length;
+    //       final matchedAddresses = addressRecord.isHidden ? hiddenAddresses : receiveAddresses;
+    //       final isUsedAddressUnderGap = matchedAddresses.toList().indexOf(addressRecord) >=
+    //           matchedAddresses.length -
+    //               (addressRecord.isHidden
+    //                   ? ElectrumWalletAddressesBase.defaultChangeAddressesCount
+    //                   : ElectrumWalletAddressesBase.defaultReceiveAddressesCount);
 
-            // Discover new addresses for the same address type until the gap limit is respected
-            await walletAddresses.discoverAddresses(
-              matchedAddresses.toList(),
-              addressRecord.isHidden,
-              (address) async {
-                // await subscribeForUpdates();
-                return _fetchAddressHistory(address, await getCurrentChainTip())
-                    .then((history) => history.isNotEmpty ? address.address : null);
-              },
-              type: type,
-            );
+    //       if (isUsedAddressUnderGap) {
+    //         final prevLength = walletAddresses.allAddresses.length;
 
-            final newLength = walletAddresses.allAddresses.length;
+    //         // Discover new addresses for the same address type until the gap limit is respected
+    //         await walletAddresses.discoverAddresses(
+    //           matchedAddresses.toList(),
+    //           addressRecord.isHidden,
+    //           (address) async {
+    //             // await subscribeForUpdates();
+    //             return _fetchAddressHistory(address, await getCurrentChainTip())
+    //                 .then((history) => history.isNotEmpty ? address.address : null);
+    //           },
+    //           type: type,
+    //         );
 
-            if (newLength > prevLength) {
-              await fetchTransactionsForAddressType(historiesWithDetails, type);
-            }
-          }
-        }
-      }));
-    }
+    //         final newLength = walletAddresses.allAddresses.length;
+
+    //         if (newLength > prevLength) {
+    //           await fetchTransactionsForAddressType(historiesWithDetails, type);
+    //         }
+    //       }
+    //     }
+    //   }));
+    // }
   }
+
+
 
   Future<Map<String, ElectrumTransactionInfo>> _fetchAddressHistory(
       BitcoinAddressRecord addressRecord, int? currentHeight,
@@ -2603,7 +2605,7 @@ Future<String> getIsolateAddressBatch(
       // final history = preloadedHistory ??
       //     await electrumClient.getHistory(addressRecord.getScriptHash(network));
       // END
-      final history = await electrumClient.getHistory(addressRecord.getScriptHash(network));
+      final history = await getIsolateAddressBatch(addressRecord.getScriptHash(network));
 
       if (history.isNotEmpty) {
         addressRecord.setAsUsed();

@@ -592,7 +592,7 @@ abstract class ElectrumWalletBase
       }
     } catch (e, stacktrace) {
       printV(stacktrace);
-      printV("startSync $e");
+      // printV("startSync $e");
       syncStatus = FailedSyncStatus();
     }
   }
@@ -2708,13 +2708,12 @@ abstract class ElectrumWalletBase
 
     // Collect all script hashes
     final List<String> scriptHashes = [];
-    final Map<String, String> scriptHashToAddress = {};
+    final Map<String, BitcoinAddressRecord> scriptHashToAddress = {};
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
       scriptHashes.add(sh);
-      scriptHashToAddress[sh] = addressRecord.address;
-      //printV('Address[$i]: ${addressRecord.address} -> ScriptHash: $sh');
+      scriptHashToAddress[sh] = addressRecord;
     }
     final String method = "blockchain.scripthash.get_balance";
 
@@ -2723,16 +2722,16 @@ abstract class ElectrumWalletBase
     final balanceResponse =
         await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
 
+    var totalFrozen = 0;
+    var totalConfirmed = 0;
+    var totalUnconfirmed = 0;
+
     printV(balanceResponse);
     printV("Karl got balances");
 
     // Process responses -- decode JSON string
     final balanceResults = jsonDecode(balanceResponse);
     developer.log('Balance results: $balanceResults');
-
-    var totalFrozen = 0;
-    var totalConfirmed = 0;
-    var totalUnconfirmed = 0;
 
     if (hasSilentPaymentsScanning) {
       // Add values from unspent coins that are not fetched by the address list
@@ -2764,8 +2763,42 @@ abstract class ElectrumWalletBase
       });
     });
 
-    // final balances = await Future.wait(balanceFutures);
-    final balances = balanceResponse as List<Map<String, dynamic>>;
+    for (var i = 0; i < scriptHashes.length; i++) {
+      printV("Balance response");
+      printV(balanceResults[i]);
+
+      final addressRecord = addresses[i];
+      final balance = balanceResults[i];
+
+      final balanceData = balanceResults[i];
+      printV(balanceData);
+      // Handle different response formats
+      final Map<String, dynamic> balanceMap;
+      if (balanceData is Map<String, dynamic>) {
+        balanceMap = balanceData;
+      } else if (balanceData is Map) {
+        balanceMap = Map<String, dynamic>.from(balanceData);
+      } else {
+        printV("Warning: Unexpected balance data format at index $i: $balanceData");
+        continue;
+      }
+
+      // final confirmed = balance['confirmed'] as int? ?? 0;
+      // final unconfirmed = balance['unconfirmed'] as int? ?? 0;
+
+      // here i am
+      // totalConfirmed += confirmed;
+      // totalUnconfirmed += unconfirmed;
+
+      // addressRecord.balance = confirmed + unconfirmed;
+      // if (confirmed > 0 || unconfirmed > 0) {
+      //   addressRecord.setAsUsed();
+      //   walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
+      // }
+    }
+
+    //final balances = await Future.wait(balanceFutures);
+    // final balances = balanceResponse as List<Map<String, dynamic>>;
 
     // Is this 'if' necessary? TCP sockets take care of this themselves? An error would throw before this
     // if (balanceResponse.length > 0 && balanceResponse.first['confirmed'] == null) {
@@ -2775,21 +2808,6 @@ abstract class ElectrumWalletBase
     //   return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
     // }
 
-    for (var i = 0; i < balances.length; i++) {
-      final addressRecord = addresses[i];
-      final balance = balances[i];
-      final confirmed = balance['confirmed'] as int? ?? 0;
-      final unconfirmed = balance['unconfirmed'] as int? ?? 0;
-      totalConfirmed += confirmed;
-      totalUnconfirmed += unconfirmed;
-
-      addressRecord.balance = confirmed + unconfirmed;
-      if (confirmed > 0 || unconfirmed > 0) {
-        addressRecord.setAsUsed();
-        walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
-      }
-    }
-
     return ElectrumBalance(
       confirmed: totalConfirmed,
       unconfirmed: totalUnconfirmed,
@@ -2798,39 +2816,9 @@ abstract class ElectrumWalletBase
   }
 
   Future<void> updateBalance() async {
-    if (_isBalanceUpdating) {
-      printV("updateBalance() already in progress, skipping");
-      return;
-    }
-    _isBalanceUpdating = true;
-    try {
-      balance[currency] = await fetchBalances();
-      await save();
-    } finally {
-      _isBalanceUpdating = false;
-    }
-
-    if (_lastBalanceUpdate != null) {
-      final timeSinceLastUpdate = DateTime.now().difference(_lastBalanceUpdate!);
-      if (timeSinceLastUpdate < _minBalanceUpdateInterval) {
-        printV("updateBalance() called too soon, skipping");
-        return;
-      }
-    }
-
-    _isBalanceUpdating = true;
-    _lastBalanceUpdate = DateTime.now();
-    
-    try {
-      printV("updateBalance() called!");
-      balance[currency] = await fetchBalances();
-      await save();
-    } catch (e, stack) {
-      printV("updateBalance() failed: $e");
-      rethrow;
-    } finally {
-      _isBalanceUpdating = false;
-    }
+    printV("updateBalance() called!");
+    balance[currency] = await fetchBalances();
+    await save();
   }
 
   @override
@@ -3001,10 +2989,7 @@ abstract class ElectrumWalletBase
     }
 
     // exponential backoff
-    final delay = Duration(
-      seconds: (pow(2, _reconnectAttempts) as int)
-    );
-    
+    final delay = Duration(seconds: (pow(2, _reconnectAttempts) as int));
 
     if (syncStatus is NotConnectedSyncStatus || syncStatus is LostConnectionSyncStatus) {
       // Needs to re-subscribe to all scripthashes when reconnected
@@ -3017,22 +3002,22 @@ abstract class ElectrumWalletBase
       Timer(delay, () async {
         if (this.syncStatus is NotConnectedSyncStatus ||
             this.syncStatus is LostConnectionSyncStatus) {
-              try {
-                this.electrumClient.connectToUri(
+          try {
+            this.electrumClient.connectToUri(
                   node!.uri,
                   useSSL: node!.useSSL ?? false,
                 );
-              } catch (e) {
-                syncStatus = LostConnectionSyncStatus();
-              } finally {
-                _isTryingToConnect = false;
-              }
-            } else if (syncStatus is ConnectedSyncStatus) {
-              // Reset counter on successful connection
-              _reconnectAttempts = 0;
-            }
+          } catch (e) {
+            syncStatus = LostConnectionSyncStatus();
+          } finally {
+            _isTryingToConnect = false;
+          }
+        } else if (syncStatus is ConnectedSyncStatus) {
+          // Reset counter on successful connection
+          _reconnectAttempts = 0;
+        }
       });
-  }
+    }
 
     // Message is shown on the UI for 3 seconds, revert to synced
     if (syncStatus is SyncedTipSyncStatus) {

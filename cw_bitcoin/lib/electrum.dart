@@ -57,7 +57,7 @@ class ElectrumClient {
   ConnectionStatus _connectionStatus = ConnectionStatus.disconnected;
   Timer? _aliveTimer;
   String unterminatedString;
-  
+
   // Separate state management for isolate socket
   int _isolateId;
   final Map<String, SocketTask> _isolateTasks;
@@ -241,7 +241,7 @@ class ElectrumClient {
     try {
       printV(message);
       final decoded = json.decode(message);
-      
+
       if (decoded is List) {
         _batchHandleIsolateResponse(decoded);
       } else if (decoded is Map<String, dynamic>) {
@@ -508,11 +508,11 @@ class ElectrumClient {
       printV('isolateGetData: Batch request JSON: $batchRequestJson');
       printV(
           'isolateGetData: substring last 100 characters: ${batchRequestJson.substring(batchRequestJson.length - 100)}');
-      
+
       // Send batch request via isolate socket
-      if (isolateSocket == null) {
-        throw Exception('Isolate socket not connected');
-      }
+      // if (isolateSocket == null) {
+      //   throw Exception('Isolate socket not connected');
+      // }
 
       final completer = Completer<dynamic>();
       _isolateId += 1;
@@ -524,12 +524,14 @@ class ElectrumClient {
       printV('isolateGetData: Batch request sent with ID: $requestId');
 
       final response = await completer.future;
+      final decoded = jsonDecode(response);
       printV(
           'isolateGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
-      
+
       // Response is already decoded by _batchHandleIsolateResponse
       final jsonSortedList = response as List<dynamic>;
       // Sort by id field
+      // return jsonSortedList;
       jsonSortedList.sort((a, b) {
         if (a is Map<String, dynamic> && b is Map<String, dynamic>) {
           final aId = a['id'] as int? ?? 0;
@@ -538,6 +540,8 @@ class ElectrumClient {
         }
         return 0;
       });
+
+      // Doge: [{jsonrpc: 2.0, result: {confirmed: 4387611546, unconfirmed: 0}, id: 1}, {jsonrpc: 2.0, result: {confirmed: 0, unconfirmed: 0}, id: 2}, {jsonrpc: 2.0, result: {confirmed: 0, unconfirmed: 0}, id: 3}, {jsonrpc: 2.0, result: {confirmed: 0, unconfirmed: 0}, id: 4}, {jsonrpc: 2.0, result: {confirmed: 0, unconfirmed: 0}, id: 5}, {jsonrpc: 2.0, result: {confirmed: 0, unconfirmed: 0}, id: 6}, {jsonrpc: 2.0, result: {confirmed: 0, unconfirmed: 0}, id: 7}, {jsonrpc: 2.0, result: {confirmed: 0, unconfirmed: 0}, id: 8}
 
       return jsonSortedList;
     } catch (e) {
@@ -899,7 +903,7 @@ class ElectrumClient {
     } catch (e) {
       printV(e.toString());
     }
-    
+
     // Reset isolate-specific state
     _isolateId = 0;
     _isolateTasks.clear();

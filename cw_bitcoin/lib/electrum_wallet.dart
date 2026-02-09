@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:math';
 
 import 'package:bitcoin_base/bitcoin_base.dart';
 import 'package:blockchain_utils/blockchain_utils.dart';
@@ -185,11 +184,6 @@ abstract class ElectrumWalletBase
 
   @observable
   bool? alwaysScan;
-
-  bool _isBalanceUpdating = false;
-  bool _isUnspentsUpdating = false;
-  DateTime? _lastBalanceUpdate;
-  static const _minBalanceUpdateInterval = Duration(seconds: 10);
 
   final Bip32Slip10Secp256k1? _masterHD;
   final Bip32Slip10Secp256k1 accountHD;
@@ -576,8 +570,8 @@ abstract class ElectrumWalletBase
       //await updateTransactions();
 
       //await updateAllUnspents();
-      await updateBalance(); // presently retrieves balances -- iterate through saving them
-      await updateFeeRates(); // working
+      await updateBalance();
+      await updateFeeRates();
 
       _updateFeeRateTimer ??=
           Timer.periodic(const Duration(minutes: 1), (timer) async => await updateFeeRates());
@@ -726,6 +720,75 @@ abstract class ElectrumWalletBase
     final client = electrum.ElectrumClient();
 
     try {
+      // Connect using electrum.dart's connectToUri method
+      printV("KB: GetIsolateBatch: connecting");
+      var uri = node!.uri;
+
+      await client.connectToUri(uri, useSSL: useSSL, isolateRequest: true).timeout(
+        Duration(seconds: 60),
+        onTimeout: () {
+          throw TimeoutException('Connection timeout after 5s');
+        },
+      );
+      // We don't really want to fiddle with the connection status because
+      // so many other functions rely on it and might break
+      // client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
+
+      const batchSize = 40;
+      List<dynamic> allResponses = [];
+
+      while (scriptHashes.isNotEmpty) {
+        // Take up to batchSize items from the front
+        final batchEnd = scriptHashes.length < batchSize ? scriptHashes.length : batchSize;
+        final batchScripthashes = scriptHashes.sublist(0, batchEnd);
+
+        // Throttle: wait if less than 3.5 seconds since last batch
+        final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
+        final delayNeeded = 3500 - timeSinceLastBatch;
+        if (delayNeeded > 0) {
+          await Future.delayed(Duration(milliseconds: 3000));
+        }
+
+        printV("KB: GetIsolateBatch: Sending batch of ${batchScripthashes.length} scripthashes");
+        _lastBatchStart = DateTime.now();
+
+        final response = await client.isolateGetData(batchScripthashes, method);
+        printV("KB: GetIsolateBatch: Response received");
+
+        // Collect all batch responses into a single list
+        if (response is List) {
+          allResponses.addAll(response);
+        }
+
+        // Remove processed items from the front
+        scriptHashes.removeRange(0, batchEnd);
+      }
+
+      // We close connection using closeIsolateBatch() so as to not mess with the primary connection
+      await client.closeIsolateBatch();
+      return json.encode(allResponses);
+    } catch (e) {
+      printV('[IsolateBatcher] Error: $e');
+      rethrow;
+    } finally {
+      await client.close();
+    }
+  }
+
+Future<String> getIsolateAddressBatch(
+    List<BitcoinAddressRecord> addresses,
+    String method, {
+    bool? useSSL,
+  }) async {
+    if (addresses.length == 0) return '';
+    // Initialize Tor for proxy support
+    // CakeTor.instance = await CakeTorInstance.getInstance();
+
+    // Create ElectrumClient instance
+    final client = electrum.ElectrumClient();
+
+    try {
+      final List<String> scriptHashes = addresses.map((addr) => addr.getScriptHash(network)).toList();
       // Connect using electrum.dart's connectToUri method
       printV("KB: GetIsolateBatch: connecting");
       var uri = node!.uri;
@@ -2446,7 +2509,7 @@ abstract class ElectrumWalletBase
     await walletAddresses.saveAddressesInBox();
 
     final currentHeight = await getCurrentChainTip();
-    final addressList = walletAddresses.allAddresses.toList();
+    final addressList = addressesByType.toList();
 
     // Process addresses in batches of 100
     for (int i = 0; i < addressList.length; i += 50) {
@@ -2707,8 +2770,8 @@ abstract class ElectrumWalletBase
     //final balanceFutures = <Future<Map<String, dynamic>>>[];
 
     // Collect all script hashes
-    final List<String> scriptHashes = [];
-    final Map<String, BitcoinAddressRecord> scriptHashToAddress = {};
+    List<String> scriptHashes = [];
+    Map<String, BitcoinAddressRecord> scriptHashToAddress = {};
     for (var i = 0; i < addresses.length; i++) {
       final addressRecord = addresses[i];
       final sh = addressRecord.getScriptHash(network);
@@ -2720,7 +2783,9 @@ abstract class ElectrumWalletBase
     //var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
 
     final balanceResponse =
-        await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
+        await getIsolateAddressBatch(addresses, 'blockchain.scripthash.get_balance');
+    printV(balanceResponse);
+
 
     var totalFrozen = 0;
     var totalConfirmed = 0;
@@ -2783,18 +2848,22 @@ abstract class ElectrumWalletBase
         continue;
       }
 
-      // final confirmed = balance['confirmed'] as int? ?? 0;
-      // final unconfirmed = balance['unconfirmed'] as int? ?? 0;
+      printV("BalanceMap: $balanceMap");
+      final result = balanceMap['result'] as Map<String, dynamic>;
+      var confirmed = result['confirmed'] as int? ?? 0;
+      var unconfirmed = result['unconfirmed'] as int? ?? 0;
 
-      // here i am
-      // totalConfirmed += confirmed;
-      // totalUnconfirmed += unconfirmed;
+      totalConfirmed += confirmed;
+      totalUnconfirmed += unconfirmed;
 
-      // addressRecord.balance = confirmed + unconfirmed;
-      // if (confirmed > 0 || unconfirmed > 0) {
-      //   addressRecord.setAsUsed();
-      //   walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
-      // }
+      printV(totalConfirmed);
+      printV(totalUnconfirmed);
+
+      addressRecord.balance = confirmed + unconfirmed;
+      if (confirmed > 0 || unconfirmed > 0) {
+        addressRecord.setAsUsed();
+        walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
+      }
     }
 
     //final balances = await Future.wait(balanceFutures);
@@ -2817,8 +2886,23 @@ abstract class ElectrumWalletBase
 
   Future<void> updateBalance() async {
     printV("updateBalance() called!");
-    balance[currency] = await fetchBalances();
-    await save();
+    try {
+      final fetchedBalance = await fetchBalances();
+      printV(
+          "Fetched balance: confirmed=${fetchedBalance.confirmed}, unconfirmed=${fetchedBalance.unconfirmed}, frozen=${fetchedBalance.frozen}");
+
+      balance[currency] = fetchedBalance;
+      printV("Balance assigned to currency: $currency");
+      printV(
+          "Current balance map: ${balance.entries.map((e) => '${e.key}: ${e.value}').join(', ')}");
+
+      await save();
+      printV("Balance saved successfully");
+    } catch (e, stackTrace) {
+      printV("Error in updateBalance: $e");
+      printV("Stack trace: $stackTrace");
+      rethrow;
+    }
   }
 
   @override
@@ -2977,19 +3061,11 @@ abstract class ElectrumWalletBase
     }
   }
 
-  // This is brutally hammering nodes while a wallet isn't synchronised
   void _syncStatusReaction(SyncStatus syncStatus) async {
-    int _reconnectAttempts = 0;
-    int _maxReconnectAttempts = 10;
-    final _baseReconnectDelay = Duration(seconds: 5);
-    final _maxReconnectDelay = Duration(minutes: 5);
     printV("SYNC_STATUS_CHANGE: ${syncStatus}");
     if (syncStatus is SyncingSyncStatus) {
       return;
     }
-
-    // exponential backoff
-    final delay = Duration(seconds: (pow(2, _reconnectAttempts) as int));
 
     if (syncStatus is NotConnectedSyncStatus || syncStatus is LostConnectionSyncStatus) {
       // Needs to re-subscribe to all scripthashes when reconnected
@@ -2999,23 +3075,15 @@ abstract class ElectrumWalletBase
 
       _isTryingToConnect = true;
 
-      Timer(delay, () async {
+      Timer(Duration(seconds: 5), () {
         if (this.syncStatus is NotConnectedSyncStatus ||
             this.syncStatus is LostConnectionSyncStatus) {
-          try {
-            this.electrumClient.connectToUri(
-                  node!.uri,
-                  useSSL: node!.useSSL ?? false,
-                );
-          } catch (e) {
-            syncStatus = LostConnectionSyncStatus();
-          } finally {
-            _isTryingToConnect = false;
-          }
-        } else if (syncStatus is ConnectedSyncStatus) {
-          // Reset counter on successful connection
-          _reconnectAttempts = 0;
+          this.electrumClient.connectToUri(
+                node!.uri,
+                useSSL: node!.useSSL ?? false,
+              );
         }
+        _isTryingToConnect = false;
       });
     }
 

@@ -72,7 +72,12 @@ class ElectrumClient {
     if (useSSL != null) {
       this.useSSL = useSSL;
     }
-    await connect(host: uri.host, port: uri.port);
+    // Use isolateConnect if this is an isolate request
+    if (isolateRequest == true) {
+      await isolateConnect(host: uri.host, port: uri.port);
+    } else {
+      await connect(host: uri.host, port: uri.port);
+    }
   }
 
   Future<void> isolateConnect({required String host, required int port}) async {
@@ -133,26 +138,18 @@ class ElectrumClient {
         }
       },
       onError: (Object error) {
-        printV("Isolate error");
-        final errorMsg = error.toString();
-        printV(errorMsg);
-        unterminatedString = '';
-        isolateSocket?.destroy();
-        isolateSocket = null;
-        // _setConnectionStatus(ConnectionStatus.disconnected);
+        printV("Isolate error: $error");
+        isolateUnterminatedString = '';
+        // Don't destroy socket immediately - let pending tasks complete first
+        // Socket will be destroyed in closeIsolateBatch()
       },
       onDone: () {
         printV("Isolate socket: Close on done");
-        unterminatedString = '';
-        try {
-          //_setConnectionStatus(ConnectionStatus.disconnected);
-          isolateSocket?.destroy();
-          isolateSocket = null;
-        } catch (e) {
-          printV("onDone: $e");
-        }
+        isolateUnterminatedString = '';
+        // Don't destroy socket immediately - let pending tasks complete first
+        // Socket will be destroyed in closeIsolateBatch()
       },
-      cancelOnError: true,
+      cancelOnError: false,
     );
   }
 
@@ -523,13 +520,20 @@ class ElectrumClient {
       isolateSocket!.write(batchRequestJson + '\n');
       printV('isolateGetData: Batch request sent with ID: $requestId');
 
-      final response = await completer.future;
-      final decoded = jsonDecode(response);
+      final response = await completer.future.timeout(
+        Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('Isolate batch request timed out after 30 seconds');
+        },
+      );
+
       printV(
           'isolateGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
 
       // Response is already decoded by _batchHandleIsolateResponse
+      
       final jsonSortedList = response as List<dynamic>;
+      printV("Batch response came back");
       // Sort by id field
       // return jsonSortedList;
       jsonSortedList.sort((a, b) {
@@ -546,7 +550,7 @@ class ElectrumClient {
       return jsonSortedList;
     } catch (e) {
       printV('isolateGetData error: $e');
-      return {};
+      rethrow;
     }
   }
 
@@ -897,6 +901,13 @@ class ElectrumClient {
   }
 
   Future<void> closeIsolateBatch() async {
+    // Complete any pending tasks with timeout error before clearing
+    for (final task in _isolateTasks.values) {
+      if (task.completer != null && !task.completer!.isCompleted) {
+        task.completer!.completeError(Exception('Socket closed before response received'));
+      }
+    }
+
     try {
       await isolateSocket?.close();
       isolateSocket = null;

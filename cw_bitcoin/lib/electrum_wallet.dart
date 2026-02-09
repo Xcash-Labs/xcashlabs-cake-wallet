@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math';
 
 import 'package:bitcoin_base/bitcoin_base.dart';
 import 'package:blockchain_utils/blockchain_utils.dart';
@@ -184,6 +185,11 @@ abstract class ElectrumWalletBase
 
   @observable
   bool? alwaysScan;
+
+  bool _isBalanceUpdating = false;
+  bool _isUnspentsUpdating = false;
+  DateTime? _lastBalanceUpdate;
+  static const _minBalanceUpdateInterval = Duration(seconds: 10);
 
   final Bip32Slip10Secp256k1? _masterHD;
   final Bip32Slip10Secp256k1 accountHD;
@@ -570,8 +576,8 @@ abstract class ElectrumWalletBase
       //await updateTransactions();
 
       //await updateAllUnspents();
-      await updateBalance();
-      await updateFeeRates();
+      await updateBalance(); // presently retrieves balances -- iterate through saving them
+      await updateFeeRates(); // working
 
       _updateFeeRateTimer ??=
           Timer.periodic(const Duration(minutes: 1), (timer) async => await updateFeeRates());
@@ -2440,7 +2446,7 @@ abstract class ElectrumWalletBase
     await walletAddresses.saveAddressesInBox();
 
     final currentHeight = await getCurrentChainTip();
-    final addressList = addressesByType.toList();
+    final addressList = walletAddresses.allAddresses.toList();
 
     // Process addresses in batches of 100
     for (int i = 0; i < addressList.length; i += 50) {
@@ -2792,9 +2798,39 @@ abstract class ElectrumWalletBase
   }
 
   Future<void> updateBalance() async {
-    printV("updateBalance() called!");
-    balance[currency] = await fetchBalances();
-    await save();
+    if (_isBalanceUpdating) {
+      printV("updateBalance() already in progress, skipping");
+      return;
+    }
+    _isBalanceUpdating = true;
+    try {
+      balance[currency] = await fetchBalances();
+      await save();
+    } finally {
+      _isBalanceUpdating = false;
+    }
+
+    if (_lastBalanceUpdate != null) {
+      final timeSinceLastUpdate = DateTime.now().difference(_lastBalanceUpdate!);
+      if (timeSinceLastUpdate < _minBalanceUpdateInterval) {
+        printV("updateBalance() called too soon, skipping");
+        return;
+      }
+    }
+
+    _isBalanceUpdating = true;
+    _lastBalanceUpdate = DateTime.now();
+    
+    try {
+      printV("updateBalance() called!");
+      balance[currency] = await fetchBalances();
+      await save();
+    } catch (e, stack) {
+      printV("updateBalance() failed: $e");
+      rethrow;
+    } finally {
+      _isBalanceUpdating = false;
+    }
   }
 
   @override
@@ -2953,11 +2989,22 @@ abstract class ElectrumWalletBase
     }
   }
 
+  // This is brutally hammering nodes while a wallet isn't synchronised
   void _syncStatusReaction(SyncStatus syncStatus) async {
+    int _reconnectAttempts = 0;
+    int _maxReconnectAttempts = 10;
+    final _baseReconnectDelay = Duration(seconds: 5);
+    final _maxReconnectDelay = Duration(minutes: 5);
     printV("SYNC_STATUS_CHANGE: ${syncStatus}");
     if (syncStatus is SyncingSyncStatus) {
       return;
     }
+
+    // exponential backoff
+    final delay = Duration(
+      seconds: (pow(2, _reconnectAttempts) as int)
+    );
+    
 
     if (syncStatus is NotConnectedSyncStatus || syncStatus is LostConnectionSyncStatus) {
       // Needs to re-subscribe to all scripthashes when reconnected
@@ -2967,17 +3014,25 @@ abstract class ElectrumWalletBase
 
       _isTryingToConnect = true;
 
-      Timer(Duration(seconds: 5), () {
+      Timer(delay, () async {
         if (this.syncStatus is NotConnectedSyncStatus ||
             this.syncStatus is LostConnectionSyncStatus) {
-          this.electrumClient.connectToUri(
-                node!.uri,
-                useSSL: node!.useSSL ?? false,
-              );
-        }
-        _isTryingToConnect = false;
+              try {
+                this.electrumClient.connectToUri(
+                  node!.uri,
+                  useSSL: node!.useSSL ?? false,
+                );
+              } catch (e) {
+                syncStatus = LostConnectionSyncStatus();
+              } finally {
+                _isTryingToConnect = false;
+              }
+            } else if (syncStatus is ConnectedSyncStatus) {
+              // Reset counter on successful connection
+              _reconnectAttempts = 0;
+            }
       });
-    }
+  }
 
     // Message is shown on the UI for 3 seconds, revert to synced
     if (syncStatus is SyncedTipSyncStatus) {

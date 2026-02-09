@@ -733,33 +733,37 @@ abstract class ElectrumWalletBase
       // so many other functions rely on it and might break
       // client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
 
-      var maxBatchSize = 50;
-      if (scriptHashes.length <= maxBatchSize) maxBatchSize = scriptHashes.length;
-      List<String> responses = [];
-      DateTime _lastBatchResponse = DateTime.now();
-      List<String> batchScripthashes = [];
-      for (var x = 0; x < scriptHashes.length; x++) {
-        if (scriptHashes.length < maxBatchSize) ;
-        maxBatchSize = scriptHashes.length;
-        for (var i = 0; i < maxBatchSize && scriptHashes.length > i; i++) {
-          batchScripthashes.add(scriptHashes[i]);
-          scriptHashes.removeRange(0, maxBatchSize);
+      const batchSize = 50;
+      String allResponses = '';
+      
+      while (scriptHashes.isNotEmpty) {
+        // Take up to batchSize items from the front
+        final batchEnd = scriptHashes.length < batchSize ? scriptHashes.length : batchSize;
+        final batchScripthashes = scriptHashes.sublist(0, batchEnd);
+        
+        // Throttle: wait if less than 2.5 seconds since last batch
+        final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
+        final delayNeeded = 2500 - timeSinceLastBatch;
+        if (delayNeeded > 0) {
+          await Future.delayed(Duration(milliseconds: delayNeeded));
         }
-        printV("KB: GetIsolateBatch: Await response");
-        final DateTime _currentBatchStart = DateTime.now();
-        // Fulcrum polls bitcoind every 2 seconds, so I've aligned the delay at 3 seconds
-        if (_currentBatchStart.difference(_lastBatchStart).inMilliseconds < 5000) {
-          // Wait before sending next batch
-          await Future.delayed(Duration(seconds: 3));
-        }
+        
+        printV("KB: GetIsolateBatch: Sending batch of ${batchScripthashes.length} scripthashes");
+        _lastBatchStart = DateTime.now();
+        
         final response = await client.batchGetData(batchScripthashes, method);
-        printV("Response: $response");
-        responses.add(response as String);
-        _lastBatchResponse = DateTime.now();
+        printV("KB: GetIsolateBatch: Response received");
+        
+        // Append response to accumulated results
+        allResponses += response.toString();
+        
+        // Remove processed items from the front
+        scriptHashes.removeRange(0, batchEnd);
       }
+      
       // We close connection using closeIsolateBatch() so as to not mess with the primary connection
       await client.closeIsolateBatch();
-      return responses.join();  
+      return allResponses;  
     } catch (e) {
       printV('[IsolateBatcher] Error: $e');
       rethrow;
@@ -2780,6 +2784,8 @@ abstract class ElectrumWalletBase
   }
 
   @override
+  // Why on earth would we hammer a node with possibly 400+ queries to check if it is healthy?!
+  // That's not a health check. A ping is a health check.
   Future<bool> checkNodeHealth() async {
     try {
       final addresses = walletAddresses.allAddresses

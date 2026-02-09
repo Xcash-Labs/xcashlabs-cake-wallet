@@ -539,7 +539,6 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
         printV("KB: Response mutation");
         printV(response);
         final decodedResponse = jsonDecode(response);
-        printV(decodedResponse);
         printV("KB: GetIsolateBatch: Batch ${i + 1} response received");
 
         if (response != null) {
@@ -549,7 +548,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
         // Delay 2 seconds between batches (except for the last batch)
         if (i < numBatches - 1) {
           printV("KB: GetIsolateBatch: Waiting 2 seconds before next batch...");
-          await Future.delayed(Duration(seconds: 1));
+          await Future.delayed(Duration(seconds: 2));
         }
       }
 

@@ -521,9 +521,9 @@ class ElectrumClient {
       printV('isolateGetData: Batch request sent with ID: $requestId');
 
       final response = await completer.future.timeout(
-        Duration(seconds: 30),
+        Duration(seconds: 60),
         onTimeout: () {
-          throw TimeoutException('Isolate batch request timed out after 30 seconds');
+          throw TimeoutException('Isolate batch request timed out after 60 seconds');
         },
       );
 

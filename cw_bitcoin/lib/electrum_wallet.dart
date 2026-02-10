@@ -567,7 +567,7 @@ abstract class ElectrumWalletBase
       }
 
       //await subscribeForUpdates();
-      //await updateTransactions();
+      await updateTransactions();
 
       //await updateAllUnspents();
       await updateBalance();
@@ -713,32 +713,56 @@ abstract class ElectrumWalletBase
     bool? useSSL,
   }) async {
     if (scriptHashes.length == 0) return '';
-    // Initialize Tor for proxy support
-    // CakeTor.instance = await CakeTorInstance.getInstance();
 
-    // Create ElectrumClient instance
+    // Split scripthashes into 2 groups for 2 parallel connections
+    final midpoint = (scriptHashes.length / 2).ceil();
+    final batch1 = scriptHashes.sublist(0, midpoint);
+    final batch2 = scriptHashes.sublist(midpoint);
+
+    printV("KB: GetIsolateBatch: Splitting ${scriptHashes.length} items into 2 connections (${batch1.length} + ${batch2.length})");
+
+    // Process both batches in parallel using separate connections
+    final results = await Future.wait([
+      _processIsolateBatchConnection(batch1, method, useSSL),
+      _processIsolateBatchConnection(batch2, method, useSSL),
+    ]);
+
+    // Merge results from both connections
+    final List<dynamic> allResponses = [];
+    for (final result in results) {
+      if (result.isNotEmpty) {
+        final decoded = json.decode(result) as List;
+        allResponses.addAll(decoded);
+      }
+    }
+
+    return json.encode(allResponses);
+  }
+
+  Future<String> _processIsolateBatchConnection(
+    List<String> scriptHashes,
+    String method,
+    bool? useSSL,
+  ) async {
+    if (scriptHashes.isEmpty) return '';
+
     final client = electrum.ElectrumClient();
+    const batchSize = 20;
+    List<dynamic> allResponses = [];
+    List<List<String>> failedBatches = [];
 
     try {
-      // Connect using electrum.dart's connectToUri method
-      printV("KB: GetIsolateBatch: connecting");
+      printV("KB: _processIsolateBatchConnection: connecting for ${scriptHashes.length} items");
       var uri = node!.uri;
 
       await client.connectToUri(uri, useSSL: useSSL, isolateRequest: true).timeout(
         Duration(seconds: 60),
         onTimeout: () {
-          throw TimeoutException('Connection timeout after 5s');
+          throw TimeoutException('Connection timeout after 60s');
         },
       );
-      // We don't really want to fiddle with the connection status because
-      // so many other functions rely on it and might break
-      // client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
-
-      const batchSize = 40;
-      List<dynamic> allResponses = [];
 
       while (scriptHashes.isNotEmpty) {
-        // Take up to batchSize items from the front
         final batchEnd = scriptHashes.length < batchSize ? scriptHashes.length : batchSize;
         final batchScripthashes = scriptHashes.sublist(0, batchEnd);
 
@@ -746,102 +770,132 @@ abstract class ElectrumWalletBase
         final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
         final delayNeeded = 3500 - timeSinceLastBatch;
         if (delayNeeded > 0) {
-          await Future.delayed(Duration(milliseconds: 3000));
+          await Future.delayed(Duration(milliseconds: 4000));
         }
 
-        printV("KB: GetIsolateBatch: Sending batch of ${batchScripthashes.length} scripthashes");
+        printV("KB: _processIsolateBatchConnection: Sending batch of ${batchScripthashes.length} scripthashes");
         _lastBatchStart = DateTime.now();
 
-        final response = await client.isolateGetData(batchScripthashes, method);
-        printV("KB: GetIsolateBatch: Response received");
+        try {
+          final response = await client.isolateGetData(batchScripthashes, method);
+          printV("KB: _processIsolateBatchConnection: Response received");
 
-        // Collect all batch responses into a single list
-        if (response is List) {
-          allResponses.addAll(response);
+          if (response is List) {
+            allResponses.addAll(response);
+          }
+        } catch (batchError) {
+          printV("[_processIsolateBatchConnection] Batch failed, will retry: $batchError");
+          failedBatches.add(batchScripthashes);
         }
 
-        // Remove processed items from the front
         scriptHashes.removeRange(0, batchEnd);
       }
 
-      // We close connection using closeIsolateBatch() so as to not mess with the primary connection
+      // Retry failed batches
+      if (failedBatches.isNotEmpty) {
+        printV("KB: _processIsolateBatchConnection: Retrying ${failedBatches.length} failed batches");
+        
+        for (final failedBatch in failedBatches) {
+          // Throttle before retry
+          final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
+          final delayNeeded = 3500 - timeSinceLastBatch;
+          if (delayNeeded > 0) {
+            await Future.delayed(Duration(milliseconds: 4000));
+          }
+
+          printV("KB: _processIsolateBatchConnection: Retrying batch of ${failedBatch.length} scripthashes");
+          _lastBatchStart = DateTime.now();
+
+          try {
+            final response = await client.isolateGetData(failedBatch, method);
+            printV("KB: _processIsolateBatchConnection: Retry successful");
+
+            if (response is List) {
+              allResponses.addAll(response);
+            }
+          } catch (retryError) {
+            printV("[_processIsolateBatchConnection] Retry failed for batch: $retryError");
+            // Don't rethrow here, continue with other retries
+          }
+        }
+      }
+
       await client.closeIsolateBatch();
       return json.encode(allResponses);
     } catch (e) {
-      printV('[IsolateBatcher] Error: $e');
+      printV('[_processIsolateBatchConnection] Error: $e');
       rethrow;
     } finally {
       await client.close();
     }
   }
 
-Future<String> getIsolateAddressBatch(
+  Future<String> getIsolateAddressBatch(
     List<BitcoinAddressRecord> addresses,
     String method, {
     bool? useSSL,
   }) async {
     if (addresses.length == 0) return '';
-    // Initialize Tor for proxy support
-    // CakeTor.instance = await CakeTorInstance.getInstance();
 
-    // Create ElectrumClient instance
-    final client = electrum.ElectrumClient();
+    final List<String> scriptHashes =
+        addresses.map((addr) => addr.getScriptHash(network)).toList();
 
-    try {
-      final List<String> scriptHashes = addresses.map((addr) => addr.getScriptHash(network)).toList();
-      // Connect using electrum.dart's connectToUri method
-      printV("KB: GetIsolateAddressBatch: connecting");
-      var uri = node!.uri;
+    // Split addresses into 2 groups for 2 parallel connections
+    final midpoint = (scriptHashes.length / 2).ceil();
+    final batch1 = scriptHashes.sublist(0, midpoint);
+    final batch2 = scriptHashes.sublist(midpoint);
 
-      await client.connectToUri(uri, useSSL: useSSL, isolateRequest: true).timeout(
-        Duration(seconds: 60),
-        onTimeout: () {
-          throw TimeoutException('Connection timeout after 5s');
-        },
-      );
-      // We don't really want to fiddle with the connection status because
-      // so many other functions rely on it and might break
-      // client.onConnectionStatusChange?.call(electrum.ConnectionStatus.connected);
+    printV("KB: GetIsolateAddressBatch: Splitting ${scriptHashes.length} items into 2 connections (${batch1.length} + ${batch2.length})");
 
-      const batchSize = 40;
-      List<dynamic> allResponses = [];
+    // Process both batches in parallel using separate connections
+    final results = await Future.wait([
+      _processIsolateBatchConnection(batch1, method, useSSL),
+      _processIsolateBatchConnection(batch2, method, useSSL),
+    ]);
 
-      while (scriptHashes.isNotEmpty) {
-        // Take up to batchSize items from the front
-        final batchEnd = scriptHashes.length < batchSize ? scriptHashes.length : batchSize;
-        final batchScripthashes = scriptHashes.sublist(0, batchEnd);
-
-        // Throttle: wait if less than 3.5 seconds since last batch
-        final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-        final delayNeeded = 3500 - timeSinceLastBatch;
-        if (delayNeeded > 0) {
-          await Future.delayed(Duration(milliseconds: 3000));
-        }
-
-        printV("KB: GetIsolateBatch: Sending batch of ${batchScripthashes.length} scripthashes");
-        _lastBatchStart = DateTime.now();
-
-        final response = await client.isolateGetData(batchScripthashes, method);
-        printV("KB: GetIsolateBatch: Response received");
-
-        // Collect all batch responses into a single list
-        if (response is List) {
-          allResponses.addAll(response);
-        }
-
-        // Remove processed items from the front
-        scriptHashes.removeRange(0, batchEnd);
+    // Merge results from both connections
+    final List<dynamic> allResponses = [];
+    for (final result in results) {
+      if (result.isNotEmpty) {
+        final decoded = json.decode(result) as List;
+        allResponses.addAll(decoded);
       }
-
-      // We close connection using closeIsolateBatch() so as to not mess with the primary connection
-      await client.closeIsolateBatch();
-      return json.encode(allResponses);
-    } catch (e) {
-      printV('[IsolateBatcher] Error: $e');
-      rethrow;
-    } finally {
-      await client.close();
     }
+
+    return json.encode(allResponses);
+  }
+
+  Future<Map<String, Map<String, dynamic>>> batchFetchTransactionDetails(
+    List<String> txHashes,
+  ) async {
+    if (txHashes.isEmpty) return {};
+
+    final requestSize = ((txHashes.join(',').length * 1.1) / 1048576).toStringAsFixed(2);
+    printV("Batch fetching ${txHashes.length} transaction details, request: ${requestSize}MB");
+
+    final batchResponse = await getIsolateBatch(txHashes, 'blockchain.transaction.get');
+    final responseSize = ((batchResponse.length * 1.1) / 1048576).toStringAsFixed(2);
+    printV("Received transaction details response: ${responseSize}MB");
+
+    final decoded = jsonDecode(batchResponse) as List;
+    final Map<String, Map<String, dynamic>> txDetailsMap = {};
+
+    for (int i = 0; i < txHashes.length && i < decoded.length; i++) {
+      final txHash = txHashes[i];
+      final response = decoded[i];
+
+      if (response is Map) {
+        final result = response['result'];
+        if (result is Map) {
+          txDetailsMap[txHash] = Map<String, dynamic>.from(result);
+        } else if (result is String) {
+          // Non-verbose response (just hex)
+          txDetailsMap[txHash] = {'hex': result};
+        }
+      }
+    }
+
+    return txDetailsMap;
   }
 
   int get networkDustAmount => 546;
@@ -2479,30 +2533,152 @@ Future<String> getIsolateAddressBatch(
     Map<String, ElectrumTransactionInfo> historiesWithDetails,
     BitcoinAddressType type,
   ) async {
-    printV("KB: batchFetchTransactionsForAddressType for type: $type");
     final addressesByType = walletAddresses.allAddresses.where((addr) => addr.type == type);
     final hiddenAddresses = addressesByType.where((addr) => addr.isHidden == true);
     final receiveAddresses = addressesByType.where((addr) => addr.isHidden == false);
     walletAddresses.hiddenAddresses.addAll(hiddenAddresses.map((e) => e.address));
 
-    printV("KB: count of ${addressesByType.length}");
-    printV("KB: hidden count of ${hiddenAddresses.length}");
-    printV("KB: receive count of ${receiveAddresses.length}");
-    
     final addressList = addressesByType.toList();
-    // Here we pivot to batching these transactions
-    printV("Invoked getIsolateBatch for batch history: ${scriptHashes}");
-    final batchHistories =
-        await getIsolateAddressBatch(addressList, 'blockchain.scripthash.get_history');
-
-    for (var i = 0; i < 5; i++) {
-      printV(batchHistories[i]);
+    if (addressList.isEmpty) {
+      printV("No addresses for type: $type");
+      return;
     }
 
-    // final scriptHashes = addressesByType.map((addr) => addr.getScriptHash(network)).toList();
-    // printV("KB: ${scriptHashes}");
-    //final history = await electrumClient.batchGetData(addressRecord.getScriptHash(network));
-    // Further batching
+    printV(
+        "Fetching transactions for type $type: ${addressList.length} addresses (${hiddenAddresses.length} hidden, ${receiveAddresses.length} receive)");
+
+    final requestSize = ((addressList.length * 64 * 1.1) / 1048576).toStringAsFixed(2);
+    printV("Request size: ${requestSize}MB");
+
+    // Batch fetch all histories
+    final batchHistoriesJson =
+        await getIsolateAddressBatch(addressList, 'blockchain.scripthash.get_history');
+    final responseSize = ((batchHistoriesJson.length * 1.1) / 1048576).toStringAsFixed(2);
+    printV("Response size: ${responseSize}MB");
+
+    // Parse batch histories
+    final batchHistories = jsonDecode(batchHistoriesJson) as List;
+
+    // Process histories and collect new transaction hashes
+    final processed = processBatchedAddressHistories(batchHistories, addressList);
+    final addressHistoriesMap =
+        processed['addressHistories'] as Map<BitcoinAddressRecord, List<Map<String, dynamic>>>;
+    final newTxHashes = processed['newTxHashes'] as List<String>;
+
+    if (newTxHashes.isEmpty) {
+      printV("No new transactions for type $type");
+      return;
+    }
+
+    // Batch fetch transaction details for all new transactions
+    final txDetailsMap = await batchFetchTransactionDetails(newTxHashes);
+
+    // Build transaction info objects from batched details
+    final currentHeight = await getCurrentChainTip();
+    final newTxInfos = await buildTransactionInfoFromBatch(txDetailsMap, currentHeight);
+
+    // Process each address and its transactions
+    for (final entry in addressHistoriesMap.entries) {
+      final addressRecord = entry.key;
+      final history = entry.value;
+
+      for (final tx in history) {
+        final txHash = tx['tx_hash'] as String?;
+        if (txHash == null) continue;
+
+        final height = tx['height'] as int?;
+        final storedTx = transactionHistory.transactions[txHash];
+
+        if (storedTx != null) {
+          // Update existing transaction
+          if (height != null && height > 0) {
+            storedTx.height = height;
+            if (currentHeight != null && currentHeight > 0) {
+              storedTx.confirmations = currentHeight - height + 1;
+            }
+            storedTx.isPending = storedTx.confirmations == 0;
+          }
+          historiesWithDetails[txHash] = storedTx;
+        } else {
+          // Add new transaction
+          final txInfo = newTxInfos[txHash];
+          if (txInfo != null) {
+            historiesWithDetails[txHash] = txInfo;
+            transactionHistory.addOne(txInfo);
+
+            // Special handling for Litecoin MWEB
+            // if (this is LitecoinWallet) {
+            //   final litecoinWallet = this as LitecoinWallet;
+            //   if (litecoinWallet.mwebEnabled && txInfo.mwebInfos.isNotEmpty) {
+            //     final mwebAddrs = walletAddresses.allAddresses
+            //         .where((element) => element.type == SegwitAddresType.mweb);
+            //     for (final utx in txInfo.mwebInfos) {
+            //       litecoinWallet.mwebUtxosBox.add(utx);
+            //     }
+            //     litecoinWallet.updateUnspents();
+            //   }
+            // }
+          }
+        }
+      }
+
+      addressRecord.txCount = history.length;
+    }
+
+    // Save transaction history after processing this address type
+    await transactionHistory.save();
+
+    // Check for gap limit address discovery
+    for (final entry in addressHistoriesMap.entries) {
+      final addressRecord = entry.key;
+      final history = entry.value;
+
+      if (history.isNotEmpty) {
+        final matchedAddresses = addressRecord.isHidden ? hiddenAddresses : receiveAddresses;
+        final isUsedAddressUnderGap = matchedAddresses.toList().indexOf(addressRecord) >=
+            matchedAddresses.length -
+                (addressRecord.isHidden
+                    ? ElectrumWalletAddressesBase.defaultChangeAddressesCount
+                    : ElectrumWalletAddressesBase.defaultReceiveAddressesCount);
+
+        if (isUsedAddressUnderGap) {
+          final prevLength = walletAddresses.allAddresses.length;
+
+          // Discover new addresses for the same address type until the gap limit is respected
+          await walletAddresses.discoverAddresses(
+            matchedAddresses.toList(),
+            addressRecord.isHidden,
+            (address) async {
+              // Check if new address has history using batched call
+              final checkHistoryJson =
+                  await getIsolateAddressBatch([address], 'blockchain.scripthash.get_history');
+              final checkHistory = jsonDecode(checkHistoryJson) as List;
+
+              if (checkHistory.isNotEmpty && checkHistory[0] is Map) {
+                final result = (checkHistory[0] as Map)['result'];
+                if (result is List && result.isNotEmpty) {
+                  return address.address;
+                }
+              }
+              return null;
+            },
+            type: type,
+          );
+
+          final newLength = walletAddresses.allAddresses.length;
+
+          if (newLength > prevLength) {
+            printV("Gap limit triggered: discovered ${newLength - prevLength} new addresses");
+            // Recursively fetch transactions for new addresses
+            await batchFetchTransactionsForAddressType(historiesWithDetails, type);
+            return; // Exit after recursive call completes
+          }
+        }
+      }
+    }
+
+    printV(
+        "Completed fetching transactions for type $type: ${historiesWithDetails.length} total in wallet");
   }
 
   Future<void> fetchTransactionsForAddressType(
@@ -2522,25 +2698,22 @@ Future<String> getIsolateAddressBatch(
 
     // Process addresses in batches of 100
 
-
-
-
     // printV("Successfully retrieved transactions for type");
     //var responseJson = jsonDecode(batchHistories);
 
     //printV(responseJson);
     // print the last 200 chars of responseJson
-    
+
     // printV("Received batch histories for: ${scriptHashes}");
     // TODO: KB: the histogram is being retrieved successfully now
     // now to handle it
-    final batchHistories = await getIsolateAddressBatch(addressList, 'blockchain.scripthash.get_history');
+    final batchHistories =
+        await getIsolateAddressBatch(addressList, 'blockchain.scripthash.get_history');
     printV(batchHistories);
     // Process each address with its corresponding history
 
     // final scriptHash = addressRecord.getScriptHash(network);
     final history = batchHistories;
-
 
     //   await Future.wait(batchAddresses.map((addressRecord) async {
     //     final scriptHash = addressRecord.getScriptHash(network);
@@ -2590,22 +2763,281 @@ Future<String> getIsolateAddressBatch(
     // }
   }
 
+  Map<String, dynamic> processBatchedAddressHistories(
+    List<dynamic> batchHistories,
+    List<BitcoinAddressRecord> addresses,
+  ) {
+    final Map<BitcoinAddressRecord, List<Map<String, dynamic>>> addressHistoriesMap = {};
+    final Set<String> newTxHashes = {};
+    int totalTransactions = 0;
 
+    for (int i = 0; i < addresses.length && i < batchHistories.length; i++) {
+      final address = addresses[i];
+      final historyResponse = batchHistories[i];
+
+      List<Map<String, dynamic>> history = [];
+
+      if (historyResponse is Map && historyResponse['result'] is List) {
+        final resultList = historyResponse['result'] as List;
+        history = resultList.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+      }
+
+      if (history.isNotEmpty) {
+        address.setAsUsed();
+        walletAddresses.clearLockIfMatches(address.type, address.address);
+
+        addressHistoriesMap[address] = history;
+        totalTransactions += history.length;
+
+        // Collect new transaction hashes
+        for (final tx in history) {
+          final txHash = tx['tx_hash'] as String?;
+          if (txHash != null && !transactionHistory.transactions.containsKey(txHash)) {
+            newTxHashes.add(txHash);
+          }
+        }
+
+        // For Bitcoin wallets, remove stale transactions
+        if (this is BitcoinWallet) {
+          transactionHistory.transactions.removeWhere(
+            (hash, tx) =>
+                tx.outputAddresses != null &&
+                tx.outputAddresses!.contains(address.address) &&
+                !history.any((newTransaction) => newTransaction['tx_hash'] == hash),
+          );
+        }
+      }
+    }
+
+    final addressesWithTx = addressHistoriesMap.length;
+    printV(
+        "Processed histories: $addressesWithTx addresses with transactions, $totalTransactions total txs, ${newTxHashes.length} new");
+
+    return {
+      'addressHistories': addressHistoriesMap,
+      'newTxHashes': newTxHashes.toList(),
+    };
+  }
+
+  Future<Map<String, ElectrumTransactionInfo>> buildTransactionInfoFromBatch(
+    Map<String, Map<String, dynamic>> txDetailsMap,
+    int? currentHeight,
+  ) async {
+    final Map<String, ElectrumTransactionInfo> result = {};
+    final Set<String> inputTxHashes = {};
+
+    // First pass: collect all input transaction hashes
+    for (final txDetails in txDetailsMap.values) {
+      final hex = txDetails['hex'] as String?;
+      if (hex != null) {
+        try {
+          final tx = BtcTransaction.fromRaw(hex);
+          for (final input in tx.inputs) {
+            inputTxHashes.add(input.txId);
+          }
+        } catch (_) {}
+      }
+    }
+
+    printV(
+        "Building transaction info: ${txDetailsMap.length} main txs, ${inputTxHashes.length} input txs needed");
+
+    // Batch fetch all input transactions
+    final inputTxDetails = await batchFetchTransactionDetails(inputTxHashes.toList());
+
+    // Second pass: build transaction bundles and info objects
+    for (final entry in txDetailsMap.entries) {
+      final txHash = entry.key;
+      final txDetails = entry.value;
+
+      try {
+        final hex = txDetails['hex'] as String?;
+        if (hex == null) continue;
+
+        final time = txDetails['time'] as int?;
+        final confirmations = txDetails['confirmations'] as int?;
+        final height = txDetails['height'] as int?;
+
+        final originalTx = BtcTransaction.fromRaw(hex);
+        final ins = <BtcTransaction>[];
+
+        // Get input transactions from our batched results
+        for (final input in originalTx.inputs) {
+          final inputDetails = inputTxDetails[input.txId];
+          if (inputDetails != null) {
+            final inputHex = inputDetails['hex'] as String?;
+            if (inputHex != null) {
+              ins.add(BtcTransaction.fromRaw(inputHex));
+            }
+          }
+        }
+
+        final bundle = ElectrumTransactionBundle(
+          originalTx,
+          ins: ins,
+          time: time,
+          confirmations: confirmations ?? 0,
+        );
+
+        final txInfo = ElectrumTransactionInfo.fromElectrumBundle(
+          bundle,
+          walletInfo.type,
+          network,
+          addresses: addressesSet,
+          height: height,
+        );
+
+        result[txHash] = txInfo;
+      } catch (e) {
+        printV("Error building transaction info for $txHash: $e");
+      }
+    }
+
+    printV("Built ${result.length} transaction info objects");
+    return result;
+  }
+
+  Future<List<BitcoinUnspent>> batchFetchUnspentsWithDetails(
+    List<BitcoinAddressRecord> addresses,
+  ) async {
+    if (addresses.isEmpty) return [];
+
+    final requestSize = ((addresses.length * 64 * 1.1) / 1048576).toStringAsFixed(2);
+    printV("Batch fetching unspents for ${addresses.length} addresses, request: ${requestSize}MB");
+
+    final batchResponse =
+        await getIsolateAddressBatch(addresses, 'blockchain.scripthash.listunspent');
+    final responseSize = ((batchResponse.length * 1.1) / 1048576).toStringAsFixed(2);
+    printV("Received unspents response: ${responseSize}MB");
+
+    final decoded = jsonDecode(batchResponse) as List;
+    final List<BitcoinUnspent> allUnspents = [];
+    final Set<String> txHashes = {};
+
+    // First pass: collect all unspents and their tx hashes
+    final Map<String, List<Map<String, dynamic>>> addressUnspentsMap = {};
+
+    for (int i = 0; i < addresses.length && i < decoded.length; i++) {
+      final address = addresses[i];
+      final response = decoded[i];
+
+      if (response is Map && response['result'] is List) {
+        final unspents = (response['result'] as List)
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
+
+        addressUnspentsMap[address.address] = unspents;
+
+        for (final unspent in unspents) {
+          final coin = BitcoinUnspent.fromJSON(address, unspent);
+          txHashes.add(coin.hash);
+        }
+      }
+    }
+
+    printV("Found ${txHashes.length} unique tx hashes in unspents");
+
+    // Batch fetch transaction details for confirmations
+    final txDetails = await batchFetchTransactionDetails(txHashes.toList());
+
+    // Second pass: create unspent objects with confirmations
+    for (final address in addresses) {
+      final unspents = addressUnspentsMap[address.address];
+      if (unspents == null) continue;
+
+      for (final unspent in unspents) {
+        try {
+          final coin = BitcoinUnspent.fromJSON(address, unspent);
+          coin.isChange = address.isHidden;
+
+          // Set confirmations from batched tx details
+          final txDetail = txDetails[coin.hash];
+          if (txDetail != null) {
+            coin.confirmations = txDetail['confirmations'] as int?;
+          }
+
+          allUnspents.add(coin);
+        } catch (_) {}
+      }
+    }
+
+    printV("Created ${allUnspents.length} unspent objects");
+    return allUnspents;
+  }
+
+  Future<Map<String, ElectrumTransactionInfo>> batchFetchTransactionsHistories() async {
+    final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
+
+    List<BitcoinAddressType> addressTypes = [];
+    if (type == WalletType.bitcoin) {
+      addressTypes = BITCOIN_ADDRESS_TYPES;
+    } else if (type == WalletType.bitcoinCash) {
+      addressTypes = BITCOIN_CASH_ADDRESS_TYPES;
+    } else if (type == WalletType.litecoin) {
+      addressTypes = LITECOIN_ADDRESS_TYPES.where((type) => type != SegwitAddresType.mweb).toList();
+    } else if (type == WalletType.dogecoin) {
+      addressTypes = DOGECOIN_ADDRESS_TYPES;
+    }
+
+    final totalAddresses = walletAddresses.allAddresses.length;
+    printV(
+        "Starting batch transaction fetch for $totalAddresses addresses across ${addressTypes.length} address types");
+
+    for (final addressType in addressTypes) {
+      await batchFetchTransactionsForAddressType(historiesWithDetails, addressType);
+    }
+
+    // Handle pending silent payment UTXOs
+    final pendingTxHashes = <String>[];
+    transactionHistory.transactions.values.forEach((tx) {
+      final isPendingSilentPaymentUtxo =
+          (tx.isPending || tx.confirmations == 0) && historiesWithDetails[tx.id] == null;
+
+      if (isPendingSilentPaymentUtxo) {
+        pendingTxHashes.add(tx.id);
+      }
+    });
+
+    if (pendingTxHashes.isNotEmpty) {
+      printV("Fetching ${pendingTxHashes.length} pending silent payment UTXOs");
+      final pendingTxDetails = await batchFetchTransactionDetails(pendingTxHashes);
+      final pendingTxInfos = await buildTransactionInfoFromBatch(pendingTxDetails, currentChainTip);
+
+      for (final entry in pendingTxInfos.entries) {
+        final txHash = entry.key;
+        final info = entry.value;
+        final tx = transactionHistory.transactions[txHash];
+
+        if (tx != null) {
+          tx.confirmations = info.confirmations;
+          tx.isPending = tx.confirmations == 0;
+          transactionHistory.addOne(tx);
+        }
+      }
+
+      if (pendingTxInfos.isNotEmpty) {
+        await transactionHistory.save();
+      }
+    }
+
+    printV("Batch transaction fetch complete: ${historiesWithDetails.length} total transactions");
+    return historiesWithDetails;
+  }
 
   Future<Map<String, ElectrumTransactionInfo>> _fetchAddressHistory(
       BitcoinAddressRecord addressRecord, int? currentHeight,
       {List<Map<String, dynamic>>? preloadedHistory}) async {
     String txid = "";
-
+    throw Exception("To deprecate");
     try {
       final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
 
       // Use preloaded history if available, otherwise fetch it
       // INCOMING
-      // final history = preloadedHistory ??
-      //     await electrumClient.getHistory(addressRecord.getScriptHash(network));
+      final history =
+          preloadedHistory ?? await electrumClient.getHistory(addressRecord.getScriptHash(network));
       // END
-      final history = await getIsolateAddressBatch(addressRecord.getScriptHash(network));
+      // final history = await getIsolateAddressBatch(addressRecord.getScriptHash(network));
 
       if (history.isNotEmpty) {
         addressRecord.setAsUsed();
@@ -2787,7 +3219,6 @@ Future<String> getIsolateAddressBatch(
     final balanceResponse =
         await getIsolateAddressBatch(addresses, 'blockchain.scripthash.get_balance');
     printV(balanceResponse);
-
 
     var totalFrozen = 0;
     var totalConfirmed = 0;

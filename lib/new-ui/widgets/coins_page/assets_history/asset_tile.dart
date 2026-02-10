@@ -48,7 +48,7 @@ class AssetTile extends StatelessWidget {
             });
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 6.0),
+        padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 6.0),
         child: Container(
           width: double.infinity,
           height: 80,

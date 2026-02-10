@@ -22,14 +22,14 @@ class NodeListRow extends StandardListRow {
     final trailing = buildTrailing(context);
     return Container(
       height: 56,
-      padding: EdgeInsets.only(left: 12, right: 12, top: 2, bottom: 2),
+      padding: EdgeInsets.only(left: 18, right: 18, top: 2, bottom: 2),
       margin: EdgeInsets.only(top: 2, bottom: 2),
       child: FilledButton(
         onPressed: () => onTap?.call(context),
         style: FilledButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderRadius: BorderRadius.all(Radius.circular(20)),
           ),
         ),
         child: Row(

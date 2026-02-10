@@ -31,7 +31,7 @@ class AssetsSection extends StatelessWidget {
                     balance: dashboardViewModel.balanceViewModel.formattedBalances.first,
                     showSecondary: index > 0 ? true : false,
                     wallet: dashboardViewModel.wallet,
-                    chainIconPath: dashboardViewModel.wallet.currency.flatIconPath ?? "",
+                    chainIconPath: dashboardViewModel.wallet.currency.chainIconPath ?? "",
                     trailingText: index > 0 ? "MWEB" : null,
                     modalMode: index > 0
                         ? AssetDetailsModalModes.ltcPrivate
@@ -44,7 +44,7 @@ class AssetsSection extends StatelessWidget {
                 return AssetTile(
                   balance: balance,
                   wallet: dashboardViewModel.wallet,
-                  chainIconPath: dashboardViewModel.wallet.currency.flatIconPath ?? "",
+                  chainIconPath: dashboardViewModel.wallet.currency.chainIconPath ?? "",
                 );
               });
 

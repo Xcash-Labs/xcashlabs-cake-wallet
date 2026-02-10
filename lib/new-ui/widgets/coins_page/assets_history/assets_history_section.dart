@@ -33,19 +33,22 @@ class _AssetsHistorySectionState extends State<AssetsHistorySection> {
   void reloadTabs() {
     final oldTabLength = tabs.length;
     tabs = [
-      if(widget.dashboardViewModel
-          .balanceViewModel.isHomeScreenSettingsEnabled || widget.dashboardViewModel.mwebEnabled)
-        AssetsHistorySectionTab(S.current.assets,AssetsSection(
-          dashboardViewModel: widget.dashboardViewModel,
-        )),
-      AssetsHistorySectionTab(S.current.history,HistorySection(
-        dashboardViewModel: widget.dashboardViewModel,
-      )),
-
-      if(isNFTACtivatedChain(widget.dashboardViewModel.wallet.type, chainId: widget.dashboardViewModel.wallet.chainId))
-        AssetsHistorySectionTab(S.current.nfts,NFTListingPage(nftViewModel: widget.nftViewModel))
+      if (widget.dashboardViewModel.balanceViewModel.isHomeScreenSettingsEnabled || widget.dashboardViewModel.mwebEnabled)
+        AssetsHistorySectionTab(
+            S.current.assets,
+            AssetsSection(
+              dashboardViewModel: widget.dashboardViewModel,
+            )),
+      AssetsHistorySectionTab(
+          S.current.history,
+          HistorySection(
+            dashboardViewModel: widget.dashboardViewModel,
+          )),
+      if (isNFTACtivatedChain(widget.dashboardViewModel.wallet.type,
+          chainId: widget.dashboardViewModel.wallet.chainId))
+        AssetsHistorySectionTab(S.current.nfts, NFTListingPage(nftViewModel: widget.nftViewModel))
     ];
-    if(oldTabLength!=tabs.length) {
+    if (oldTabLength != tabs.length) {
       setState(() {
         _selectedTab = 0;
       });

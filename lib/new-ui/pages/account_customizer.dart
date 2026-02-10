@@ -48,7 +48,7 @@ class AccountCustomizer extends StatefulWidget {
 }
 
 class _AccountCustomizerState extends State<AccountCustomizer> {
-  static const double _kStackVisibleFactor = 0.25;
+  static const double _kStackVisibleFactor = 0.2;
   late final double cardWidth = MediaQuery.of(context).size.width * 0.9;
 
   final List<AccountCustomizerListItem> _items = [];
@@ -86,7 +86,7 @@ class _AccountCustomizerState extends State<AccountCustomizer> {
     _items.clear();
 
     final accounts = widget.accountListViewModel.accounts;
-    for (int i = 0; i < widget.accountListViewModel.accounts.length; i++) {
+    for (int i = 0; i < accounts.length; i++) {
       final index = widget.dashboardViewModel.cardOrder[i];
 
       if(index == null) {
@@ -101,7 +101,7 @@ class _AccountCustomizerState extends State<AccountCustomizer> {
             balance: accounts[index].balance ?? "0.00",
             accountBalance: accounts[index].balance ?? "0.00",
             assetName: widget.accountListViewModel.currency.title,
-            selected: true,
+            selected: i == accounts.length - 1,
             width: cardWidth,
             design: widget.dashboardViewModel.cardDesigns[index],
           ),
@@ -298,6 +298,34 @@ class _AccountCustomizerState extends State<AccountCustomizer> {
       final AccountCustomizerListItem item = _items.removeAt(oldIndex);
       _items.insert(newIndex, item);
     });
+
+    // necessary to copy all this to keep constant constructor for BalanceCard
+    for (int i = 0; i < _items.length - 1; i++) {
+      _items[i] = AccountCustomizerListItem(
+          card: BalanceCard(
+            accountName: _items[i].card.accountName,
+            balance: _items[i].card.balance,
+            accountBalance: _items[i].card.accountBalance,
+            assetName: _items[i].card.assetName,
+            selected: false,
+            width: _items[i].card.width,
+            design: _items[i].card.design,
+          ),
+          order: _items[i].order,
+          accountListItem: _items[i].accountListItem);
+    }
+    _items[_items.length - 1] = AccountCustomizerListItem(
+        card: BalanceCard(
+          accountName: _items[_items.length - 1].card.accountName,
+          balance: _items[_items.length - 1].card.balance,
+          accountBalance: _items[_items.length - 1].card.accountBalance,
+          assetName: _items[_items.length - 1].card.assetName,
+          selected: true,
+          width: _items[_items.length - 1].card.width,
+          design: _items[_items.length - 1].card.design,
+        ),
+        order: _items[_items.length - 1].order,
+        accountListItem: _items[_items.length - 1].accountListItem);
 
     if (newIndex == _items.length - 1 || oldIndex == _items.length - 1) {
       widget.accountListViewModel.select(_items[_items.length - 1].accountListItem);

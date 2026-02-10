@@ -76,16 +76,17 @@ class SendPageModes {
   final bool showAddressField;
   final String title;
   final String? description;
+  final String? confirmSheetIconPath;
   final SendPageHelpContent? helpContent;
   final bool showConfirmationAsModal;
 
-  const SendPageModes({required this.title, this.description, required this.showAddressField,this.helpContent, this.showConfirmationAsModal=true}
+  const SendPageModes({required this.title, this.description, required this.showAddressField,this.confirmSheetIconPath, this.helpContent, this.showConfirmationAsModal=true}
       );
 
   static final SendPageModes normal = SendPageModes(title: S.current.send, showAddressField: true);
 
 
-  static final SendPageModes l2deposit = SendPageModes(
+  static final SendPageModes lightningDeposit = SendPageModes(
       title: S.current.bitcoin_lightning_deposit,
       description: S.current.to_lightning,
       showAddressField: false,
@@ -97,7 +98,7 @@ class SendPageModes {
       showConfirmationAsModal: false);
 
 
-  static final SendPageModes l2withdrawal = SendPageModes(
+  static final SendPageModes lightningWithdrawal = SendPageModes(
       title: S.current.bitcoin_lightning_withdraw,
       description: S.current.to_on_chain,
       showAddressField: false,
@@ -108,10 +109,35 @@ class SendPageModes {
           disclaimer: S.current.lightning_withdraw_disclaimer),
       showConfirmationAsModal: false);
 
+  static final SendPageModes mwebDeposit = SendPageModes(
+      title: S.current.mask + " Litecoin",
+      showAddressField: false,
+      confirmSheetIconPath: "assets/new-ui/mask.svg",
+      helpContent: SendPageHelpContent(
+          title: S.current.about_litecoin_privacy,
+          imagePath: "assets/new-ui/mweb_help.svg",
+          description: S.current.mweb_help_desc_1+"\n\n"+S.current.mweb_help_desc_2,
+          disclaimer: S.current.mweb_help_disclaimer),
+      showConfirmationAsModal: false);
+
+
+  static final SendPageModes mwebWithdrawal = SendPageModes(
+      title: S.current.unmask + " Litecoin",
+      showAddressField: false,
+      confirmSheetIconPath: "assets/new-ui/unmask.svg",
+      helpContent: SendPageHelpContent(
+          title: S.current.about_litecoin_privacy,
+          imagePath: "assets/new-ui/mweb_help.svg",
+          description: S.current.mweb_help_desc_1+"\n\n"+S.current.mweb_help_desc_2,
+          disclaimer: S.current.mweb_help_disclaimer),
+      showConfirmationAsModal: false);
+
   static final all = [
     normal,
-    l2deposit,
-    l2withdrawal,
+    lightningDeposit,
+    lightningWithdrawal,
+    mwebDeposit,
+    mwebWithdrawal
   ];
 }
 
@@ -409,7 +435,7 @@ class _NewSendPageState extends State<NewSendPage> {
 
                                           if(widget.mode == SendPageModes.normal) {
                                             _handleSend();
-                                          } else if(widget.mode == SendPageModes.l2deposit) {
+                                          } else if(widget.mode == SendPageModes.lightningDeposit || widget.mode == SendPageModes.mwebDeposit) {
                                             Navigator.of(context).push(CupertinoPageRoute(builder: (context) => Material(child: L2ActionWalletSelector(
                                               showOtherWallets: false,
                                               action: l2actions.deposit,
@@ -418,7 +444,7 @@ class _NewSendPageState extends State<NewSendPage> {
                                               walletSwitcherViewModel: widget.walletSwitcherViewModel,
                                               onSendInitiated: _handleSend,
                                             ))));
-                                          } else if(widget.mode == SendPageModes.l2withdrawal) {
+                                          } else if(widget.mode == SendPageModes.lightningWithdrawal || widget.mode == SendPageModes.mwebWithdrawal) {
                                             Navigator.of(context).push(CupertinoPageRoute(builder: (context) => Material(child: L2ActionWalletSelector(
                                               showOtherWallets: false,
                                               action: l2actions.withdraw,
@@ -610,7 +636,7 @@ class _NewSendPageState extends State<NewSendPage> {
                 builder: (context) => Material(
                     child: SendConfirmSheet(
                       title: widget.mode.title,
-                      iconPath: widget.mode.helpContent?.imagePath,
+                      iconPath: widget.mode.confirmSheetIconPath ?? widget.mode.helpContent?.imagePath,
                       isPage: true,
                       sendViewModel: widget.sendViewModel,
                     )))).then((value) async {

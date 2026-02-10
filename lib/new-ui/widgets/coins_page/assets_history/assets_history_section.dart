@@ -34,7 +34,7 @@ class _AssetsHistorySectionState extends State<AssetsHistorySection> {
     final oldTabLength = tabs.length;
     tabs = [
       if(widget.dashboardViewModel
-          .balanceViewModel.isHomeScreenSettingsEnabled)
+          .balanceViewModel.isHomeScreenSettingsEnabled || widget.dashboardViewModel.mwebEnabled)
         AssetsHistorySectionTab(S.current.assets,AssetsSection(
           dashboardViewModel: widget.dashboardViewModel,
         )),

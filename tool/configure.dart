@@ -236,6 +236,7 @@ abstract class Bitcoin {
   BitcoinAddressType getBitcoinAddressType(ReceivePageOption option);
   ReceivePageOption getBitcoinLightningReceivePageOption();
   ReceivePageOption getBitcoinSegwitPageOption();
+  ReceivePageOption getLitecoinMwebReceivePageOption();
   bool isPayjoinAvailable(Object wallet);
   bool hasSelectedSilentPayments(Object wallet);
   bool isBitcoinReceivePageOption(ReceivePageOption option);

@@ -271,7 +271,7 @@ class _CardsViewState extends State<CardsView> {
           param1: SendPageParams(
         initialPaymentRequest: paymentRequest,
         unspentCoinType: UnspentCoinType.nonMweb,
-        mode: SendPageModes.l2deposit,
+        mode: SendPageModes.lightningDeposit,
       ));
       showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
         return FractionallySizedBox(
@@ -313,7 +313,7 @@ class _CardsViewState extends State<CardsView> {
           param1: SendPageParams(
         initialPaymentRequest: paymentRequest,
         unspentCoinType: unspentCoinType,
-        mode: SendPageModes.l2withdrawal,
+        mode: SendPageModes.lightningWithdrawal,
       ));
       showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
         return FractionallySizedBox(

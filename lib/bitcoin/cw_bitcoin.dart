@@ -343,6 +343,8 @@ class CWBitcoin extends Bitcoin {
   BitcoinReceivePageOption getBitcoinLightningReceivePageOption() => BitcoinReceivePageOption.lightning;
   @override
   BitcoinReceivePageOption getBitcoinSegwitPageOption() => BitcoinReceivePageOption.p2wpkh;
+  @override
+  BitcoinReceivePageOption getLitecoinMwebReceivePageOption() => BitcoinReceivePageOption.mweb;
 
   @override
   Future<List<DerivationType>> compareDerivationMethods(

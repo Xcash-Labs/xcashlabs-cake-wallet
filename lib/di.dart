@@ -847,11 +847,11 @@ Future<void> setup({
     ),
   );
 
-  getIt.registerFactoryParam<NewReceivePage, bool, void>((param1, param2) => NewReceivePage(
+  getIt.registerFactoryParam<NewReceivePage, bool?, void>((param1, param2) => NewReceivePage(
       addressListViewModel: getIt.get<WalletAddressListViewModel>(),
       receiveOptionViewModel: getIt.get<ReceiveOptionViewModel>(),
       dashboardViewModel: getIt.get<DashboardViewModel>(),
-      lightningMode: param1));
+      lightningMode: param1 ?? false));
 
   getIt.registerFactoryParam<WalletAddressEditOrCreateViewModel, WalletAddressListItem?, void>(
       (WalletAddressListItem? item, _) =>

@@ -81,7 +81,22 @@ class AssetTile extends StatelessWidget {
                         height: 45,
                         child: Stack(
                           children: [
-                            Image.asset(balance.asset.iconPath ?? ""),
+                            if((balance.asset.iconPath??"").isNotEmpty)
+                            Image.asset(balance.asset.iconPath!)
+                            else
+                              Container(
+                                width: 45,
+                                height: 45,
+                                decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(99999)),
+                                child: Center(
+                                    child: Text(
+                                  balance.asset.name.substring(0, 2),
+                                  style: TextStyle(
+                                      fontSize: 20, color: Theme.of(context).colorScheme.onPrimary),
+                                )),
+                              ),
                             if (chainIconPath.isNotEmpty)
                               Align(
                                   alignment: Alignment.bottomRight,

@@ -67,7 +67,22 @@ class AssetDetailsModal extends StatelessWidget {
                       height: 75,
                       child: Stack(
                         children: [
-                          Image.asset(iconPath, width: 75, height: 75),
+                          if(iconPath.isNotEmpty)
+                          Image.asset(iconPath, width: 75, height: 75)
+                          else
+                          Container(
+                            width: 75,
+                            height: 75,
+                            decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                borderRadius: BorderRadius.circular(99999)),
+                            child: Center(
+                                child: Text(
+                                  title.substring(0, 2),
+                                  style: TextStyle(
+                                      fontSize: 28, color: Theme.of(context).colorScheme.onPrimary),
+                                )),
+                          ),
                           if (chainIconPath.isNotEmpty)
                             Align(
                                 alignment: Alignment.bottomRight,

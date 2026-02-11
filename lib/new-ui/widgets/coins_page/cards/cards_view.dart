@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
 import 'package:cake_wallet/di.dart';
+import 'package:cake_wallet/entities/bitcoin_amount_display_mode.dart';
 import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/new-ui/modal_navigator.dart';
 import 'package:cake_wallet/new-ui/pages/send_page.dart';
@@ -13,6 +14,7 @@ import 'package:cake_wallet/view_model/monero_account_list/monero_account_list_v
 import 'package:cw_core/card_design.dart';
 import 'package:cw_core/unspent_coin_type.dart';
 import 'package:cw_core/wallet_type.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -99,6 +101,9 @@ class _CardsViewState extends State<CardsView> {
             HapticFeedback.heavyImpact();
           },
           child: Observer(builder: (_) {
+            if(realIndex >= (widget.accountListViewModel?.accounts.length ?? 1)) {
+              return Container();
+            }
             final account = widget.accountListViewModel?.accounts[realIndex];
 
             final walletBalanceRecord =
@@ -159,6 +164,7 @@ class _CardsViewState extends State<CardsView> {
               accountBalance: accountBalance,
               designSwitchDuration: Duration(milliseconds: 150),
               assetName: walletCurrency.title,
+              displaySat: shouldDisplaySat(),
               balance: walletBalance,
               fiatBalance: walletFiatBalance,
               selected: _selectedIndex == visualIndex,
@@ -229,6 +235,19 @@ class _CardsViewState extends State<CardsView> {
         ),
       );
     });
+  }
+
+  bool shouldDisplaySat() {
+    if (widget.dashboardViewModel.wallet.type != WalletType.bitcoin) {
+      return false;
+    }
+
+    if (!widget.lightningMode) {
+      return false;
+    }
+
+    return widget.dashboardViewModel.settingsStore.displayAmountsInSatoshi !=
+        BitcoinAmountDisplayMode.bitcoin;
   }
 
   Future<void> depositToL2() async {

@@ -54,7 +54,7 @@ class _L2ActionWalletSelectorState extends State<L2ActionWalletSelector> {
     super.initState();
     if (widget.showOtherWallets) {
       () async {
-        items.addAll((await WalletInfo.getAll()).where((item) => item.type == WalletType.bitcoin));
+        items.addAll((await WalletInfo.getAll()).where((item) => item.type == widget.sendViewModel.walletType));
         setState(() {});
       }.call();
     }
@@ -95,7 +95,8 @@ class _L2ActionWalletSelectorState extends State<L2ActionWalletSelector> {
                             walletName: widget.sendViewModel.wallet.name,
                             onTap: () {
                               printV(widget.sendViewModel.wallet.type);
-                              if (widget.sendViewModel.wallet.type == WalletType.bitcoin) {
+                              if (widget.sendViewModel.wallet.type == WalletType.bitcoin ||
+                                  widget.sendViewModel.wallet.type == WalletType.litecoin) {
                                 if(widget.action == l2actions.withdraw){
                                   widget.sendViewModel.outputs.first.address =
                                       bitcoin!.getUnusedSegwitAddress(widget.sendViewModel.wallet)!;

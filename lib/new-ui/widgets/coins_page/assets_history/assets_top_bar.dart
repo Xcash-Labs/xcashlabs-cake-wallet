@@ -20,6 +20,8 @@ class AssetsTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasTokenSettingsButton = tabs[selectedTab] == S.of(context).assets && dashboardViewModel.balanceViewModel.isHomeScreenSettingsEnabled;
+
     return Padding(
       padding: const EdgeInsets.only(top: 12.0, bottom: 12.0, left: 12.0, right: 18.0),
       child: Row(
@@ -32,7 +34,7 @@ class AssetsTopBar extends StatelessWidget {
             selectedTab: selectedTab,
           ),
       Opacity(
-        opacity: tabs[selectedTab] == S.of(context).assets ? 1 : 0,
+        opacity: hasTokenSettingsButton ? 1 : 0,
         child: ElevatedButton(
                   onPressed: () {Navigator.of(context).pushNamed(Routes.homeSettings, arguments: dashboardViewModel.balanceViewModel,);},
                   style: ElevatedButton.styleFrom(

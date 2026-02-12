@@ -33,7 +33,7 @@ class _AssetsHistorySectionState extends State<AssetsHistorySection> {
   void reloadTabs() {
     final oldTabLength = tabs.length;
     tabs = [
-      if (widget.dashboardViewModel.balanceViewModel.isHomeScreenSettingsEnabled)
+      if (widget.dashboardViewModel.balanceViewModel.isHomeScreenSettingsEnabled || (widget.dashboardViewModel.hasMweb && widget.dashboardViewModel.mwebEnabled))
         AssetsHistorySectionTab(
             S.current.assets,
             AssetsSection(

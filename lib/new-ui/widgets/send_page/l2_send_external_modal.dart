@@ -6,6 +6,7 @@ import 'package:cake_wallet/src/screens/receive/widgets/qr_image.dart';
 import 'package:cake_wallet/utils/address_formatter.dart';
 import 'package:cake_wallet/view_model/send/send_view_model.dart';
 import 'package:cw_core/payment_uris.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import "package:cw_core/wallet_type.dart";
 import 'package:flutter_svg/flutter_svg.dart';
@@ -32,6 +33,9 @@ class _L2SendExternalModalState extends State<L2SendExternalModal> {
       if (widget.sendViewModel.wallet.type == WalletType.bitcoin) {
         await bitcoin!.setAddressType(widget.sendViewModel.wallet,
             bitcoin!.getOptionToType(bitcoin!.getBitcoinLightningReceivePageOption()));
+      } else if(widget.sendViewModel.wallet.type == WalletType.litecoin) {
+        await bitcoin!.setAddressType(widget.sendViewModel.wallet,
+            bitcoin!.getOptionToType(bitcoin!.getLitecoinMwebReceivePageOption()));
       }
       final newUri = await widget.sendViewModel.wallet.walletAddresses
           .getPaymentRequestUri(widget.sendViewModel.outputs.first.cryptoAmount);
@@ -44,7 +48,6 @@ class _L2SendExternalModalState extends State<L2SendExternalModal> {
   @override
   Widget build(BuildContext context) {
     final output = widget.sendViewModel.outputs.first;
-    if (uri == null) return SizedBox.shrink();
     final resolvedSize = MediaQuery.of(context).size.width * (largeQrMode ? 0.8 : 0.54);
 
     return Container(
@@ -60,6 +63,7 @@ class _L2SendExternalModalState extends State<L2SendExternalModal> {
             leadingWidget: Row(
               spacing: 12,
               children: [
+                if(widget.sendViewModel.walletType == WalletType.bitcoin)
                 SvgPicture.asset("assets/new-ui/lightning_deposit_help.svg", height: 36),
                 Text(
                   S.of(context).bitcoin_lightning_deposit,
@@ -123,12 +127,18 @@ class _L2SendExternalModalState extends State<L2SendExternalModal> {
                                   fontWeight: FontWeight.w500))
                         ],
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            largeQrMode = !largeQrMode;
-                          });
-                        },
+                      uri == null
+                          ? Container(
+                              width: resolvedSize,
+                              height: resolvedSize,
+                              child: CupertinoActivityIndicator(),
+                            )
+                          : GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  largeQrMode = !largeQrMode;
+                                });
+                              },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.easeOutCubic,

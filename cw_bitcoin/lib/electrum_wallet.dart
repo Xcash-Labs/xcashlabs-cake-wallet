@@ -1566,6 +1566,23 @@ abstract class ElectrumWalletBase
           isViewOnly: false,
         )..addListener((transaction) async {
             transactionHistory.addOne(transaction);
+            /* TODO: KB: is there a reason we're not removing the spent utxo here? Do we leave it for updateBalance()?
+            // Otherwise, let's add this here
+
+            for (final spentUtxo in estimatedTx.utxos) {
+              final existingInfo = unspentCoinsInfo.values.firstWhereOrNull((element) =>
+                  element.walletId == id &&
+                  element.hash == spentUtxo.utxo.txHash &&
+                  element.vout == spentUtxo.utxo.vout);
+              if (existingInfo != null) {
+                existingInfo.isSending = false;
+                await existingInfo.save();
+              }
+            }
+
+            unspentCoins.removeWhere((utxo) => estimatedTx.utxos
+                .any((e) => e.utxo.txHash == utxo.hash && e.utxo.vout == utxo.vout));
+            */
             await updateBalance();
             await updateAllUnspents();
           });

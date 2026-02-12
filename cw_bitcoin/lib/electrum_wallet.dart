@@ -879,6 +879,53 @@ abstract class ElectrumWalletBase
     return txDetailsMap;
   }
 
+  Future<List<BitcoinUnspent>> batchFetchAllUnspent() async {
+    final addresses = walletAddresses.allAddresses
+        .where((element) => element.type != SegwitAddresType.mweb)
+        .toList();
+
+    if (addresses.isEmpty) return [];
+
+    printV("KB: batchFetchAllUnspent: Fetching unspents for ${addresses.length} addresses");
+
+    final batchResponse = await getIsolateAddressBatch(addresses, 'blockchain.scripthash.listunspent');
+    final decoded = jsonDecode(batchResponse) as List;
+    final List<BitcoinUnspent> allUnspents = [];
+
+    final tip = await getCurrentChainTip();
+
+    for (int i = 0; i < addresses.length && i < decoded.length; i++) {
+      final address = addresses[i];
+      final response = decoded[i];
+
+      if (response is Map && response.containsKey('result')) {
+        final result = response['result'];
+        if (result is List) {
+          for (final unspentJson in result) {
+            try {
+              final unspentMap = unspentJson as Map<String, dynamic>;
+              final coin = BitcoinUnspent.fromJSON(address, unspentMap);
+              coin.isChange = address.isHidden;
+
+              final height = unspentMap['height'] as int? ?? 0;
+              if (height > 0) {
+                coin.confirmations = tip - height + 1;
+              } else {
+                coin.confirmations = 0;
+              }
+
+              allUnspents.add(coin);
+            } catch (e) {
+              printV("Error parsing unspent for address ${address.address}: $e");
+            }
+          }
+        }
+      }
+    }
+
+    return allUnspents;
+  }
+
   int get networkDustAmount => 546;
 
   bool _isBelowDust(int amount) => amount <= networkDustAmount && network != BitcoinNetwork.testnet;
@@ -1808,45 +1855,21 @@ abstract class ElectrumWalletBase
       if (addr is! BitcoinSilentPaymentAddressRecord) addr.balance = 0;
     });
 
-    // Let's batch the futures through batchFetchUnspent
+    try {
+      final allUnspents = await batchFetchAllUnspent();
+      updatedUnspentCoins.addAll(allUnspents);
 
-    // old code
-    // final addressFutures = walletAddresses.allAddresses
-    //     .where((element) => element.type != SegwitAddresType.mweb)
-    //     .map((address) => fetchUnspent(address))
-    //     .toList();
-    // final results = await Future.wait(addressFutures);
-    // end of old code
+      // Update individual address balances
+      for (final unspent in allUnspents) {
+        unspent.bitcoinAddressRecord.balance += unspent.value;
+      }
 
-    // final addressScripthashes = walletAddresses.allAddresses
-    //     .where((element) => element.type != SegwitAddresType.mweb)
-    //     .map((address) => fetchUnspent(address))
-    //     .map((address) => address.getScriptHash(network))
-    //     .toList();
-
-    // final results =
-    //     await electrumClient.batchGetData(addressScripthashes, 'blockchain.scripthash.listunspent');
-    // printV(results);
-
-    // final failedCount = results.where((result) => result == null).length;
-
-    // if (failedCount == 0) {
-    //   for (final result in results) {
-    //     updatedUnspentCoins.addAll(result!);
-    //   }
-    //   unspentCoins = updatedUnspentCoins;
-    // } else {
-    //   if (updatedUnspentCoins.isEmpty) {
-    //     unspentCoins = handleFailedUtxoFetch(
-    //       failedCount: failedCount,
-    //       previousUnspentCoins: previousUnspentCoins,
-    //       updatedUnspentCoins: updatedUnspentCoins,
-    //       results: results,
-    //     );
-    //   } else {
-    //     unspentCoins = updatedUnspentCoins;
-    //   }
-    // }
+      unspentCoins = updatedUnspentCoins;
+      printV("Unspent coins updated");
+      printV("Total unspent coins: ${unspentCoins.length}");
+    } catch (e) {
+      printV("Failed to fetch UTXOs: $e");
+    }
 
     final currentWalletUnspentCoins =
         unspentCoinsInfo.values.where((element) => element.walletId == id);

@@ -1670,14 +1670,26 @@ abstract class ElectrumWalletBase
           transactionHistory.addOne(transaction);
           if (estimatedTx.spendsSilentPayment) {
             transactionHistory.transactions.values.forEach((tx) {
-              tx.unspents?.removeWhere(
-                  (unspent) => estimatedTx.utxos.any((e) => e.utxo.txHash == unspent.hash));
+              // this was added because to ensure we are considering vout indexes when getting empties
+              tx.unspents?.removeWhere((unspent) => estimatedTx.utxos
+                  .any((e) => e.utxo.txHash == unspent.hash && e.utxo.vout == unspent.vout));
               transactionHistory.addOne(tx);
             });
           }
+          // This change was to ensure that instead of removing coins based on txHash, 
+          for (final spentUtxo in estimatedTx.utxos) {
+            final existingInfo = unspentCoinsInfo.values.firstWhereOrNull((element) =>
+                element.walletId == id && // TODO: KB - I assume walletId is an index, but should verify it for performance reasons.
+                element.hash == spentUtxo.utxo.txHash &&
+                element.vout == spentUtxo.utxo.vout);
+            if (existingInfo != null) {
+              existingInfo.isSending = false;
+              await existingInfo.save();
+            }
+          }
 
-          unspentCoins
-              .removeWhere((utxo) => estimatedTx.utxos.any((e) => e.utxo.txHash == utxo.hash));
+          unspentCoins.removeWhere((utxo) => estimatedTx.utxos
+              .any((e) => e.utxo.txHash == utxo.hash && e.utxo.vout == utxo.vout));
 
           await updateBalance();
           await updateAllUnspents();

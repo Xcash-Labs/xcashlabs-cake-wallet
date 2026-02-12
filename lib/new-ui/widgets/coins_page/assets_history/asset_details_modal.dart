@@ -173,6 +173,7 @@ class AssetDetailsModal extends StatelessWidget {
                     )
                   ],
                 ),
+                SizedBox(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   spacing: 20,
@@ -214,7 +215,8 @@ class AssetDetailsModal extends StatelessWidget {
                         title: S.of(context).swap,
                         onPressed: () => openPage<NewSwapPage>(context)),
                   ],
-                )
+                ),
+                SizedBox()
               ],
             ),
           )

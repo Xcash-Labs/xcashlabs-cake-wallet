@@ -567,7 +567,7 @@ abstract class ElectrumWalletBase
       }
 
       //await subscribeForUpdates();
-      await updateTransactions();
+      //await updateTransactions();
 
       //await updateAllUnspents();
       await updateBalance();
@@ -712,31 +712,11 @@ abstract class ElectrumWalletBase
     String method, {
     bool? useSSL,
   }) async {
-    if (scriptHashes.length == 0) return '';
+    if (scriptHashes.isEmpty) return '';
 
-    // Split scripthashes into 2 groups for 2 parallel connections
-    final midpoint = (scriptHashes.length / 2).ceil();
-    final batch1 = scriptHashes.sublist(0, midpoint);
-    final batch2 = scriptHashes.sublist(midpoint);
+    printV("KB: GetIsolateBatch: Processing ${scriptHashes.length} items in a single connection");
 
-    printV("KB: GetIsolateBatch: Splitting ${scriptHashes.length} items into 2 connections (${batch1.length} + ${batch2.length})");
-
-    // Process both batches in parallel using separate connections
-    final results = await Future.wait([
-      _processIsolateBatchConnection(batch1, method, useSSL),
-      _processIsolateBatchConnection(batch2, method, useSSL),
-    ]);
-
-    // Merge results from both connections
-    final List<dynamic> allResponses = [];
-    for (final result in results) {
-      if (result.isNotEmpty) {
-        final decoded = json.decode(result) as List;
-        allResponses.addAll(decoded);
-      }
-    }
-
-    return json.encode(allResponses);
+    return _processIsolateBatchConnection(scriptHashes, method, useSSL);
   }
 
   Future<String> _processIsolateBatchConnection(
@@ -747,12 +727,13 @@ abstract class ElectrumWalletBase
     if (scriptHashes.isEmpty) return '';
 
     final client = electrum.ElectrumClient();
-    const batchSize = 20;
-    List<dynamic> allResponses = [];
-    List<List<String>> failedBatches = [];
+    const batchSize = 100;
+    // Map of original index to response
+    final Map<int, dynamic> indexedResponses = {};
+    final originalScriptHashes = List<String>.from(scriptHashes);
 
     try {
-      printV("KB: _processIsolateBatchConnection: connecting for ${scriptHashes.length} items");
+      printV("KB: _processIsolateBatchConnection: connecting for ${originalScriptHashes.length} items");
       var uri = node!.uri;
 
       await client.connectToUri(uri, useSSL: useSSL, isolateRequest: true).timeout(
@@ -762,71 +743,90 @@ abstract class ElectrumWalletBase
         },
       );
 
-      while (scriptHashes.isNotEmpty) {
-        final batchEnd = scriptHashes.length < batchSize ? scriptHashes.length : batchSize;
-        final batchScripthashes = scriptHashes.sublist(0, batchEnd);
+      int currentOffset = 0;
+      final Map<int, List<String>> failedSubBatches = {};
 
-        // Throttle: wait if less than 3.5 seconds since last batch
+      while (currentOffset < originalScriptHashes.length) {
+        final batchEnd = (currentOffset + batchSize < originalScriptHashes.length) 
+            ? currentOffset + batchSize 
+            : originalScriptHashes.length;
+        final batchScripthashes = originalScriptHashes.sublist(currentOffset, batchEnd);
+        final thisOffset = currentOffset;
+
+        // Throttle: wait if less than 500ms seconds since last batch
         final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-        final delayNeeded = 3500 - timeSinceLastBatch;
+        final delayNeeded = 500 - timeSinceLastBatch;
         if (delayNeeded > 0) {
-          await Future.delayed(Duration(milliseconds: 4000));
+          await Future.delayed(Duration(milliseconds: 100));
         }
 
-        printV("KB: _processIsolateBatchConnection: Sending batch of ${batchScripthashes.length} scripthashes");
+        printV("KB: _processIsolateBatchConnection: Sending batch of ${batchScripthashes.length} scripthashes at offset $thisOffset");
         _lastBatchStart = DateTime.now();
 
         try {
           final response = await client.isolateGetData(batchScripthashes, method);
-          printV("KB: _processIsolateBatchConnection: Response received");
+          printV("KB: _processIsolateBatchConnection: Response received for offset $thisOffset");
 
           if (response is List) {
-            allResponses.addAll(response);
+            for (int i = 0; i < response.length; i++) {
+              indexedResponses[thisOffset + i] = response[i];
+            }
           }
         } catch (batchError) {
-          printV("[_processIsolateBatchConnection] Batch failed, will retry: $batchError");
-          failedBatches.add(batchScripthashes);
+          printV("[_processIsolateBatchConnection] Batch failed at offset $thisOffset, will retry: $batchError");
+          failedSubBatches[thisOffset] = batchScripthashes;
         }
 
-        scriptHashes.removeRange(0, batchEnd);
+        currentOffset = batchEnd;
       }
 
       // Retry failed batches
-      if (failedBatches.isNotEmpty) {
-        printV("KB: _processIsolateBatchConnection: Retrying ${failedBatches.length} failed batches");
+      if (failedSubBatches.isNotEmpty) {
+        printV("KB: _processIsolateBatchConnection: Retrying ${failedSubBatches.length} failed batches");
         
-        for (final failedBatch in failedBatches) {
+        for (final entry in failedSubBatches.entries) {
+          final offset = entry.key;
+          final batch = entry.value;
+
           // Throttle before retry
           final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-          final delayNeeded = 3500 - timeSinceLastBatch;
+          final delayNeeded = 500 - timeSinceLastBatch;
           if (delayNeeded > 0) {
-            await Future.delayed(Duration(milliseconds: 4000));
+            await Future.delayed(Duration(milliseconds: 100));
           }
 
-          printV("KB: _processIsolateBatchConnection: Retrying batch of ${failedBatch.length} scripthashes");
+          printV("KB: _processIsolateBatchConnection: Retrying batch of ${batch.length} scripthashes at offset $offset");
           _lastBatchStart = DateTime.now();
 
           try {
-            final response = await client.isolateGetData(failedBatch, method);
-            printV("KB: _processIsolateBatchConnection: Retry successful");
+            final response = await client.isolateGetData(batch, method);
+            printV("KB: _processIsolateBatchConnection: Retry successful for offset $offset");
 
             if (response is List) {
-              allResponses.addAll(response);
+              for (int i = 0; i < response.length; i++) {
+                indexedResponses[offset + i] = response[i];
+              }
             }
           } catch (retryError) {
-            printV("[_processIsolateBatchConnection] Retry failed for batch: $retryError");
-            // Don't rethrow here, continue with other retries
+            printV("[_processIsolateBatchConnection] Retry failed for batch at offset $offset: $retryError");
           }
         }
       }
 
-      await client.closeIsolateBatch();
-      return json.encode(allResponses);
+      
+
+      // Construct final list in original order, filling gaps with null if necessary
+      final List<dynamic> finalResponses = [];
+      for (int i = 0; i < originalScriptHashes.length; i++) {
+        finalResponses.add(indexedResponses[i]);
+      }
+
+      return json.encode(finalResponses);
     } catch (e) {
       printV('[_processIsolateBatchConnection] Error: $e');
       rethrow;
     } finally {
-      await client.close();
+      await client.closeIsolateBatch();
     }
   }
 
@@ -835,34 +835,14 @@ abstract class ElectrumWalletBase
     String method, {
     bool? useSSL,
   }) async {
-    if (addresses.length == 0) return '';
+    if (addresses.isEmpty) return '';
 
     final List<String> scriptHashes =
         addresses.map((addr) => addr.getScriptHash(network)).toList();
 
-    // Split addresses into 2 groups for 2 parallel connections
-    final midpoint = (scriptHashes.length / 2).ceil();
-    final batch1 = scriptHashes.sublist(0, midpoint);
-    final batch2 = scriptHashes.sublist(midpoint);
+    printV("KB: GetIsolateAddressBatch: Processing ${scriptHashes.length} items in a single connection");
 
-    printV("KB: GetIsolateAddressBatch: Splitting ${scriptHashes.length} items into 2 connections (${batch1.length} + ${batch2.length})");
-
-    // Process both batches in parallel using separate connections
-    final results = await Future.wait([
-      _processIsolateBatchConnection(batch1, method, useSSL),
-      _processIsolateBatchConnection(batch2, method, useSSL),
-    ]);
-
-    // Merge results from both connections
-    final List<dynamic> allResponses = [];
-    for (final result in results) {
-      if (result.isNotEmpty) {
-        final decoded = json.decode(result) as List;
-        allResponses.addAll(decoded);
-      }
-    }
-
-    return json.encode(allResponses);
+    return _processIsolateBatchConnection(scriptHashes, method, useSSL);
   }
 
   Future<Map<String, Map<String, dynamic>>> batchFetchTransactionDetails(
@@ -3262,14 +3242,14 @@ abstract class ElectrumWalletBase
     });
 
     for (var i = 0; i < scriptHashes.length; i++) {
-      printV("Balance response");
-      printV(balanceResults[i]);
-
       final addressRecord = addresses[i];
-      final balance = balanceResults[i];
-
       final balanceData = balanceResults[i];
-      printV(balanceData);
+
+      if (balanceData == null) {
+        printV("Karl: Fetch failed for address at index $i: ${addressRecord.address}");
+        continue;
+      }
+
       // Handle different response formats
       final Map<String, dynamic> balanceMap;
       if (balanceData is Map<String, dynamic>) {
@@ -3281,16 +3261,22 @@ abstract class ElectrumWalletBase
         continue;
       }
 
-      printV("BalanceMap: $balanceMap");
-      final result = balanceMap['result'] as Map<String, dynamic>;
-      var confirmed = result['confirmed'] as int? ?? 0;
-      var unconfirmed = result['unconfirmed'] as int? ?? 0;
+      final result = balanceMap['result'];
+      if (result is! Map) {
+        if (balanceMap.containsKey('error')) {
+          printV("Karl: RPC Error for address at index $i (${addressRecord.address}): ${balanceMap['error']}");
+        } else {
+          printV("Warning: No result or error in balance response at index $i: $balanceMap");
+        }
+        continue;
+      }
+
+      final balanceResultMap = Map<String, dynamic>.from(result);
+      var confirmed = balanceResultMap['confirmed'] as int? ?? 0;
+      var unconfirmed = balanceResultMap['unconfirmed'] as int? ?? 0;
 
       totalConfirmed += confirmed;
       totalUnconfirmed += unconfirmed;
-
-      printV(totalConfirmed);
-      printV(totalUnconfirmed);
 
       addressRecord.balance = confirmed + unconfirmed;
       if (confirmed > 0 || unconfirmed > 0) {

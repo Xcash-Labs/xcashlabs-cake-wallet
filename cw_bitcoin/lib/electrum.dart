@@ -140,13 +140,13 @@ class ElectrumClient {
       onError: (Object error) {
         printV("Isolate error: $error");
         isolateUnterminatedString = '';
-        // Don't destroy socket immediately - let pending tasks complete first
+        _failAllPendingIsolateTasks(error.toString());
         // Socket will be destroyed in closeIsolateBatch()
       },
       onDone: () {
         printV("Isolate socket: Close on done");
         isolateUnterminatedString = '';
-        // Don't destroy socket immediately - let pending tasks complete first
+        _failAllPendingIsolateTasks("Isolate connection closed");
         // Socket will be destroyed in closeIsolateBatch()
       },
       cancelOnError: false,
@@ -216,6 +216,7 @@ class ElectrumClient {
         socket?.destroy();
         socket = null;
         _setConnectionStatus(ConnectionStatus.disconnected);
+        _failAllPendingTasks(errorMsg);
       },
       onDone: () {
         printV("SOCKET CLOSED");
@@ -224,6 +225,7 @@ class ElectrumClient {
           _setConnectionStatus(ConnectionStatus.disconnected);
           socket?.destroy();
           socket = null;
+          _failAllPendingTasks("Connection closed");
         } catch (e) {
           printV("onDone: $e");
         }
@@ -236,12 +238,13 @@ class ElectrumClient {
 
   void _parseIsolate(String message) {
     try {
-      printV(message);
       final decoded = json.decode(message);
 
       if (decoded is List) {
+        printV("Isolate batch response (first 500 chars): ${message.substring(0, message.length > 500 ? 500 : message.length)}");
         _batchHandleIsolateResponse(decoded);
       } else if (decoded is Map<String, dynamic>) {
+        printV(message);
         _handleIsolateResponse(decoded);
       }
     } on FormatException catch (e) {
@@ -262,8 +265,10 @@ class ElectrumClient {
         final decoded = json.decode(isolateUnterminatedString);
 
         if (decoded is List) {
+          printV("Isolate batch response (first 500 chars): ${isolateUnterminatedString.substring(0, isolateUnterminatedString.length > 500 ? 500 : isolateUnterminatedString.length)}");
           _batchHandleIsolateResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
+          printV(isolateUnterminatedString);
           _handleIsolateResponse(decoded);
         }
         isolateUnterminatedString = '';
@@ -280,8 +285,10 @@ class ElectrumClient {
         final decoded = json.decode(isolateUnterminatedString);
 
         if (decoded is List) {
+          printV("Isolate batch response (first 500 chars): ${isolateUnterminatedString.substring(0, isolateUnterminatedString.length > 500 ? 500 : isolateUnterminatedString.length)}");
           _batchHandleIsolateResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
+          printV(isolateUnterminatedString);
           _handleIsolateResponse(decoded);
         }
         isolateUnterminatedString = '';
@@ -293,14 +300,15 @@ class ElectrumClient {
 
   void _parseResponse(String message) {
     try {
-      printV(message);
       final decoded = json.decode(message);
       // KB: TODO: verify if this functionality is working as intended
       // Check if it's a batch response (array) or single response (map)
 
       if (decoded is List) {
+        printV("Batch response (first 500 chars): ${message.substring(0, message.length > 500 ? 500 : message.length)}");
         _batchHandleResponse(decoded);
       } else if (decoded is Map<String, dynamic>) {
+        printV(message);
         _handleResponse(decoded);
       }
     } on FormatException catch (e) {
@@ -308,7 +316,7 @@ class ElectrumClient {
       developer.log(
           "!!!!! Node communication possibly broke !!!!!: FormatException in _parseResponse: $e");
       final msg = e.message.toLowerCase();
-// id":127,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":122,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":129,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":125,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":123,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":124,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":134,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":128,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":131,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":130,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":133,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":137,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":132,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":135,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":136,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":138,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":143,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":141,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":140,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":139,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":142,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":147,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":149,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":150,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":144,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":151,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":145,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":154,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":146,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":148,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":157,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":153,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":159,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":152,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":155,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":162,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":158,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":160,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":161,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":156,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":163,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":164,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":165,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":171,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":166,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":170,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":168,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":169,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":174,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":172,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":167,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":173,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":175,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":178,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":177,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":176,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":181,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":184,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":179,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":180,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":182,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":188,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":183,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":185,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":186,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":187,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":194,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":189,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":190,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":192,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":191,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":193,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}},{"id":195,"jsonrpc":"2.0","result":{"confirmed":0,"unconfirmed":0}}]
+      printV("The failure reason: $msg");
 
       if (e.source is String) {
         unterminatedString += e.source as String;
@@ -323,8 +331,10 @@ class ElectrumClient {
         final decoded = json.decode(unterminatedString);
 
         if (decoded is List) {
+          printV("Batch response (first 500 chars): ${unterminatedString.substring(0, unterminatedString.length > 500 ? 500 : unterminatedString.length)}");
           _batchHandleResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
+          printV(unterminatedString);
           _handleResponse(decoded);
         }
         unterminatedString = '';
@@ -341,8 +351,10 @@ class ElectrumClient {
         final decoded = json.decode(unterminatedString);
 
         if (decoded is List) {
+          printV("Batch response (first 500 chars): ${unterminatedString.substring(0, unterminatedString.length > 500 ? 500 : unterminatedString.length)}");
           _batchHandleResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
+          printV(unterminatedString);
           _handleResponse(decoded);
         }
         unterminatedString = '';
@@ -356,24 +368,44 @@ class ElectrumClient {
   // TODO: verify batchHandleResponse works with transactions
   void _batchHandleResponse(List<dynamic> batchResponse) {
     printV("Handling batch response with ${batchResponse.length} items");
-    // Since we register a single task for the entire batch, complete it with the full array
-    if (_tasks.isNotEmpty) {
-      final taskIds = _tasks.keys.map((k) => int.tryParse(k) ?? 0).where((id) => id > 0);
-      if (taskIds.isNotEmpty) {
-        final latestTaskId = taskIds.reduce((a, b) => a > b ? a : b);
-        _finish(latestTaskId.toString(), batchResponse);
+    // Match the batch response to the correct task by finding the first ID in the response
+    if (_tasks.isNotEmpty && batchResponse.isNotEmpty) {
+      // Get the first ID from the batch response
+      int? firstResponseId;
+      if (batchResponse.first is Map<String, dynamic>) {
+        firstResponseId = batchResponse.first['id'] as int?;
+      }
+      
+      if (firstResponseId != null) {
+        // Find the task that matches this batch (registered with the first ID)
+        final taskId = firstResponseId.toString();
+        if (_tasks.containsKey(taskId)) {
+          _finish(taskId, batchResponse);
+        } else {
+          printV("WARNING: No task found for batch response starting with ID $firstResponseId");
+        }
       }
     }
   }
 
   void _batchHandleIsolateResponse(List<dynamic> batchResponse) {
     printV("Handling isolate batch response with ${batchResponse.length} items");
-    // Since we register a single task for the entire batch, complete it with the full array
-    if (_isolateTasks.isNotEmpty) {
-      final taskIds = _isolateTasks.keys.map((k) => int.tryParse(k) ?? 0).where((id) => id > 0);
-      if (taskIds.isNotEmpty) {
-        final latestTaskId = taskIds.reduce((a, b) => a > b ? a : b);
-        _finishIsolate(latestTaskId.toString(), batchResponse);
+    // Match the batch response to the correct task by finding the first ID in the response
+    if (_isolateTasks.isNotEmpty && batchResponse.isNotEmpty) {
+      // Get the first ID from the batch response
+      int? firstResponseId;
+      if (batchResponse.first is Map<String, dynamic>) {
+        firstResponseId = batchResponse.first['id'] as int?;
+      }
+      
+      if (firstResponseId != null) {
+        // Find the task that matches this batch (registered with the first ID)
+        final taskId = firstResponseId.toString();
+        if (_isolateTasks.containsKey(taskId)) {
+          _finishIsolate(taskId, batchResponse);
+        } else {
+          printV("WARNING: No task found for batch response starting with ID $firstResponseId");
+        }
       }
     }
   }
@@ -432,16 +464,23 @@ class ElectrumClient {
     }
 
     try {
-      // Build batch request payload
+      // Increment _id first to get base ID for this batch
+      _id += 1;
+      final baseId = _id;
+      
+      // Build batch request payload with unique IDs
       final List<Map<String, dynamic>> batchRequest = [];
       for (int i = 0; i < scriptHashes.length; i++) {
         batchRequest.add({
           'jsonrpc': '2.0',
-          'id': i + 1,
+          'id': baseId + i,
           'method': method,
           'params': [scriptHashes[i]],
         });
       }
+      
+      // Update _id to account for all batch items
+      _id = baseId + scriptHashes.length - 1;
 
       final batchRequestJson = json.encode(batchRequest);
       // printV('batchGetData: Batch request JSON: $batchRequestJson');
@@ -453,8 +492,7 @@ class ElectrumClient {
       // }
 
       final completer = Completer<dynamic>();
-      _id += 1;
-      final requestId = _id;
+      final requestId = baseId;
       _registryTask(requestId, completer);
 
       // Write the batch request directly to socket
@@ -490,16 +528,28 @@ class ElectrumClient {
     }
 
     try {
-      // Build batch request payload
+      // Increment _isolateId first to get base ID for this batch
+      _isolateId += 1;
+      final baseId = _isolateId;
+      
+      // Build batch request payload with unique IDs
       final List<Map<String, dynamic>> batchRequest = [];
       for (int i = 0; i < scriptHashes.length; i++) {
+        // Add height parameters for get_history calls (BCH Electrum protocol)
+        final params = method == 'blockchain.scripthash.get_history'
+            ? [scriptHashes[i], 930000, -1]
+            : [scriptHashes[i]];
+        
         batchRequest.add({
           'jsonrpc': '2.0',
-          'id': i + 1,
+          'id': baseId + i,
           'method': method,
-          'params': [scriptHashes[i]],
+          'params': params,
         });
       }
+      
+      // Update _isolateId to account for all batch items
+      _isolateId = baseId + scriptHashes.length - 1;
 
       final batchRequestJson = json.encode(batchRequest);
       printV('isolateGetData: Batch request JSON: $batchRequestJson');
@@ -512,8 +562,7 @@ class ElectrumClient {
       // }
 
       final completer = Completer<dynamic>();
-      _isolateId += 1;
-      final requestId = _isolateId;
+      final requestId = baseId;
       _registryIsolateTask(requestId, completer);
 
       // Write the batch request directly to isolate socket
@@ -555,7 +604,7 @@ class ElectrumClient {
   }
 
   Future<List<Map<String, dynamic>>> getHistory(String scriptHash) =>
-      call(method: 'blockchain.scripthash.get_history', params: [scriptHash])
+      call(method: 'blockchain.scripthash.get_history', params: [scriptHash], )
           .then((dynamic result) {
         if (result is List) {
           return result.map((dynamic val) {
@@ -577,13 +626,15 @@ class ElectrumClient {
 
     try {
       // Build batch request payload
+      // https://electrum-cash-protocol.readthedocs.io/en/latest/protocol-methods.html
+      // blockchain.scripthash.get_history(scripthash, from_height=0, to_height=-1)
       final List<Map<String, dynamic>> batchRequest = [];
       for (int i = 0; i < scriptHashes.length; i++) {
         batchRequest.add({
           'jsonrpc': '2.0',
           'id': i + 1,
           'method': 'blockchain.scripthash.get_history',
-          'params': [scriptHashes[i]],
+          'params': [scriptHashes[i], 930000, -1],
         });
       }
 
@@ -975,6 +1026,24 @@ class ElectrumClient {
     } else {
       _isolateTasks[id]?.subject?.add(data);
     }
+  }
+
+  void _failAllPendingTasks(String errorMessage) {
+    _tasks.forEach((id, task) {
+      if (!(task.completer?.isCompleted ?? true)) {
+        task.completer!.completeError(Exception(errorMessage));
+      }
+    });
+    _tasks.clear();
+  }
+
+  void _failAllPendingIsolateTasks(String errorMessage) {
+    _isolateTasks.forEach((id, task) {
+      if (!(task.completer?.isCompleted ?? true)) {
+        task.completer!.completeError(Exception(errorMessage));
+      }
+    });
+    _isolateTasks.clear();
   }
 
   void _methodHandler({required String method, required Map<String, dynamic> request}) {

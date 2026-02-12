@@ -42,7 +42,7 @@ class ElectrumClient {
         _isolateErrors = {},
         isolateUnterminatedString = '';
 
-  static const connectionTimeout = Duration(seconds: 5); // fairly aggressive
+  static const connectionTimeout = Duration(seconds: 30); // increased for slower nodes/Tor
   static const aliveTimerDuration =
       Duration(seconds: 20); // aligns better with Fulcrum's 2s polling of bitcoind
 
@@ -63,6 +63,7 @@ class ElectrumClient {
   final Map<String, SocketTask> _isolateTasks;
   final Map<String, String> _isolateErrors;
   String isolateUnterminatedString;
+  Timer? _isolateAliveTimer;
 
   Uri? uri;
   bool? useSSL;
@@ -139,18 +140,24 @@ class ElectrumClient {
       },
       onError: (Object error) {
         printV("Isolate error: $error");
+        _isolateAliveTimer?.cancel();
+        _isolateAliveTimer = null;
         isolateUnterminatedString = '';
         _failAllPendingIsolateTasks(error.toString());
         // Socket will be destroyed in closeIsolateBatch()
       },
       onDone: () {
         printV("Isolate socket: Close on done");
+        _isolateAliveTimer?.cancel();
+        _isolateAliveTimer = null;
         isolateUnterminatedString = '';
         _failAllPendingIsolateTasks("Isolate connection closed");
         // Socket will be destroyed in closeIsolateBatch()
       },
       cancelOnError: false,
     );
+
+    isolateKeepAlive();
   }
 
   Future<void> connect({required String host, required int port}) async {
@@ -415,12 +422,32 @@ class ElectrumClient {
     _aliveTimer = Timer.periodic(aliveTimerDuration, (_) async => ping());
   }
 
+  void isolateKeepAlive() {
+    _isolateAliveTimer?.cancel();
+    _isolateAliveTimer = Timer.periodic(aliveTimerDuration, (_) async => await isolatePing());
+  }
+
   Future<void> ping() async {
     try {
       await callWithTimeout(method: 'server.ping');
       _setConnectionStatus(ConnectionStatus.connected);
     } catch (_) {
       _setConnectionStatus(ConnectionStatus.disconnected);
+    }
+  }
+
+  Future<void> isolatePing() async {
+    if (isolateSocket == null) return;
+    try {
+      _isolateId += 1;
+      final id = _isolateId;
+      final completer = Completer<dynamic>();
+      _registryIsolateTask(id, completer);
+      isolateSocket!.write(jsonrpc(method: 'server.ping', id: id, params: []));
+
+      await completer.future.timeout(Duration(seconds: 5));
+    } catch (e) {
+      printV("isolatePing error: $e");
     }
   }
 
@@ -952,6 +979,9 @@ class ElectrumClient {
   }
 
   Future<void> closeIsolateBatch() async {
+    _isolateAliveTimer?.cancel();
+    _isolateAliveTimer = null;
+
     // Complete any pending tasks with timeout error before clearing
     for (final task in _isolateTasks.values) {
       if (task.completer != null && !task.completer!.isCompleted) {

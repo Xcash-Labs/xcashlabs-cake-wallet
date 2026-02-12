@@ -727,7 +727,7 @@ abstract class ElectrumWalletBase
     if (scriptHashes.isEmpty) return '';
 
     final client = electrum.ElectrumClient();
-    const batchSize = 100;
+    const batchSize = 50;
     // Map of original index to response
     final Map<int, dynamic> indexedResponses = {};
     final originalScriptHashes = List<String>.from(scriptHashes);
@@ -737,9 +737,9 @@ abstract class ElectrumWalletBase
       var uri = node!.uri;
 
       await client.connectToUri(uri, useSSL: useSSL, isolateRequest: true).timeout(
-        Duration(seconds: 60),
+        Duration(seconds: 300),
         onTimeout: () {
-          throw TimeoutException('Connection timeout after 60s');
+          throw TimeoutException('Connection timeout after 300s');
         },
       );
 
@@ -753,11 +753,11 @@ abstract class ElectrumWalletBase
         final batchScripthashes = originalScriptHashes.sublist(currentOffset, batchEnd);
         final thisOffset = currentOffset;
 
-        // Throttle: wait if less than 500ms seconds since last batch
+        // Throttle: wait if less than 2000ms seconds since last batch
         final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-        final delayNeeded = 500 - timeSinceLastBatch;
+        final delayNeeded = 2000 - timeSinceLastBatch;
         if (delayNeeded > 0) {
-          await Future.delayed(Duration(milliseconds: 100));
+          await Future.delayed(Duration(milliseconds: delayNeeded));
         }
 
         printV("KB: _processIsolateBatchConnection: Sending batch of ${batchScripthashes.length} scripthashes at offset $thisOffset");
@@ -790,9 +790,9 @@ abstract class ElectrumWalletBase
 
           // Throttle before retry
           final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-          final delayNeeded = 500 - timeSinceLastBatch;
+          final delayNeeded = 2000 - timeSinceLastBatch;
           if (delayNeeded > 0) {
-            await Future.delayed(Duration(milliseconds: 100));
+            await Future.delayed(Duration(milliseconds: delayNeeded));
           }
 
           printV("KB: _processIsolateBatchConnection: Retrying batch of ${batch.length} scripthashes at offset $offset");
@@ -826,7 +826,8 @@ abstract class ElectrumWalletBase
       printV('[_processIsolateBatchConnection] Error: $e');
       rethrow;
     } finally {
-      await client.closeIsolateBatch();
+      // await client.closeIsolateBatch();
+      // We actually want to keep this secondary connection to see if it was connection attempts that were getting us banned
     }
   }
 

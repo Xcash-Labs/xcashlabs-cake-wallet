@@ -281,9 +281,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
     try {
       balance[currency] = await batchFetchDogeBalances();
       await save();
-      printV("Batch fetch works!");
     } catch (e) {
-      printV("Batch fetch broke!");
       balance[currency] = await fetchBalances();
       await save();
     }
@@ -539,6 +537,7 @@ abstract class DogeCoinWalletBase extends ElectrumWallet with Store {
         printV("KB: Response mutation");
         printV(response);
         final decodedResponse = jsonDecode(response);
+        printV(decodedResponse);
         printV("KB: GetIsolateBatch: Batch ${i + 1} response received");
 
         if (response != null) {

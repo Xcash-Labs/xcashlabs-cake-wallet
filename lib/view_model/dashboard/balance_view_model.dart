@@ -2,10 +2,12 @@ import 'package:cake_wallet/bitcoin/bitcoin.dart';
 import 'package:cake_wallet/entities/fiat_api_mode.dart';
 import 'package:cake_wallet/entities/sort_balance_types.dart';
 import 'package:cake_wallet/reactions/wallet_connect.dart';
+import 'package:cake_wallet/evm/evm.dart';
 import 'package:cw_core/transaction_history.dart';
 import 'package:cw_core/wallet_base.dart';
 import 'package:cw_core/balance.dart';
 import 'package:cw_core/crypto_currency.dart';
+import 'package:cw_core/erc20_token.dart';
 import 'package:cw_core/transaction_info.dart';
 import 'package:cw_core/wallet_type.dart';
 import 'package:cake_wallet/generated/i18n.dart';
@@ -20,8 +22,7 @@ part 'balance_view_model.g.dart';
 
 class BalanceRecord {
   const BalanceRecord(
-      {
-        required this.availableBalance,
+      {required this.availableBalance,
       required this.additionalBalance,
       required this.secondAvailableBalance,
       required this.secondAdditionalBalance,
@@ -115,6 +116,9 @@ abstract class BalanceViewModelBase with Store {
       wallet.type == WalletType.zano;
 
   @computed
+  bool get isEVMCompatible => isEVMCompatibleChain(wallet.type);
+
+  @computed
   bool get hasAccounts => wallet.type == WalletType.monero || wallet.type == WalletType.wownero;
 
   @computed
@@ -125,7 +129,16 @@ abstract class BalanceViewModelBase with Store {
 
   @computed
   String get asset {
-    final typeFormatted = walletTypeToString(appStore.wallet!.type);
+    if (isEVMCompatibleChain(wallet.type)) {
+      final currentChain = evm!.getCurrentChain(wallet);
+      if (currentChain != null) {
+        return currentChain.name;
+      }
+
+      return walletTypeToString(wallet.type);
+    }
+
+    final typeFormatted = walletTypeToString(wallet.type);
 
     switch (wallet.type) {
       case WalletType.haven:
@@ -150,24 +163,22 @@ abstract class BalanceViewModelBase with Store {
 
   @computed
   String get availableBalanceLabel {
-
     if (displayMode == BalanceDisplayMode.hiddenBalance) {
       return S.current.show_balance;
-    }
-    else {
+    } else {
       return S.current.xmr_available_balance;
     }
   }
 
   @computed
   String get additionalBalanceLabel {
-
     switch (wallet.type) {
       case WalletType.haven:
       case WalletType.ethereum:
       case WalletType.polygon:
       case WalletType.base:
       case WalletType.arbitrum:
+      case WalletType.bsc:
       case WalletType.solana:
       case WalletType.tron:
         return S.current.xmr_full_balance;
@@ -225,8 +236,10 @@ abstract class BalanceViewModelBase with Store {
                 fiatAdditionalBalance: isFiatDisabled ? '' : '${fiatCurrency.toString()} ●●●●●',
                 fiatAvailableBalance: isFiatDisabled ? '' : '${fiatCurrency.toString()} ●●●●●',
                 fiatFrozenBalance: isFiatDisabled ? '' : '',
-                fiatSecondAvailableBalance: isFiatDisabled ? '' : '${fiatCurrency.toString()} ●●●●●',
-                fiatSecondAdditionalBalance: isFiatDisabled ? '' : '${fiatCurrency.toString()} ●●●●●',
+                fiatSecondAvailableBalance:
+                    isFiatDisabled ? '' : '${fiatCurrency.toString()} ●●●●●',
+                fiatSecondAdditionalBalance:
+                    isFiatDisabled ? '' : '${fiatCurrency.toString()} ●●●●●',
                 asset: key,
                 formattedAssetTitle: _formatterAsset(key)));
       }
@@ -309,6 +322,7 @@ abstract class BalanceViewModelBase with Store {
       case WalletType.wownero:
       case WalletType.zano:
       case WalletType.decred:
+      case WalletType.zcash:
         return true;
       default:
         return false;
@@ -365,6 +379,20 @@ abstract class BalanceViewModelBase with Store {
         if (a.asset == wallet.currency) return -1;
       }
 
+      if (isEVMCompatibleChain(wallet.type)) {
+        final aIsToken = a.asset is Erc20Token;
+        final bIsToken = b.asset is Erc20Token;
+
+        final aHasBalance = (double.tryParse(a.availableBalance) ?? 0) > 0;
+        final bHasBalance = (double.tryParse(b.availableBalance) ?? 0) > 0;
+
+        // Adding this so tokens with balance come before tokens without balance
+        if (aIsToken && bIsToken) {
+          if (aHasBalance && !bHasBalance) return -1;
+          if (!aHasBalance && bHasBalance) return 1;
+        }
+      }
+
       switch (sortBalanceBy) {
         case SortBalanceBy.FiatBalance:
           final aFiatBalance = _getFiatBalance(
@@ -394,7 +422,6 @@ abstract class BalanceViewModelBase with Store {
 
     return balance;
   }
-
 
   @observable
   bool isShowCard;

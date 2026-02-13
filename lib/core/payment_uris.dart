@@ -116,6 +116,21 @@ class ArbitrumURI extends PaymentURI {
   }
 }
 
+class BSCURI extends PaymentURI {
+  BSCURI({required super.amount, required super.address});
+
+  @override
+  String toString() {
+    var base = 'bsc:$address';
+
+    if (amount.isNotEmpty) {
+      base += '?amount=${amount.replaceAll(',', '.')}';
+    }
+
+    return base;
+  }
+}
+
 class BitcoinCashURI extends PaymentURI {
   BitcoinCashURI({required super.amount, required super.address});
 
@@ -244,6 +259,21 @@ class DogeURI extends PaymentURI {
   @override
   String toString() {
     var base = 'doge:' + address;
+
+    if (amount.isNotEmpty) {
+      base += '?amount=${amount.replaceAll(',', '.')}';
+    }
+
+    return base;
+  }
+}
+
+class ZcashURI extends PaymentURI {
+  ZcashURI({required super.amount, required super.address});
+
+  @override
+  String toString() {
+    var base = 'zcash:$address';
 
     if (amount.isNotEmpty) {
       base += '?amount=${amount.replaceAll(',', '.')}';

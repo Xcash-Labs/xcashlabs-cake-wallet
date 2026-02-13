@@ -38,6 +38,20 @@ class Node extends HiveObject with Keyable {
     }
   }
 
+  @override
+  String toString() {
+    return """Node(
+  uriRaw: $uriRaw,
+  path: $path,
+  login: $login,
+  password: $password,
+  useSSL: $useSSL,
+  trusted: $trusted,
+  socksProxyAddress: $socksProxyAddress,
+  isEnabledForAutoSwitching: $isEnabledForAutoSwitching,
+ })""";
+  }
+
   Node.fromMap(Map<String, Object?> map)
       : uriRaw = map['uri'] as String? ?? '',
         path = map['path'] as String? ?? '',
@@ -94,6 +108,7 @@ class Node extends HiveObject with Keyable {
   Uri get uri {
     switch (type) {
       case WalletType.monero:
+      case WalletType.zcash:
       case WalletType.haven:
       case WalletType.wownero:
         return Uri.http(uriRaw, '');
@@ -107,6 +122,7 @@ class Node extends HiveObject with Keyable {
       case WalletType.ethereum:
       case WalletType.polygon:
       case WalletType.base:
+      case WalletType.bsc:
       case WalletType.arbitrum:
       case WalletType.solana:
       case WalletType.tron:
@@ -173,9 +189,11 @@ class Node extends HiveObject with Keyable {
         case WalletType.polygon:
         case WalletType.base:
         case WalletType.arbitrum:
+        case WalletType.bsc:
         case WalletType.solana:
         case WalletType.tron:
         case WalletType.dogecoin:
+        case WalletType.zcash:
           return requestElectrumServer();
         case WalletType.zano:
           return requestZanoNode();

@@ -1,1 +1,4 @@
+Add BNB Smart Chain
+Zcash improvements
+EVM chains enhancements
 Bug fixes

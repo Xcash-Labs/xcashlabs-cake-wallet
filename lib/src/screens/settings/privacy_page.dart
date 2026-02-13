@@ -102,6 +102,14 @@ class PrivacyPage extends BasePage {
                   _privacySettingsViewModel.setDisableBulletin(value);
                 },
               ),
+              if (_privacySettingsViewModel.canUseBlinkProtection)
+                SettingsSwitcherCell(
+                  title: S.current.use_blink_protection,
+                  value: _privacySettingsViewModel.useBlinkProtection,
+                  onValueChange: (BuildContext _, bool value) {
+                    _privacySettingsViewModel.setUseBlinkProtection(value);
+                  },
+                ),
               if (_privacySettingsViewModel.canUseEtherscan)
                 SettingsSwitcherCell(
                   title: S.current.etherscan_history,
@@ -132,6 +140,14 @@ class PrivacyPage extends BasePage {
                   value: _privacySettingsViewModel.useArbiScan,
                   onValueChange: (BuildContext _, bool value) {
                     _privacySettingsViewModel.setUseArbiScan(value);
+                  },
+                ),
+              if (_privacySettingsViewModel.canUseBscScan)
+                SettingsSwitcherCell(
+                  title: S.current.bscscan_history,
+                  value: _privacySettingsViewModel.useBscScan,
+                  onValueChange: (BuildContext _, bool value) {
+                    _privacySettingsViewModel.setUseBscScan(value);
                   },
                 ),
               if (_privacySettingsViewModel.canUseTronGrid)

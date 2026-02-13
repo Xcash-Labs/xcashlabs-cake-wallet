@@ -153,7 +153,7 @@ class _NewReceivePageState extends State<NewReceivePage> {
         onDismissed: () {
           widget.addressListViewModel.dismissInfobox();
           setState(() {});
-        });
+        }, autoGenerateSubaddressStatus: widget.dashboardViewModel.settingsStore.autoGenerateSubaddressStatus);
 
     return Container(
       decoration: BoxDecoration(

@@ -311,7 +311,7 @@ class _AccountCustomizerState extends State<AccountCustomizer> {
             width: _items[i].card.width,
             design: _items[i].card.design,
           ),
-          order: _items[i].order,
+          order: i,
           accountListItem: _items[i].accountListItem);
     }
 

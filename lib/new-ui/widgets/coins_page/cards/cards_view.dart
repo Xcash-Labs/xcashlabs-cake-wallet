@@ -13,7 +13,6 @@ import 'package:cake_wallet/view_model/monero_account_list/monero_account_list_v
 import 'package:cw_core/card_design.dart';
 import 'package:cw_core/unspent_coin_type.dart';
 import 'package:cw_core/wallet_type.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -28,12 +27,15 @@ class CardsView extends StatefulWidget {
       required this.dashboardViewModel,
       required this.accountListViewModel,
       required this.lightningMode,
-      required this.onCompactModeBackgroundCardsTapped});
+      required this.onCompactModeBackgroundCardsTapped,
+      required this.cardWidth, required this.showContent});
 
   final DashboardViewModel dashboardViewModel;
   final MoneroAccountListViewModel? accountListViewModel;
   final VoidCallback onCompactModeBackgroundCardsTapped;
   final bool lightningMode;
+  final bool showContent;
+  final double cardWidth;
 
   @override
   _CardsViewState createState() => _CardsViewState();
@@ -56,7 +58,6 @@ class _CardsViewState extends State<CardsView> {
   static const Duration animDuration = Duration(milliseconds: 200);
   static const int compactModeTreshold = 4;
   static const int maxCards = 5;
-  late final double cardWidth = MediaQuery.of(context).size.width * 0.878;
 
   Widget _buildCard(int visualIndex, int realIndex, int numCards, double parentWidth,
       Map<int, int> order, bool compactMode, double overlapAmount) {
@@ -68,14 +69,12 @@ class _CardsViewState extends State<CardsView> {
 
     final top = baseTop - (howFarBehind * overlapAmount);
 
-    final left = (parentWidth - cardWidth) / 2.0;
 
     return AnimatedPositioned(
       key: ValueKey("$visualIndex $realIndex"),
       duration: animDuration,
       curve: Curves.easeOut,
       top: top,
-      left: left,
       child: AnimatedScale(
         duration: animDuration,
         curve: Curves.easeOut,
@@ -105,15 +104,12 @@ class _CardsViewState extends State<CardsView> {
             }
             final account = widget.accountListViewModel?.accounts[realIndex];
 
-            // The second balance should always be the lightning balance
             final walletBalanceRecord = widget.dashboardViewModel.balanceViewModel.formattedBalances
                 .elementAtOrNull(widget.lightningMode ? 1 : 0);
 
             final walletBalance = walletBalanceRecord?.availableBalance ?? "0";
             final walletFiatBalance = walletBalanceRecord?.fiatAvailableBalance ?? "0.00";
 
-            // the card designs is empty if widget gets built before it loads.
-            // should get populated before user sees anything
             final CardDesign cardDesign;
             if (widget.dashboardViewModel.cardDesigns.isEmpty)
               cardDesign = CardDesign.genericDefault;
@@ -153,13 +149,19 @@ class _CardsViewState extends State<CardsView> {
                     )
                   ];
 
+            final double maxWidth = MediaQuery.of(context).size.width * 0.878;
+            final double widthFactor = (widget.cardWidth / maxWidth).clamp(0.0, 1.0);
+            final double radius = 10.0 + (10.0 * widthFactor);
+
             return BalanceCard(
-              width: cardWidth,
+              width: widget.cardWidth,
               accountName: accountName,
               accountBalance: accountBalance,
               designSwitchDuration: Duration(milliseconds: 150),
               assetName: walletBalanceRecord?.formattedAssetTitle ?? "",
               balance: walletBalance,
+              borderRadius: radius,
+              showForeground: widget.showContent,
               fiatBalance: walletFiatBalance,
               selected: _selectedIndex == visualIndex,
               design: cardDesign,
@@ -174,7 +176,7 @@ class _CardsViewState extends State<CardsView> {
   double _getBoxHeight(int numCards, double overlapAmount) {
     return
         /* height of initial card */
-        (2 / 3.2) * (cardWidth) +
+        (2 / 3.2) * (widget.cardWidth) +
             /* height of bg card * amount of bg cards */
             overlapAmount * ((numCards) - 1);
   }
@@ -182,10 +184,11 @@ class _CardsViewState extends State<CardsView> {
   @override
   Widget build(BuildContext context) {
     return Observer(builder: (_) {
-      final parentWidth = MediaQuery.of(context).size.width;
+      final parentWidth = widget.cardWidth;
+
       final children = <Widget>[];
 
-    int numCards = widget.dashboardViewModel.wallet.type == WalletType.bitcoin
+    int numCards = widget.dashboardViewModel.wallet.type == WalletType.bitcoin || !widget.showContent
         ? 1
         : widget.dashboardViewModel.cardDesigns.length;
         if(numCards == 0) numCards = 1;
@@ -205,27 +208,19 @@ class _CardsViewState extends State<CardsView> {
 
       for (int i = min(numCards - 1, maxCards); i >= 0; i--) {
         int visualIndex = (_selectedIndex - i + numCards) % numCards;
-
         int realIndex = order[visualIndex]!;
-
         children.add(_buildCard(
             visualIndex, realIndex, numCards, parentWidth, order, compactMode, overlapAmount));
       }
 
-      return AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        width: double.infinity,
+      return Container(
         height: _getBoxHeight(numCards, overlapAmount),
-        child: AnimatedSwitcher(
-          duration: Duration(milliseconds: 200),
-          transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-          child: SizedBox(
-            key: ValueKey(_getBoxHeight(numCards, overlapAmount)),
-            width: double.infinity,
-            height: _getBoxHeight(numCards, overlapAmount),
-            child: Stack(alignment: Alignment.center, children: children),
-          ),
+        width: widget.cardWidth,
+        child: SizedBox(
+          key: ValueKey(_getBoxHeight(numCards, overlapAmount)),
+          // height: _getBoxHeight(numCards, overlapAmount),
+          width: widget.cardWidth,
+          child: Stack(alignment: Alignment.centerLeft, children: children),
         ),
       );
     });

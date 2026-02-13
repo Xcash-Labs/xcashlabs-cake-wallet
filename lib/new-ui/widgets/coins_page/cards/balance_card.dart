@@ -24,7 +24,7 @@ class BalanceCard extends StatelessWidget {
     this.fiatBalance = "",
     this.assetName = "",
     this.designSwitchDuration = const Duration(),
-    this.actions = const [],
+    this.actions = const [], this.showForeground = true,
   });
 
   final double width;
@@ -36,6 +36,7 @@ class BalanceCard extends StatelessWidget {
   final String fiatBalance;
   final String assetName;
   final bool selected;
+  final bool showForeground;
   final CardDesign design;
   final List<BalanceCardAction> actions;
   final Duration designSwitchDuration;
@@ -85,150 +86,154 @@ class BalanceCard extends StatelessWidget {
                     key: ValueKey('svgFullOff'),
                   ),
           ),
-          Padding(
-            padding: EdgeInsets.all(width * 0.05),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                if (showText)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      if(accountName.isNotEmpty || accountBalance.isNotEmpty)
-                      Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          AnimatedDefaultTextStyle(
+          AnimatedOpacity(
+            duration: designSwitchDuration,
+            opacity: showForeground ? 1 : 0,
+            child: Padding(
+              padding: EdgeInsets.all(width * 0.05),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  if (showText)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        if(accountName.isNotEmpty || accountBalance.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            AnimatedDefaultTextStyle(
+                              duration: designSwitchDuration,
+                              style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: design.colors.textColor),
+                              child: Text(accountName),
+                            ),
+                            AnimatedOpacity(
+                              opacity: selected ? 0 : 1,
+                              duration: textFadeDuration,
+                              child: Text(
+                                accountBalance,
+                                style: TextStyle(color: design.colors.textColor, fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        AnimatedOpacity(
+                          opacity: selected ? 1 : 0,
+                          duration: textFadeDuration,
+                          child: AnimatedSwitcher(
                             duration: designSwitchDuration,
-                            style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: design.colors.textColor),
-                            child: Text(accountName),
-                          ),
-                          AnimatedOpacity(
-                            opacity: selected ? 0 : 1,
-                            duration: textFadeDuration,
-                            child: Text(
-                              accountBalance,
-                              style: TextStyle(color: design.colors.textColor, fontSize: 14),
+                            layoutBuilder: (currentChild, previousChildren) {
+                              return Stack(
+                                alignment: Alignment.centerLeft,
+                                children: <Widget>[
+                                  ...previousChildren,
+                                  if (currentChild != null) currentChild,
+                                ],
+                              );
+                            },
+                            child: Row(
+                              key: ValueKey("$balance ${assetName.toUpperCase()}"),
+                              spacing: 8.0,
+                              children: [
+                                AnimatedDefaultTextStyle(
+                                  duration: designSwitchDuration,
+                                  style: DefaultTextStyle.of(context)
+                                      .style
+                                      .copyWith(color: design.colors.textColor, fontSize: 28, fontWeight: FontWeight.w500, letterSpacing: -0.4),
+                                  child: Text(balance),
+                                ),
+                                AnimatedDefaultTextStyle(
+                                  duration: designSwitchDuration,
+                                  style: DefaultTextStyle.of(context)
+                                      .style
+                                      .copyWith(color: design.colors.textColorSecondary, fontSize: 28, fontWeight: FontWeight.w400, letterSpacing: -0.4),
+                                  child: Text(assetName.toUpperCase()),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                      AnimatedOpacity(
-                        opacity: selected ? 1 : 0,
-                        duration: textFadeDuration,
-                        child: AnimatedSwitcher(
+                        ),
+                        AnimatedDefaultTextStyle(
                           duration: designSwitchDuration,
-                          layoutBuilder: (currentChild, previousChildren) {
-                            return Stack(
-                              alignment: Alignment.centerLeft,
-                              children: <Widget>[
-                                ...previousChildren,
-                                if (currentChild != null) currentChild,
-                              ],
-                            );
-                          },
-                          child: Row(
-                            key: ValueKey("$balance ${assetName.toUpperCase()}"),
-                            spacing: 8.0,
-                            children: [
-                              AnimatedDefaultTextStyle(
-                                duration: designSwitchDuration,
-                                style: DefaultTextStyle.of(context)
-                                    .style
-                                    .copyWith(color: design.colors.textColor, fontSize: 28, fontWeight: FontWeight.w500, letterSpacing: -0.4),
-                                child: Text(balance),
-                              ),
-                              AnimatedDefaultTextStyle(
-                                duration: designSwitchDuration,
-                                style: DefaultTextStyle.of(context)
-                                    .style
-                                    .copyWith(color: design.colors.textColorSecondary, fontSize: 28, fontWeight: FontWeight.w400, letterSpacing: -0.4),
-                                child: Text(assetName.toUpperCase()),
-                              ),
-                            ],
+                          style: DefaultTextStyle.of(context).style.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w400,
+                              color: design.colors.textColorSecondary),
+                          child: AnimatedSwitcher(
+                            duration: designSwitchDuration,
+                            layoutBuilder: (currentChild, previousChildren) {
+                              return Stack(
+                                alignment: Alignment.centerLeft,
+                                children: <Widget>[
+                                  ...previousChildren,
+                                  if (currentChild != null) currentChild,
+                                ],
+                              );
+                            },
+                            child: Text(
+                              key: ValueKey(fiatBalance),
+                              fiatBalance,
+                            ),
                           ),
                         ),
-                      ),
-                      AnimatedDefaultTextStyle(
+                      ],
+                    )
+                  else
+                    Container(),
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      AnimatedSwitcher(
                         duration: designSwitchDuration,
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            color: design.colors.textColorSecondary),
-                        child: AnimatedSwitcher(
-                          duration: designSwitchDuration,
-                          layoutBuilder: (currentChild, previousChildren) {
-                            return Stack(
-                              alignment: Alignment.centerLeft,
-                              children: <Widget>[
-                                ...previousChildren,
-                                if (currentChild != null) currentChild,
-                              ],
-                            );
-                          },
-                          child: Text(
-                            key: ValueKey(fiatBalance),
-                            fiatBalance,
-                          ),
+                        switchInCurve: Curves.easeInOut,
+                        switchOutCurve: Curves.easeInOut,
+                        layoutBuilder: (currentChild, previousChildren) {
+                          return Stack(
+                            alignment: Alignment.centerLeft,
+                            children: <Widget>[
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
+                          );
+                        },
+                        child: Row(
+                          key: ValueKey(actions.toString()),
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: actions.map(getBalanceCardActionButton).toList(),
                         ),
+                      ),
+                      AnimatedSwitcher(
+                        duration: designSwitchDuration,
+                        switchInCurve: Curves.easeInOut,
+                        switchOutCurve: Curves.easeInOut,
+                        child: design.backgroundType == CardDesignBackgroundTypes.svgIcon
+                            ? SvgPicture.asset(
+                                design.imagePath,
+                                key: const ValueKey('svgIcon'),
+                                height: iconWidth,
+                                width: iconWidth,
+                                colorFilter: ColorFilter.mode(
+                                  design.colors.backgroundImageColor.withAlpha(80),
+                                  BlendMode.srcIn,
+                                ),
+                              )
+                            : const SizedBox.shrink(
+                                key: ValueKey('svgIconOff'),
+                              ),
                       ),
                     ],
-                  )
-                else
-                  Container(),
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    AnimatedSwitcher(
-                      duration: designSwitchDuration,
-                      switchInCurve: Curves.easeInOut,
-                      switchOutCurve: Curves.easeInOut,
-                      layoutBuilder: (currentChild, previousChildren) {
-                        return Stack(
-                          alignment: Alignment.centerLeft,
-                          children: <Widget>[
-                            ...previousChildren,
-                            if (currentChild != null) currentChild,
-                          ],
-                        );
-                      },
-                      child: Row(
-                        key: ValueKey(actions.toString()),
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: actions.map(getBalanceCardActionButton).toList(),
-                      ),
-                    ),
-                    AnimatedSwitcher(
-                      duration: designSwitchDuration,
-                      switchInCurve: Curves.easeInOut,
-                      switchOutCurve: Curves.easeInOut,
-                      child: design.backgroundType == CardDesignBackgroundTypes.svgIcon
-                          ? SvgPicture.asset(
-                              design.imagePath,
-                              key: const ValueKey('svgIcon'),
-                              height: iconWidth,
-                              width: iconWidth,
-                              colorFilter: ColorFilter.mode(
-                                design.colors.backgroundImageColor.withAlpha(80),
-                                BlendMode.srcIn,
-                              ),
-                            )
-                          : const SizedBox.shrink(
-                              key: ValueKey('svgIconOff'),
-                            ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -151,7 +151,7 @@ class CoinActionRow extends StatelessWidget {
   }
 
   Future<void> _onPressedScan(BuildContext context) async {
-    if (FeatureFlag.hasNewUiExtraPages) {
+    if (false && FeatureFlag.hasNewUiExtraPages) {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,

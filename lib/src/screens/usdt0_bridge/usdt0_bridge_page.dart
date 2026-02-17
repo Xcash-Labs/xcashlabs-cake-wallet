@@ -136,7 +136,7 @@ class _USDT0BridgeBodyState extends State<_USDT0BridgeBody> {
             content: "The bridging will take approximately 30 seconds to 3 "
                 "minutes to complete.",
             doubleActionLeftButtonText: S.of(bottomSheetContext).close,
-            doubleActionRightButtonText: S.current.bridge_view_status,
+            doubleActionRightButtonText: "View status",
             onLeftActionButtonPressed: () {
               Navigator.of(bottomSheetContext).pop();
               widget.viewModel.clearBridgeSuccess();

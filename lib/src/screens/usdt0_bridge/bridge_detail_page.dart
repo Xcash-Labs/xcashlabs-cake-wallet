@@ -17,7 +17,7 @@ class BridgeDetailPage extends BasePage {
   final BridgeDetailsViewModel viewModel;
 
   @override
-  String get title => S.current.bridge_detail_title;
+  String get title => "Bridge Transfer";
 
   @override
   Widget body(BuildContext context) => BridgeDetailPageBody(viewModel);
@@ -88,7 +88,7 @@ class BridgeDetailPageBodyState extends State<BridgeDetailPageBody> {
               );
             }
 
-            final isError = item.title == S.current.bridge_detail_error;
+            final isError = item.title == "Error";
             return GestureDetector(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: item.value));

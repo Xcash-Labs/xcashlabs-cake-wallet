@@ -15,7 +15,7 @@ class BridgeHistoryPage extends BasePage {
   final BridgeHistoryViewModel viewModel;
 
   @override
-  String get title => S.current.bridge_history_title;
+  String get title => "Bridge history";
 
   @override
   Widget body(BuildContext context) {
@@ -26,7 +26,7 @@ class BridgeHistoryPage extends BasePage {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                S.current.bridge_history_empty,
+                "No bridge transfers yet.",
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
@@ -43,7 +43,7 @@ class BridgeHistoryPage extends BasePage {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
               child: Text(
-                S.current.bridge_history_active,
+                "In progress",
                 style: Theme.of(context).textTheme.titleSmall,
               ),
             ),
@@ -66,7 +66,7 @@ class BridgeHistoryPage extends BasePage {
             Padding(
               padding: EdgeInsets.fromLTRB(24, active.isNotEmpty ? 16 : 8, 24, 4),
               child: Text(
-                S.current.bridge_history_past,
+                "Past",
                 style: Theme.of(context).textTheme.titleSmall,
               ),
             ),
@@ -106,15 +106,15 @@ class BridgeTransferRow extends StatelessWidget {
   String _statusLabel(String status) {
     switch (status) {
       case 'submitted':
-        return S.current.bridge_status_submitted;
+        return "Submitted";
       case 'confirming':
-        return S.current.bridge_status_confirming;
+        return "Confirming on source";
       case 'initiated':
-        return S.current.bridge_status_initiated;
+        return "Bridge initiated";
       case 'completed':
-        return S.current.bridge_status_completed;
+        return "Completed";
       case 'failed':
-        return S.current.bridge_status_failed;
+        return "Failed";
       default:
         return status;
     }

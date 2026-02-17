@@ -90,7 +90,7 @@ abstract class BridgeDetailsViewModelBase with Store {
 
     items.add(
       DetailsListStatusItem(
-        title: S.current.bridge_detail_status,
+        title: "Status",
         value: statusText,
         status: transfer.status,
       ),
@@ -103,28 +103,28 @@ abstract class BridgeDetailsViewModelBase with Store {
 
     items.add(
       StandartListItem(
-        title: S.current.bridge_detail_source_chain,
+        title: "Source chain",
         value: sourceName,
       ),
     );
 
     items.add(
       StandartListItem(
-        title: S.current.bridge_detail_destination_chain,
+        title: "Destination chain",
         value: destName,
       ),
     );
 
     items.add(
       StandartListItem(
-        title: S.current.bridge_detail_amount,
+        title: "Amount",
         value: '${transfer.amount} ${transfer.tokenSymbol}',
       ),
     );
 
     items.add(
       StandartListItem(
-        title: S.current.bridge_detail_recipient,
+        title: "Recipient",
         value: transfer.recipientAddress,
       ),
     );
@@ -137,7 +137,7 @@ abstract class BridgeDetailsViewModelBase with Store {
     if (sourceTxUrl != null) {
       items.add(
         TrackTradeListItem(
-          title: S.current.bridge_detail_view_on_explorer,
+          title: "View on explorer",
           value: transfer.sourceTxHash,
           onTap: () => _launchUrl(sourceTxUrl),
         ),
@@ -147,7 +147,7 @@ abstract class BridgeDetailsViewModelBase with Store {
     if (transfer.errorMessage != null && transfer.errorMessage!.isNotEmpty) {
       items.add(
         StandartListItem(
-          title: S.current.bridge_detail_error,
+          title: "Error",
           value: transfer.errorMessage!,
         ),
       );
@@ -157,15 +157,15 @@ abstract class BridgeDetailsViewModelBase with Store {
   String _statusLabel(String status) {
     switch (status) {
       case 'submitted':
-        return S.current.bridge_status_submitted;
+        return "Submitted";
       case 'confirming':
-        return S.current.bridge_status_confirming;
+        return "Confirming on source";
       case 'initiated':
-        return S.current.bridge_status_initiated;
+        return "Bridge initiated";
       case 'completed':
-        return S.current.bridge_status_completed;
+        return "Completed";
       case 'failed':
-        return S.current.bridge_status_failed;
+        return "Failed";
       default:
         return status;
     }

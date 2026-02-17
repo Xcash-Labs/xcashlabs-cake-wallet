@@ -20,13 +20,27 @@ abstract class BridgeDetailsViewModelBase with Store {
     required this.bridgeTransfersStore,
     required this.walletId,
   })  : items = ObservableList<StandartListItem>(),
-        transfer = bridgeTransfersStore.bridgeTransfers
-                .firstWhere(
-                  (t) => t.id == transferForDetails.id && t.walletId == walletId,
-                  orElse: () => transferForDetails,
-                ) {
+        transfer = _findTransferInStore(
+                bridgeTransfersStore.bridgeTransfers,
+                transferForDetails.id,
+                walletId) ??
+            transferForDetails {
     _updateItems();
     _setupReaction();
+  }
+
+  static BridgeTransfer? _findTransferInStore(
+    List<BridgeTransfer> transfers,
+    String transferId,
+    String walletId,
+  ) {
+    try {
+      return transfers.firstWhere(
+        (t) => t.id == transferId && t.walletId == walletId,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   final BridgeTransfersStore bridgeTransfersStore;
@@ -46,15 +60,17 @@ abstract class BridgeDetailsViewModelBase with Store {
       (_) => bridgeTransfersStore.bridgeTransfers,
       (_) => updateTransfer(),
     );
+    updateTransfer();
   }
 
   @action
   void updateTransfer() {
-    final updatedTransfer = bridgeTransfersStore.bridgeTransfers.firstWhere(
-      (t) => t.id == transfer.id && t.walletId == walletId,
-      orElse: () => transfer,
+    final updatedTransfer = _findTransferInStore(
+      bridgeTransfersStore.bridgeTransfers,
+      transfer.id,
+      walletId,
     );
-    if (updatedTransfer.id == transfer.id) {
+    if (updatedTransfer != null) {
       transfer = updatedTransfer;
       _updateItems();
     }

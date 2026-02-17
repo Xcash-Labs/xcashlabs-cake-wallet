@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/routes.dart';
 import 'package:cake_wallet/src/widgets/alert_with_one_action.dart';
+import 'package:cake_wallet/src/widgets/cake_image_widget.dart';
 import 'package:cake_wallet/src/widgets/dashboard_card_widget.dart';
 import 'package:cake_wallet/utils/show_pop_up.dart';
 import 'package:cake_wallet/view_model/dashboard/cake_features_view_model.dart';
@@ -82,14 +83,13 @@ class CakeFeaturesPage extends StatelessWidget {
                     return DashBoardRoundedCardWidget(
                       shadowBlur: dashboardViewModel.getShadowBlur(),
                       shadowSpread: dashboardViewModel.getShadowSpread(),
-                      onTap: () =>
-                          Navigator.of(context).pushNamed(Routes.usdt0Bridge),
+                      onTap: () => Navigator.of(context).pushNamed(Routes.usdt0Bridge),
                       title: "USDT0 Bridge",
                       subTitle: "Cross-chain USDT transfers across 15+ blockchains",
-                      icon: Icon(
-                        Icons.swap_horiz,
-                        size: 80,
-                        color: Theme.of(context).colorScheme.onSurface,
+                      icon: CakeImageWidget(
+                        imageUrl: 'assets/images/crypto/usdt0.webp',
+                        height: 80,
+                        width: 80,
                       ),
                     );
                   }

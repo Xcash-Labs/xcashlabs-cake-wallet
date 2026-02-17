@@ -45,9 +45,11 @@ abstract class BridgeTransfersStoreBase with Store {
     try {
       if (bridgeTransfersSource.isOpen) {
         transfer.save();
-        updateList();
       }
     } catch (_) {}
+    if (bridgeTransfersSource.isOpen) {
+      updateList();
+    }
   }
 
   @computed

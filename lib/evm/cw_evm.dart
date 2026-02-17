@@ -227,6 +227,22 @@ class CWEVM extends EVM {
   Web3Client? getWeb3Client(WalletBase wallet) => (wallet as EVMChainWallet).getWeb3Client();
 
   @override
+  Future<bool?> getTransactionReceipt(WalletBase wallet, String txHash) async {
+    final client = getWeb3Client(wallet);
+    if (client == null) return null;
+
+    try {
+      final receipt = await client.getTransactionReceipt(txHash);
+
+      if (receipt == null) return null;
+
+      return receipt.status;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
   String getTokenAddress(CryptoCurrency asset) => (asset as Erc20Token).contractAddress;
 
   @override

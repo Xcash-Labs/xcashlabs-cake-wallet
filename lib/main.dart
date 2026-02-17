@@ -8,6 +8,7 @@ import 'package:cake_wallet/core/auth_service.dart';
 import 'package:cake_wallet/core/background_sync.dart';
 import 'package:cake_wallet/core/node_switching_service.dart';
 import 'package:cake_wallet/di.dart';
+import 'package:cake_wallet/entities/bridge_transfer.dart';
 import 'package:cake_wallet/entities/contact.dart';
 import 'package:cake_wallet/entities/default_settings_migration.dart';
 import 'package:cake_wallet/entities/get_encryption_key.dart';
@@ -269,6 +270,9 @@ Future<void> initializeAppConfigs({bool loadWallet = true}) async {
   if (!CakeHive.isAdapterRegistered(TronToken.typeId)) {
     CakeHive.registerAdapter(TronTokenAdapter());
   }
+  if (!CakeHive.isAdapterRegistered(BridgeTransfer.typeId)) {
+    CakeHive.registerAdapter(BridgeTransferAdapter());
+  }
   await performHiveMigration();
 
   final secureStorage = secureStorageShared;
@@ -276,6 +280,8 @@ Future<void> initializeAppConfigs({bool loadWallet = true}) async {
       await getEncryptionKey(secureStorage: secureStorage, forKey: TransactionDescription.boxKey);
   final tradesBoxKey = await getEncryptionKey(secureStorage: secureStorage, forKey: Trade.boxKey);
   final ordersBoxKey = await getEncryptionKey(secureStorage: secureStorage, forKey: Order.boxKey);
+  final bridgeTransfersBoxKey = await getEncryptionKey(
+      secureStorage: secureStorage, forKey: BridgeTransfer.boxKey);
   final contacts = await CakeHive.openBox<Contact>(Contact.boxName);
   final nodes = await CakeHive.openBox<Node>(Node.boxName);
   final powNodes =
@@ -285,6 +291,8 @@ Future<void> initializeAppConfigs({bool loadWallet = true}) async {
       encryptionKey: transactionDescriptionsBoxKey);
   final trades = await CakeHive.openBox<Trade>(Trade.boxName, encryptionKey: tradesBoxKey);
   final orders = await CakeHive.openBox<Order>(Order.boxName, encryptionKey: ordersBoxKey);
+  final bridgeTransfers = await CakeHive.openBox<BridgeTransfer>(BridgeTransfer.boxName,
+      encryptionKey: bridgeTransfersBoxKey);
   final templates = await CakeHive.openBox<Template>(Template.boxName);
   final exchangeTemplates = await CakeHive.openBox<ExchangeTemplate>(ExchangeTemplate.boxName);
   final anonpayInvoiceInfo = await CakeHive.openBox<AnonpayInvoiceInfo>(AnonpayInvoiceInfo.boxName);
@@ -304,6 +312,7 @@ Future<void> initializeAppConfigs({bool loadWallet = true}) async {
     contactSource: contacts,
     tradesSource: trades,
     ordersSource: orders,
+    bridgeTransfersSource: bridgeTransfers,
     unspentCoinsInfoSource: unspentCoinsInfoSource,
     // fiatConvertationService: fiatConvertationService,
     templates: templates,
@@ -325,6 +334,7 @@ Future<void> initialSetup({
   required Box<Contact> contactSource,
   required Box<Trade> tradesSource,
   required Box<Order> ordersSource,
+  required Box<BridgeTransfer> bridgeTransfersSource,
   // required FiatConvertationService fiatConvertationService,
   required Box<Template> templates,
   required Box<ExchangeTemplate> exchangeTemplates,
@@ -351,10 +361,11 @@ Future<void> initialSetup({
     powNodeSource: powNodes,
     contactSource: contactSource,
     tradesSource: tradesSource,
+    ordersSource: ordersSource,
+    bridgeTransfersSource: bridgeTransfersSource,
     templates: templates,
     exchangeTemplates: exchangeTemplates,
     transactionDescriptionBox: transactionDescriptions,
-    ordersSource: ordersSource,
     anonpayInvoiceInfoSource: anonpayInvoiceInfo,
     unspentCoinsInfoSource: unspentCoinsInfoSource,
     payjoinSessionSource: payjoinSessionSource,

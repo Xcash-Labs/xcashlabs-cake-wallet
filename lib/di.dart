@@ -25,6 +25,7 @@ import 'package:cake_wallet/core/wallet_loading_service.dart';
 import 'package:cake_wallet/core/yat_service.dart';
 import 'package:cake_wallet/core/node_switching_service.dart';
 import 'package:cake_wallet/entities/biometric_auth.dart';
+import 'package:cake_wallet/entities/bridge_transfer.dart';
 import 'package:cake_wallet/entities/contact.dart';
 import 'package:cake_wallet/entities/contact_record.dart';
 import 'package:cake_wallet/entities/exchange_api_mode.dart';
@@ -41,6 +42,8 @@ import 'package:cake_wallet/src/screens/dev/exchange_provider_logs_page.dart';
 import 'package:cake_wallet/src/screens/dev/secure_preferences_page.dart';
 import 'package:cake_wallet/src/screens/dev/shared_preferences_page.dart';
 import 'package:cake_wallet/src/screens/integrations/deuro/savings_page.dart';
+import 'package:cake_wallet/src/screens/usdt0_bridge/bridge_detail_page.dart';
+import 'package:cake_wallet/src/screens/usdt0_bridge/bridge_history_page.dart';
 import 'package:cake_wallet/src/screens/usdt0_bridge/usdt0_bridge_page.dart';
 import 'package:cake_wallet/src/screens/settings/background_sync_page.dart';
 import 'package:cake_wallet/src/screens/start_tor/start_tor_page.dart';
@@ -61,6 +64,8 @@ import 'package:cake_wallet/view_model/hardware_wallet/trezor_view_model.dart';
 import 'package:cake_wallet/view_model/integrations/deuro_view_model.dart';
 import 'package:cake_wallet/view_model/link_view_model.dart';
 import 'package:cake_wallet/view_model/usdt0_bridge/usdt0_bridge_view_model.dart';
+import 'package:cake_wallet/view_model/bridge_details_view_model.dart';
+import 'package:cake_wallet/view_model/bridge_history_view_model.dart';
 import 'package:cake_wallet/tron/tron.dart';
 import 'package:cake_wallet/src/screens/transaction_details/rbf_details_page.dart';
 import 'package:cake_wallet/view_model/start_tor_view_model.dart';
@@ -220,6 +225,7 @@ import 'package:cake_wallet/store/authentication_store.dart';
 import 'package:cake_wallet/store/dashboard/fiat_conversion_store.dart';
 import 'package:cake_wallet/store/dashboard/orders_store.dart';
 import 'package:cake_wallet/store/dashboard/trade_filter_store.dart';
+import 'package:cake_wallet/store/bridge_transfers_store.dart';
 import 'package:cake_wallet/store/dashboard/trades_store.dart';
 import 'package:cake_wallet/store/dashboard/transaction_filter_store.dart';
 import 'package:cake_wallet/store/node_list_store.dart';
@@ -310,6 +316,7 @@ late Box<Order> _ordersSource;
 late Box<UnspentCoinsInfo> _unspentCoinsInfoSource;
 late Box<PayjoinSession> _payjoinSessionSource;
 late Box<AnonpayInvoiceInfo> _anonpayInvoiceInfoSource;
+late Box<BridgeTransfer> _bridgeTransfersSource;
 
 Future<void> setup({
   required Box<Node> nodeSource,
@@ -320,6 +327,7 @@ Future<void> setup({
   required Box<ExchangeTemplate> exchangeTemplates,
   required Box<TransactionDescription> transactionDescriptionBox,
   required Box<Order> ordersSource,
+  required Box<BridgeTransfer> bridgeTransfersSource,
   required Box<UnspentCoinsInfo> unspentCoinsInfoSource,
   required Box<PayjoinSession> payjoinSessionSource,
   required Box<AnonpayInvoiceInfo> anonpayInvoiceInfoSource,
@@ -334,6 +342,7 @@ Future<void> setup({
   _exchangeTemplates = exchangeTemplates;
   _transactionDescriptionBox = transactionDescriptionBox;
   _ordersSource = ordersSource;
+  _bridgeTransfersSource = bridgeTransfersSource;
   _unspentCoinsInfoSource = unspentCoinsInfoSource;
   _payjoinSessionSource = payjoinSessionSource;
   _anonpayInvoiceInfoSource = anonpayInvoiceInfoSource;
@@ -379,6 +388,8 @@ Future<void> setup({
       TradesStore(tradesSource: _tradesSource, settingsStore: getIt.get<SettingsStore>()));
   getIt.registerSingleton<OrdersStore>(
       OrdersStore(ordersSource: _ordersSource, settingsStore: getIt.get<SettingsStore>()));
+  getIt.registerSingleton<BridgeTransfersStore>(
+      BridgeTransfersStore(bridgeTransfersSource: _bridgeTransfersSource));
   getIt.registerFactory(() =>
       PayjoinTransactionsStore(payjoinSessionSource: _payjoinSessionSource));
   getIt.registerSingleton<TradeFilterStore>(TradeFilterStore());
@@ -1622,8 +1633,29 @@ Future<void> setup({
 
   getIt.registerFactory(() => DEuroSavingsPage(getIt<DEuroViewModel>()));
 
-  getIt.registerFactory(() => USDT0BridgeViewModel(getIt<AppStore>()));
+  getIt.registerFactory(() => USDT0BridgeViewModel(
+        appStore: getIt.get<AppStore>(),
+        bridgeTransfersStore: getIt.get<BridgeTransfersStore>(),
+      ));
   getIt.registerFactory(() => USDT0BridgePage(getIt<USDT0BridgeViewModel>()));
+  getIt.registerFactory(() => BridgeHistoryViewModel(
+        bridgeTransfersStore: getIt.get<BridgeTransfersStore>(),
+        appStore: getIt.get<AppStore>(),
+      ));
+  getIt.registerFactory(() => BridgeHistoryPage(getIt.get<BridgeHistoryViewModel>()));
+  getIt.registerFactoryParam<BridgeDetailsViewModel, BridgeTransfer, void>(
+      (BridgeTransfer transfer, _) {
+    final appStore = getIt.get<AppStore>();
+    return BridgeDetailsViewModel(
+      transferForDetails: transfer,
+      bridgeTransfersStore: getIt.get<BridgeTransfersStore>(),
+      walletId: appStore.wallet?.name ?? transfer.walletId,
+    );
+  });
+  getIt.registerFactoryParam<BridgeDetailPage, BridgeTransfer, void>(
+      (BridgeTransfer transfer, _) => BridgeDetailPage(
+            getIt.get<BridgeDetailsViewModel>(param1: transfer),
+          ));
 
   getIt.registerLazySingleton(() => NodeSwitchingService(
     appStore: getIt.get<AppStore>(),

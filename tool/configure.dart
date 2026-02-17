@@ -1532,6 +1532,8 @@ abstract class EVM {
   
   String? getExplorerUrlForChainId(int chainId, {bool showProtocol = true});
   
+  Future<bool?> getTransactionReceipt(WalletBase wallet, String txHash);
+
   bool hasPriorityFee(int chainId);
 
   bool isUSDT0Token(WalletBase wallet, CryptoCurrency token);

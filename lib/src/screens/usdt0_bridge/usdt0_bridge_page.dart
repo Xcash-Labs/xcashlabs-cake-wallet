@@ -6,6 +6,8 @@ import 'package:cake_wallet/src/widgets/base_text_form_field.dart';
 import 'package:cake_wallet/src/widgets/bottom_sheet/base_bottom_sheet_widget.dart';
 import 'package:cake_wallet/src/widgets/bottom_sheet/info_bottom_sheet_widget.dart';
 import 'package:cake_wallet/src/widgets/gradient_background.dart';
+import 'package:cake_wallet/src/widgets/primary_button.dart';
+import 'package:cake_wallet/src/widgets/scollable_with_bottom_section.dart';
 import 'package:cake_wallet/utils/request_review_handler.dart';
 import 'package:cake_wallet/view_model/usdt0_bridge/usdt0_bridge_view_model.dart';
 import 'package:cw_core/crypto_currency.dart';
@@ -28,6 +30,14 @@ class USDT0BridgePage extends BasePage {
   String get title => "USDT0 Bridge";
 
   @override
+  Widget? trailing(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.history),
+      onPressed: () => Navigator.of(context).pushNamed(Routes.usdt0BridgeHistory),
+    );
+  }
+
+  @override
   Widget body(BuildContext context) {
     return _USDT0BridgeBody(viewModel: viewModel, childBuilder: _buildContent);
   }
@@ -48,11 +58,12 @@ class USDT0BridgePage extends BasePage {
           );
         }
         viewModel.ensureDefaultSelection();
-        return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
+        return ScrollableWithBottomSection(
+          contentPadding: const EdgeInsets.only(bottom: 24),
+          content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 16),
               _USDT0TokenSection(viewModel: viewModel),
               const SizedBox(height: 16),
               _USDT0DestinationSection(viewModel: viewModel),
@@ -60,13 +71,20 @@ class USDT0BridgePage extends BasePage {
               _USDT0AmountField(viewModel: viewModel),
               const SizedBox(height: 16),
               _USDT0RecipientField(viewModel: viewModel),
-              const SizedBox(height: 24),
-              _USDT0QuoteSection(viewModel: viewModel),
               const SizedBox(height: 16),
-              _USDT0GetQuoteButton(viewModel: viewModel),
-              const SizedBox(height: 12),
-              _USDT0BridgeButton(viewModel: viewModel),
+              _USDT0QuoteSection(viewModel: viewModel),
             ],
+          ),
+          bottomSection: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _USDT0GetQuoteButton(viewModel: viewModel),
+                const SizedBox(height: 12),
+                _USDT0BridgeButton(viewModel: viewModel),
+              ],
+            ),
           ),
         );
       },
@@ -112,15 +130,14 @@ class _USDT0BridgeBodyState extends State<_USDT0BridgeBody> {
         isScrollControlled: true,
         builder: (BuildContext bottomSheetContext) {
           return InfoBottomSheet(
-            footerType: FooterType.singleActionButton,
+            footerType: FooterType.doubleActionButton,
             titleText: "Bridge initiated!",
             contentImage: 'assets/images/birthday_cake.png',
-            content: "The bridging will take approximately 30 seconds to 3 minutes to complete.",
-            singleActionButtonText: S.of(bottomSheetContext).close,
-            singleActionButtonKey: const ValueKey(
-              'usdt0_bridge_success_close_button_key',
-            ),
-            onSingleActionButtonPressed: () {
+            content: "The bridging will take approximately 30 seconds to 3 "
+                "minutes to complete.",
+            doubleActionLeftButtonText: S.of(bottomSheetContext).close,
+            doubleActionRightButtonText: S.current.bridge_view_status,
+            onLeftActionButtonPressed: () {
               Navigator.of(bottomSheetContext).pop();
               widget.viewModel.clearBridgeSuccess();
               if (mounted) {
@@ -130,6 +147,17 @@ class _USDT0BridgeBodyState extends State<_USDT0BridgeBody> {
                 );
               }
               RequestReviewHandler.requestReview();
+            },
+            onRightActionButtonPressed: () {
+              final transfer = widget.viewModel.lastCreatedBridgeTransfer;
+              Navigator.of(bottomSheetContext).pop();
+              widget.viewModel.clearBridgeSuccess();
+              if (mounted && transfer != null) {
+                Navigator.of(context).pushNamed(
+                  Routes.usdt0BridgeDetail,
+                  arguments: transfer,
+                );
+              }
             },
           );
         },
@@ -148,36 +176,67 @@ class _USDT0TokenSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = viewModel.availableUSDT0Tokens;
-    if (tokens.isEmpty) return const SizedBox();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Token",
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        Observer(
-          builder: (_) => DropdownButtonFormField<CryptoCurrency>(
-            value: viewModel.selectedToken ?? tokens.first,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+    return Observer(
+      builder: (_) {
+        final tokens = viewModel.availableUSDT0Tokens;
+        if (tokens.isEmpty) return const SizedBox();
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Token",
+                style: Theme.of(context).textTheme.titleSmall,
               ),
-            ),
-            items: tokens
-                .map((t) => DropdownMenuItem<CryptoCurrency>(
-                      value: t,
-                      child: Text('${t.title} (${t.symbol})'),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              if (value != null) viewModel.setSelectedToken(value);
-            },
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
+                child: DropdownButtonFormField<CryptoCurrency>(
+                  value: viewModel.selectedToken ?? tokens.first,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  dropdownColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  items: tokens
+                      .map((t) => DropdownMenuItem<CryptoCurrency>(
+                            value: t,
+                            child: Text(
+                              '${t.title} (${t.symbol})',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) viewModel.setSelectedToken(value);
+                  },
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -189,38 +248,67 @@ class _USDT0DestinationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Destination chain",
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        Observer(
-          builder: (_) {
-            final chains = viewModel.availableDestinationChains;
-            if (chains.isEmpty) return const SizedBox();
-            return DropdownButtonFormField<int>(
-              value: viewModel.destinationChainId ?? chains.first.chainId,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Destination chain",
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Observer(
+            builder: (_) {
+              final chains = viewModel.availableDestinationChains;
+              if (chains.isEmpty) return const SizedBox();
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
-              ),
-              items: chains
-                  .map((c) => DropdownMenuItem<int>(
-                        value: c.chainId,
-                        child: Text('${c.name} (${c.shortCode})'),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) viewModel.setDestinationChain(value);
-              },
-            );
-          },
-        ),
-      ],
+                child: DropdownButtonFormField<int>(
+                  value: viewModel.destinationChainId ?? chains.first.chainId,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  dropdownColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  items: chains
+                      .map((c) => DropdownMenuItem<int>(
+                            value: c.chainId,
+                            child: Text(
+                              '${c.name} (${c.shortCode})',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) viewModel.setDestinationChain(value);
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -235,25 +323,28 @@ class _USDT0AmountField extends StatelessWidget {
     return Observer(
       builder: (_) {
         final amountError = viewModel.amountError;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            BaseTextFormField(
-              initialValue: viewModel.amount,
-              onChanged: viewModel.setAmount,
-              hintText: "Amount",
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-            if (amountError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                amountError,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BaseTextFormField(
+                initialValue: viewModel.amount,
+                onChanged: viewModel.setAmount,
+                hintText: "Amount",
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
+              if (amountError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  amountError,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                ),
+              ],
             ],
-          ],
+          ),
         );
       },
     );
@@ -292,37 +383,40 @@ class _USDT0RecipientFieldState extends State<_USDT0RecipientField> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Recipient address",
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 8),
-        AddressTextField<CryptoCurrency>(
-          controller: _controller,
-          hasUnderlineBorder: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          options: [
-            AddressTextFieldOption.paste,
-            AddressTextFieldOption.qrCode,
-          ],
-          selectedCurrency: widget.viewModel.wallet.currency,
-          onURIScanned: (_) {},
-          placeholder: "Recipient address",
-          textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-          hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Recipient address",
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          AddressTextField<CryptoCurrency>(
+            controller: _controller,
+            hasUnderlineBorder: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 8),
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            options: [
+              AddressTextFieldOption.paste,
+              AddressTextFieldOption.qrCode,
+            ],
+            selectedCurrency: widget.viewModel.wallet.currency,
+            onURIScanned: (_) {},
+            placeholder: "Recipient address",
+            textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -338,7 +432,7 @@ class _USDT0QuoteSection extends StatelessWidget {
       builder: (_) {
         if (viewModel.quoteError != null) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               viewModel.quoteError!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -354,7 +448,7 @@ class _USDT0QuoteSection extends StatelessWidget {
               ? '~${currency.formatAmount(nativeFee)} ${currency.title}'
               : '0';
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               'Estimated fee(native): $feeStr',
               style: Theme.of(context).textTheme.bodySmall,
@@ -375,20 +469,13 @@ class _USDT0GetQuoteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Observer(
-      builder: (_) => SizedBox(
-        width: double.infinity,
-        child: OutlinedButton(
-          onPressed: viewModel.isQuoteLoading || viewModel.amountError != null
-              ? null
-              : () => viewModel.loadQuote(),
-          child: viewModel.isQuoteLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text("Get quote"),
-        ),
+      builder: (_) => LoadingPrimaryButton(
+        onPressed: () => viewModel.loadQuote(),
+        text: "Get quote",
+        color: Theme.of(context).colorScheme.primary,
+        textColor: Theme.of(context).colorScheme.onPrimary,
+        isLoading: viewModel.isQuoteLoading,
+        isDisabled: viewModel.amountError != null || viewModel.amount.isEmpty,
       ),
     );
   }
@@ -408,38 +495,31 @@ class _USDT0BridgeButton extends StatelessWidget {
             viewModel.amount.isNotEmpty &&
             viewModel.recipientAddress.isNotEmpty &&
             viewModel.amountError == null;
-        final button = SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: canBridge ? () => viewModel.executeBridge() : null,
-            child: viewModel.isExecuting
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text("Bridge"),
-          ),
-        );
-        if (viewModel.executeError != null) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                viewModel.executeError!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+        final executeError = viewModel.executeError;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (executeError != null) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  executeError,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                ),
               ),
-              const SizedBox(height: 8),
-              button,
             ],
-          );
-        }
-        return button;
+            LoadingPrimaryButton(
+              onPressed: () => viewModel.executeBridge(),
+              text: "Bridge",
+              color: Theme.of(context).colorScheme.primary,
+              textColor: Theme.of(context).colorScheme.onPrimary,
+              isLoading: viewModel.isExecuting,
+              isDisabled: !canBridge,
+            ),
+          ],
+        );
       },
     );
   }

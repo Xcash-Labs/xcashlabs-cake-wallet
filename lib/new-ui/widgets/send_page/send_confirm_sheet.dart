@@ -386,7 +386,7 @@ class TransactionCommitedScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            S.of(context).transaction_commited,
+            S.of(context).transaction_sent_new,
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
           ),
           Image.asset(width: 256, height: 256, "assets/images/birthday_cake.png")

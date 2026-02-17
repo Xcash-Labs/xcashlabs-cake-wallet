@@ -1166,6 +1166,7 @@
   "transaction_priority_regular": "Thông thường",
   "transaction_priority_slow": "Chậm",
   "transaction_sent": "Giao dịch đã được gửi!",
+  "transaction_sent_new": "Đã gửi giao dịch!",
   "transaction_sent_notice": "Nếu màn hình không tiếp tục sau 1 phút, hãy kiểm tra trình khám phá khối và email của bạn.",
   "transactions": "Giao dịch",
   "transactions_by_date": "Giao dịch theo ngày",

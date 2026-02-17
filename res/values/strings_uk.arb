@@ -1170,6 +1170,7 @@
   "transaction_priority_regular": "Звичайний",
   "transaction_priority_slow": "Повільний",
   "transaction_sent": "Tранзакцію відправлено!",
+  "transaction_sent_new": "Трансакцію надіслано!",
   "transaction_sent_notice": "Якщо екран не відображається через 1 хвилину, перевірте провідник блоків і свою електронну пошту.",
   "transactions": "Транзакції",
   "transactions_by_date": "Сортувати по даті",

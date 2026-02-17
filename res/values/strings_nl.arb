@@ -1169,6 +1169,7 @@
   "transaction_priority_regular": "Regelmatig",
   "transaction_priority_slow": "Langzaam",
   "transaction_sent": "Transactie verzonden!",
+  "transaction_sent_new": "Transactie verzonden!",
   "transaction_sent_notice": "Als het scherm na 1 minuut niet verder gaat, controleer dan een blokverkenner en je e-mail.",
   "transactions": "Transacties",
   "transactions_by_date": "Transacties op datum",

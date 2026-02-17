@@ -1168,6 +1168,7 @@
   "transaction_priority_regular": "Regularny",
   "transaction_priority_slow": "Wolny",
   "transaction_sent": "Transakcja wysłana!",
+  "transaction_sent_new": "Transakcja wysłana!",
   "transaction_sent_notice": "Jeśli po upływie 1 minuty ekran nie przejdzie dalej, sprawdź eksplorator bloków i swoją skrzynkę e‑mail.",
   "transactions": "Transakcje",
   "transactions_by_date": "Transakcje według daty",

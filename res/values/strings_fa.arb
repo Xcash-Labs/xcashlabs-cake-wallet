@@ -1168,6 +1168,7 @@
   "transaction_priority_regular": "معمولی",
   "transaction_priority_slow": "کند",
   "transaction_sent": "تراکنش ارسال شد!",
+  "transaction_sent_new": "تراکنش ارسال شد!",
   "transaction_sent_notice": "اگر صفحه بعد از ۱ دقیقه پیش نرفت، یک کاوشگر بلاک و ایمیل خود را چک کنید.",
   "transactions": "تراکنش‌ها",
   "transactions_by_date": "تراکنش‌ها بر اساس تاریخ",

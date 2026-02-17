@@ -1169,6 +1169,7 @@
   "transaction_priority_regular": "ပုံမှန်အစည်းအဝေး",
   "transaction_priority_slow": "နှေးနှေး",
   "transaction_sent": "ငွေပေးချေမှု ပို့ပြီးပါပြီ။!",
+  "transaction_sent_new": "ငွေပေးချေမှု ပို့ပြီးပါပြီ။",
   "transaction_sent_notice": "မျက်နှာပြင်သည် ၁ မိနစ်အကြာတွင် ဆက်လက်မလုပ်ဆောင်ပါက၊ ပိတ်ဆို့ရှာဖွေသူနှင့် သင့်အီးမေးလ်ကို စစ်ဆေးပါ။",
   "transactions": "ငွေပေးငွေယူ",
   "transactions_by_date": "ရက်စွဲအလိုက် ငွေလွှဲမှုများ",

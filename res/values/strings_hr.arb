@@ -1169,6 +1169,7 @@
   "transaction_priority_regular": "Uobičajeno",
   "transaction_priority_slow": "Sporo",
   "transaction_sent": "Transakcija provedena!",
+  "transaction_sent_new": "Transakcija poslana!",
   "transaction_sent_notice": "Ako se zaslon ne nastavi nakon 1 minute, provjerite block explorer i svoju e-poštu.",
   "transactions": "Transakcije",
   "transactions_by_date": "Transakcije prema datumu",

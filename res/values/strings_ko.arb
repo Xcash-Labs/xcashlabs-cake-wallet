@@ -1170,6 +1170,7 @@
   "transaction_priority_regular": "보통",
   "transaction_priority_slow": "느림",
   "transaction_sent": "트랜잭션 전송됨!",
+  "transaction_sent_new": "거래가 전송되었습니다!",
   "transaction_sent_notice": "1분 후에도 화면이 진행되지 않으면 블록 탐색기와 이메일을 확인하세요.",
   "transactions": "트랜잭션",
   "transactions_by_date": "날짜별 트랜잭션",

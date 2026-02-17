@@ -1169,6 +1169,7 @@
   "transaction_priority_regular": "ปกติ",
   "transaction_priority_slow": "ช้า",
   "transaction_sent": "ธุรกรรมถูกส่ง!",
+  "transaction_sent_new": "ส่งธุรกรรมแล้ว!",
   "transaction_sent_notice": "ถ้าหน้าจอไม่ขึ้นหลังจาก 1 นาทีแล้ว ให้ตรวจสอบ block explorer และอีเมลของคุณ",
   "transactions": "ธุรกรรม",
   "transactions_by_date": "ธุรกรรมตามวันที่",

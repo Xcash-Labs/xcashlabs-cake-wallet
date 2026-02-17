@@ -1170,6 +1170,7 @@
   "transaction_priority_regular": "レギュラー",
   "transaction_priority_slow": "スロー",
   "transaction_sent": "トランザクションが送信されました！",
+  "transaction_sent_new": "トランザクションが送信されました!",
   "transaction_sent_notice": "1分経っても画面が進まない場合は、ブロックエクスプローラーとメールアドレスを確認してください。",
   "transactions": "取引",
   "transactions_by_date": "日付ごとの取引",

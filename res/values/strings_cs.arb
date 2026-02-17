@@ -1169,6 +1169,7 @@
   "transaction_priority_regular": "Běžná",
   "transaction_priority_slow": "Pomalá",
   "transaction_sent": "Transakce odeslána!",
+  "transaction_sent_new": "Transakce odeslána!",
   "transaction_sent_notice": "Pokud proces nepokročí během 1 minuty, zkontrolujte block explorer a svůj e-mail.",
   "transactions": "Transakce",
   "transactions_by_date": "Transakce podle data",

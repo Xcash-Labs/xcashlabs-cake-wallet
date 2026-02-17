@@ -1169,6 +1169,7 @@
   "transaction_priority_regular": "Обичайно",
   "transaction_priority_slow": "Бавно",
   "transaction_sent": "Сумата е изпратена!",
+  "transaction_sent_new": "Транзакцията е изпратена!",
   "transaction_sent_notice": "Ако процесът продължи повече от 1 минута, проверете някой block explorer и своя имейл.",
   "transactions": "Транзакции",
   "transactions_by_date": "Транзакции по дата",

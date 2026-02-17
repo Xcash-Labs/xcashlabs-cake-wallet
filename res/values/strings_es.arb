@@ -1170,6 +1170,7 @@
   "transaction_priority_regular": "Normal",
   "transaction_priority_slow": "Lento",
   "transaction_sent": "¡Transacción enviada!",
+  "transaction_sent_new": "¡Transacción enviada!",
   "transaction_sent_notice": "Si la pantalla no avanza después de 1 minuto, verifica un explorador de bloques y tu correo electrónico.",
   "transactions": "Transacciones",
   "transactions_by_date": "Transacciones por fecha",

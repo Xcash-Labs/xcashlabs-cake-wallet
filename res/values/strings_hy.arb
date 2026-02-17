@@ -1167,6 +1167,7 @@
   "transaction_priority_regular": "Սովորական",
   "transaction_priority_slow": "Դանդաղ",
   "transaction_sent": "Փոխանցումն ուղարկված է",
+  "transaction_sent_new": "Գործարքն ուղարկված է:",
   "transaction_sent_notice": "Եթե էկրանը 1 րոպեի ընթացքում չի թարմանում, խնդրում ենք ստուգել բլոկի բացահայտիչը և Ձեր էլ. փոստը",
   "transactions": "Փոխանցումներ",
   "transactions_by_date": "Փոխանցումներ ամսաթվով",

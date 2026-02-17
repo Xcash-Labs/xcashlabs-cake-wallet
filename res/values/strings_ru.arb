@@ -1170,6 +1170,7 @@
   "transaction_priority_regular": "Обычный",
   "transaction_priority_slow": "Медленный",
   "transaction_sent": "Tранзакция отправлена!",
+  "transaction_sent_new": "Транзакция отправлена!",
   "transaction_sent_notice": "Если экран не отображается через 1 минуту, проверьте обозреватель блоков и свою электронную почту.",
   "transactions": "Транзакции",
   "transactions_by_date": "Сортировать по дате",

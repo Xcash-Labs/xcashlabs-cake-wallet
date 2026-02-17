@@ -1170,6 +1170,7 @@
   "transaction_priority_regular": "Regolare",
   "transaction_priority_slow": "Lento",
   "transaction_sent": "Transazione inviata!",
+  "transaction_sent_new": "Transazione inviata!",
   "transaction_sent_notice": "Se la schermata non procede dopo 1 minuto, controlla un block explorer e la tua email.",
   "transactions": "Transazioni",
   "transactions_by_date": "Transazioni per data",

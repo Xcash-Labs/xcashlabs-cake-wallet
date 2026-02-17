@@ -1171,6 +1171,7 @@
   "transaction_priority_regular": "SAURI NORMAL",
   "transaction_priority_slow": "SAURI DA SAURI",
   "transaction_sent": "An aika ciniki!",
+  "transaction_sent_new": "An aika ma'amala!",
   "transaction_sent_notice": "Idan allon bai ci gaba ba bayan minti 1, duba mai binciken toshewa da imel ɗin ku.",
   "transactions": "Ma'amaloli",
   "transactions_by_date": "Ma'amaloli ta kwanan wata",

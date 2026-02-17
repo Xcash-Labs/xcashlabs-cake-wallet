@@ -936,6 +936,7 @@
   "transaction_priority_regular": "Hekojoja",
   "transaction_priority_slow": "Mbegue",
   "transaction_sent": "Oñemondo transaccion.",
+  "transaction_sent_new": "¡Transacción oñemondova'ekue!",
   "transaction_sent_notice": "Ko pantalla ndohasai ramo aravo’ive rire, eheka pe jehekaha bloque-pe ha nde korreo electrónico-pe.",
   "transactions": "jehuperehaí-kuera",
   "transactions_by_date": "Ára ñembohasa-kuera rehegua",

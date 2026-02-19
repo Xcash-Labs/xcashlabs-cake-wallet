@@ -49,7 +49,7 @@ class CoinActionRow extends StatelessWidget {
                 final sendPage = getIt.get<NewSendPage>(
                   param1: SendPageParams(
                     unspentCoinType:
-                        lightningMode ? UnspentCoinType.lightning : UnspentCoinType.any,
+                        lightningMode ? UnspentCoinType.lightning : UnspentCoinType.nonMweb,
                   ),
                 );
 

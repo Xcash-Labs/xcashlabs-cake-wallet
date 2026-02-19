@@ -349,7 +349,7 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
       lightningWallet!.getTransactionHistory().then((lnHistory) async {
         transactionHistory.addMany(lnHistory);
         await transactionHistory.save();
-      });
+      }).onError((_, __) {});
     }
 
     return super.fetchTransactions();

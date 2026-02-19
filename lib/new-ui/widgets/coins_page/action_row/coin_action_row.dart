@@ -155,7 +155,7 @@ class CoinAction {
         }
         ;
       }
-      });
+  );
 
   static final all = [send, receive, swap, scan];
 }

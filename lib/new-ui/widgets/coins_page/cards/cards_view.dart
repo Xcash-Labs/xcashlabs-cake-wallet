@@ -107,6 +107,7 @@ class _CardsViewState extends State<CardsView> {
             }
             final account = widget.accountListViewModel?.accounts[realIndex];
 
+            // The second balance should always be the lightning balance
             final walletBalanceRecord = widget.dashboardViewModel.balanceViewModel.formattedBalances
                 .elementAtOrNull(widget.lightningMode ? 1 : 0);
 
@@ -125,6 +126,8 @@ class _CardsViewState extends State<CardsView> {
               walletFiatBalance = walletBalanceRecord?.fiatAvailableBalance ?? "${widget.dashboardViewModel.appStore.settingsStore.fiatCurrency.title} 0.00";
             }
 
+            // the card designs is empty if widget gets built before it loads.
+            // should get populated before user sees anything
             final CardDesign cardDesign;
             if (widget.dashboardViewModel.cardDesigns.isEmpty ||
                 realIndex >= widget.dashboardViewModel.cardDesigns.length)

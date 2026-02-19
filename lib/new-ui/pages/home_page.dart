@@ -300,16 +300,21 @@ class CardsViewHeaderDelegate extends SliverPersistentHeaderDelegate {
                 ),
               ),
               Positioned(
-                top:topPadding+18,
-                bottom: 48,
+                top: 36 * progress,
+                bottom: 0,
                 left: 18,
-                right:18,
+                right: 18,
                 child: Opacity(
                   opacity: progress,
-                  child: Container(
-                    decoration: BoxDecoration(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      height: 74,
+                      decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(18)),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
                   ),
                 ),
               ),

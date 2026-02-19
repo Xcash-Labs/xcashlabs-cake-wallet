@@ -174,7 +174,7 @@ class CoinActionRow extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: MediaQuery.of(context).size.width * 0.05,
-          children: CoinAction.all
+          children: CoinAction.all.where((item) => item != CoinAction.swap || showSwap)
               .map((item) => CoinActionButton(
                   icon: SvgPicture.asset(
                     item.iconPath,
@@ -189,9 +189,11 @@ class CoinActionRow extends StatelessWidget {
 }
 
 class CompactCoinActionRow extends StatelessWidget {
-  const CompactCoinActionRow({super.key, required this.lightningMode});
+  const CompactCoinActionRow({super.key, this.lightningMode = false, this.showSwap = true});
 
   final bool lightningMode;
+  final bool showSwap;
+
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +201,7 @@ class CompactCoinActionRow extends StatelessWidget {
       spacing: 20,
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.center,
-      children: CoinAction.all
+      children: CoinAction.all.where((item) => item != CoinAction.swap || showSwap)
           .map((item) => ModernButton.svg(
                 svgPath: item.iconPath,
                 size: 36,

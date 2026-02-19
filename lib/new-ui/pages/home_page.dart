@@ -125,7 +125,7 @@ class _NewHomePageState extends State<NewHomePage> {
                   delegate: CardsViewHeaderDelegate(
                     maxHeight: getCardBoxHeight(),
                     sideWidget: CompactWalletHeader(dashboardViewModel: widget.dashboardViewModel,accountListViewModel: accountListViewModel,),
-                    bottomWidget: CompactCoinActionRow(lightningMode: _lightningMode),
+                    bottomWidget: CompactCoinActionRow(lightningMode: _lightningMode,showSwap: widget.dashboardViewModel.isEnabledSwapAction),
                     minHeight: 100.0,
                     maxWidth: MediaQuery.of(context).size.width * 0.878,
                     minWidth: 80,

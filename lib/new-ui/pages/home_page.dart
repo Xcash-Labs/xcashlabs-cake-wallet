@@ -20,6 +20,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx/mobx.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 class NewHomePage extends StatefulWidget {
@@ -40,15 +41,12 @@ class _NewHomePageState extends State<NewHomePage> {
   void initState() {
     super.initState();
     _setAccountViewModel();
-  }
-
-  @override
-  void didUpdateWidget(covariant NewHomePage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.dashboardViewModel.wallet != widget.dashboardViewModel.wallet) {
+    reaction((_)=>widget.dashboardViewModel.wallet, (_) {
       _setAccountViewModel();
-    }
+      setState(() {
+        _lightningMode = false;
+      });
+    });
   }
 
   void _setAccountViewModel() {
@@ -109,11 +107,13 @@ class _NewHomePageState extends State<NewHomePage> {
                       },
                     ),
                     SizedBox(height: 24),
-                    WalletInfo(
-                      lightningMode: _lightningMode,
-                      hardwareWalletType: widget.dashboardViewModel.wallet.hardwareWalletType,
-                      name: widget.dashboardViewModel.wallet.name,
-                      onCustomizeButtonTap: openCustomizer,
+                    Observer(
+                      builder: (_)=>WalletInfoBar(
+                          lightningMode: _lightningMode,
+                          hardwareWalletType: widget.dashboardViewModel.wallet.hardwareWalletType,
+                          name: widget.dashboardViewModel.wallet.name,
+                          onCustomizeButtonTap: openCustomizer
+                      ),
                     ),
                     SizedBox(height: 24),
                   ],
@@ -152,7 +152,9 @@ class _NewHomePageState extends State<NewHomePage> {
                       dashboardViewModel: widget.dashboardViewModel,
                     ),
                     SizedBox(height: 24),
-                    CoinActionRow(lightningMode: _lightningMode),
+                    CoinActionRow(lightningMode: _lightningMode,
+                      showSwap: widget.dashboardViewModel.isEnabledSwapAction,
+                    ),
                     SizedBox(height: 24),
                     Observer(
                       builder: (_) => AssetsHistorySection(
@@ -197,43 +199,43 @@ class _NewHomePageState extends State<NewHomePage> {
     return maxCardHeight + (numCards-1)*overlapAmount;
   }
 
-  void openCustomizer() {
-    CupertinoScaffold.showCupertinoModalBottomSheet(
+  void openCustomizer() async {
+    final bloc = getIt.get<CardCustomizerBloc>(
+        param1: _lightningMode,
+        param2: widget.dashboardViewModel.settingsStore.displayAmountsInSatoshi);
+
+
+    await CupertinoScaffold.showCupertinoModalBottomSheet(
       barrierColor: Colors.black.withAlpha(60),
       context: context,
       builder: (context) {
-        final bloc = getIt.get<CardCustomizerBloc>(param1: _lightningMode);
-
         return ModalNavigator(
           parentContext: context,
           heightMode: ModalHeightModes.fullScreen,
           rootPage: BlocProvider(
             create: (context) => bloc,
             child: Material(
-              child: BlocListener<CardCustomizerBloc, CardCustomizerState>(
-                listener: (context, state) {
-                  if (state is CardCustomizerSaved) {
-                    widget.dashboardViewModel.loadCardDesigns();
-                  }
-                },
-                child: accountListViewModel == null
-                    ? CardCustomizer(
-                        cryptoTitle: widget.dashboardViewModel.wallet.currency.fullName ??
-                            widget.dashboardViewModel.wallet.currency.name,
-                        cryptoName: widget.dashboardViewModel.wallet.currency.name,
-                      )
-                    : AccountCustomizer(
-                        accountListViewModel: accountListViewModel!,
-                        accountEditOrCreateViewModel:
-                            getIt.get<MoneroAccountEditOrCreateViewModel>(),
-                        dashboardViewModel: widget.dashboardViewModel,
-                      ),
+              child: accountListViewModel == null
+                  ? CardCustomizer(
+                cryptoTitle: widget.dashboardViewModel.wallet.currency.fullName ??
+                    widget.dashboardViewModel.wallet.currency.name,
+                cryptoName: widget.dashboardViewModel.wallet.currency.name,
+              )
+                  : AccountCustomizer(
+                accountListViewModel: accountListViewModel!,
+                accountEditOrCreateViewModel:
+                getIt.get<MoneroAccountEditOrCreateViewModel>(),
+                dashboardViewModel: widget.dashboardViewModel,
               ),
             ),
           ),
         );
       },
     );
+
+    bloc.add(DesignSaved());
+    await bloc.stream.firstWhere((s) => s is CardCustomizerSaved);
+    widget.dashboardViewModel.loadCardDesigns();
   }
 }
 

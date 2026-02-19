@@ -26,9 +26,10 @@ extension MaxDecimals on String {
   /// DO NOT PARSE THE LOCALIZED STRING TO A NUMBER IF YOU WANT TO KEEP YOUR SANITY!
   String withLocalSeperator([String? locale]) {
     final formater = NumberFormat("#,###", locale);
-    final parts = split(".");
+    final parts = replaceAll(",", "").split(".");
+    if (parts.first.contains("< 0")) parts.first = "0";
 
-    return [formater.format(int.parse(parts.first)), ...parts.sublist(1)]
+    return [formater.format(int.tryParse(parts.first) ?? 0), ...parts.sublist(1)]
         .join(formater.symbols.DECIMAL_SEP);
   }
 }

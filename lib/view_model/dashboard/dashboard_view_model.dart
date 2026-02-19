@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
-import 'dart:math';
 
 import 'package:cake_wallet/.secrets.g.dart' as secrets;
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
@@ -404,7 +403,7 @@ abstract class DashboardViewModelBase with Store {
         numAccounts = 1;
       }
     cardDesigns.clear();
-    cardOrder.clear();
+      Map<int, int> newOrder = {};
 
     for (int i = 0; i < numAccounts; i++) {
       late final int index;
@@ -432,18 +431,26 @@ abstract class DashboardViewModelBase with Store {
 
       cardDesigns.add(CardDesign.fromStyleSettings(setting, curr));
       if(setting?.cardOrder != null) {
-        if(!(wallet.type != WalletType.bitcoin && i == 1)) {
-          cardOrder[setting!.cardOrder] = i;
-        }
+          newOrder[setting!.cardOrder] = i;
       }
     }
 
     // making sure ALL accounts have numbers, even the ones that existed before this feature was a thing
-    for(int i=0; i<numAccounts; i++) {
-      if (!cardOrder.containsKey(i) && !(wallet.type != WalletType.bitcoin && i == 1)) {
-        cardOrder[i] = cardOrder.isEmpty ? i : cardOrder.values.reduce(max)+1;
+    for (int i = 0; i < numAccounts; i++) {
+      if (!newOrder.containsKey(i) && !(wallet.type != WalletType.bitcoin && i == 1)) {
+        int free = 0;
+        while (newOrder.containsValue(free)) {
+          free++;
+        }
+        if(wallet.type == WalletType.bitcoin) {
+          newOrder[free] = 0;
+        } else {
+          newOrder[free] = i;
+        }
+
       }
     }
+    cardOrder = newOrder.asObservable();
   }
 
   void _transactionDisposerCallback(int _) async {
@@ -578,8 +585,12 @@ abstract class DashboardViewModelBase with Store {
   BalanceDisplayMode get balanceDisplayMode => appStore.settingsStore.balanceDisplayMode;
 
   @computed
+  @Deprecated("Replaced by showApps")
   bool get shouldShowMarketPlaceInDashboard =>
       appStore.settingsStore.shouldShowMarketPlaceInDashboard;
+
+  @computed
+  bool get showApps => appStore.settingsStore.shouldShowMarketPlaceInDashboard;
 
   @computed
   List<TradeListItem> get trades =>

@@ -205,9 +205,12 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
     if (pendingTransaction == null) return '0.00';
 
     try {
+      var currency = _fiatConversationStore.prices.keys
+          .firstWhere((k) => k.titleAndTagEqual(selectedCryptoCurrency));
+      if (currency == CryptoCurrency.btcln) currency = CryptoCurrency.btc;
+
       final fiat = calculateFiatAmount(
-          price: _fiatConversationStore.prices[_fiatConversationStore.prices.keys
-              .firstWhere((k) => k.titleAndTagEqual(selectedCryptoCurrency))],
+          price: _fiatConversationStore.prices[currency],
           cryptoAmount: pendingTransaction!.amountFormatted);
       return fiat;
     } catch (_) {
@@ -242,6 +245,7 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
       case WalletType.bsc:
       case WalletType.tron:
       case WalletType.solana:
+      case WalletType.bitcoin:
         return wallet.currency;
       default:
         return selectedCryptoCurrency;
@@ -250,9 +254,10 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
 
   FiatCurrency get fiat => _settingsStore.fiatCurrency;
 
-  CryptoCurrency get currency => wallet.currency;
+  CryptoCurrency get currency =>
+      selectedCryptoCurrency == CryptoCurrency.btcln ? CryptoCurrency.btcln : wallet.currency;
 
-  String get feeCurrencySymbol => _appStore.amountParsingProxy.getCryptoSymbol(currency);
+  String get currencySymbol => _appStore.amountParsingProxy.getCryptoSymbol(currency);
 
   Validator<String> amountValidator(Output output) => AmountValidator(
         currency: wallet.currency,

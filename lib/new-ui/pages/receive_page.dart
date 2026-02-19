@@ -14,9 +14,11 @@ import 'package:cake_wallet/view_model/dashboard/dashboard_view_model.dart';
 import 'package:cake_wallet/view_model/dashboard/receive_option_view_model.dart';
 import 'package:cake_wallet/view_model/wallet_address_list/wallet_address_list_item.dart';
 import 'package:cake_wallet/zcash/zcash.dart';
+import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/payment_uris.dart';
 import 'package:cw_core/receive_page_option.dart';
 import 'package:cw_core/utils/print_verbose.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:mobx/mobx.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:share_plus/share_plus.dart';
@@ -35,12 +37,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cake_wallet/new-ui/widgets/receive_page/receive_top_bar.dart';
 
 class NewReceivePage extends StatefulWidget {
-  const NewReceivePage(
+  NewReceivePage(
       {super.key,
       required this.addressListViewModel,
       required this.receiveOptionViewModel,
       required this.dashboardViewModel,
-      required this.lightningMode});
+      required this.lightningMode,
+      CryptoCurrency? initialCurrency}) {
+    if (initialCurrency != null) {
+      addressListViewModel.setTokenCurrency(initialCurrency);
+    }
+  }
 
   final WalletAddressListViewModel addressListViewModel;
   final ReceiveOptionViewModel receiveOptionViewModel;
@@ -63,9 +70,10 @@ class _NewReceivePageState extends State<NewReceivePage> {
       if (widget.lightningMode) {
         widget.receiveOptionViewModel.selectReceiveOption(widget.receiveOptionViewModel.options
             .firstWhere((item) => item.value.contains("Lightning")));
+        widget.addressListViewModel.setTokenCurrency(CryptoCurrency.btcln);
       } else if (widget.addressListViewModel.wallet.type == WalletType.bitcoin) {
-        widget.receiveOptionViewModel.selectReceiveOption(
-            bitcoin!.getSelectedAddressType(widget.addressListViewModel.wallet));
+        widget.receiveOptionViewModel.selectReceiveOption(widget.receiveOptionViewModel.options
+            .firstWhere((item) => item.value.contains("Standard")));
       }
     });
 
@@ -152,7 +160,7 @@ class _NewReceivePageState extends State<NewReceivePage> {
         onDismissed: () {
           widget.addressListViewModel.dismissInfobox();
           setState(() {});
-        });
+        }, autoGenerateSubaddressStatus: widget.dashboardViewModel.settingsStore.autoGenerateSubaddressStatus);
 
     return Container(
       decoration: BoxDecoration(
@@ -192,7 +200,7 @@ class _NewReceivePageState extends State<NewReceivePage> {
               onTrailingPressed: () {
                 if (_largeQrMode) {
                   Share.share(widget.addressListViewModel.uri.toString());
-                } else if (widget.addressListViewModel.hasAddressList) {
+                } else if (widget.addressListViewModel.hasAddressRotation) {
                   widget.addressListViewModel.rotateAddress();
                 }
               },
@@ -232,42 +240,43 @@ class _NewReceivePageState extends State<NewReceivePage> {
                         name: _addressItemWithLabel?.name ?? "",
                         largeQrMode: _largeQrMode,
                       )),
-                  ReceiveBottomButtons(
-                    key: const ValueKey(0),
-                    largeQrMode: _largeQrMode,
-                    showAccountsButton: widget.addressListViewModel.hasAddressList,
-                    showLabelButton: widget.addressListViewModel.hasAddressList && !hasLabel,
-                    onCopyButtonPressed: () {
-                      printV(widget.addressListViewModel.items);
-                      Clipboard.setData(
-                        ClipboardData(text: widget.addressListViewModel.uri.address),
-                      );
-                    },
-                    onAmountButtonPressed: () {
-                      showMaterialModalBottomSheet(
-                        context: context,
-                        backgroundColor: Colors.transparent,
-                        barrierColor: Colors.black.withAlpha(80),
-                        builder: (context) {
-                          return ReceiveAmountModal(
-                            walletAddressListViewModel: widget.addressListViewModel,
-                            onSubmitted: (amount) {},
-                          );
-                        },
-                      );
-                    },
-                    onLabelButtonPressed: _showLabelModal,
-                    onAccountsButtonPressed: () {
-                      Navigator.of(context).pushNamed(
-                        Routes.receiveAddresses,
-                        arguments: false,
-                      );
-                    },
+                  Observer(
+                    builder: (_) => ReceiveBottomButtons(
+                      key: const ValueKey(0),
+                      largeQrMode: _largeQrMode,
+                      showAccountsButton: widget.addressListViewModel.hasAddressList,
+                      showLabelButton: widget.addressListViewModel.hasAddressList && !hasLabel,
+                      onCopyButtonPressed: () {
+                        printV(widget.addressListViewModel.hasAddressList);
+                        Clipboard.setData(
+                          ClipboardData(text: widget.addressListViewModel.uri.address),
+                        );
+                      },
+                      onAmountButtonPressed: () {
+                        showMaterialModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          barrierColor: Colors.black.withAlpha(80),
+                          builder: (context) {
+                            return ReceiveAmountModal(
+                              walletAddressListViewModel: widget.addressListViewModel,
+                              onSubmitted: (amount) {},
+                            );
+                          },
+                        );
+                      },
+                      onLabelButtonPressed: _showLabelModal,
+                      onAccountsButtonPressed: () {
+                        Navigator.of(context).pushNamed(
+                          Routes.receiveAddresses,
+                          arguments: false,
+                        );
+                      },
+                    ),
                   ),
                   ReceiveLargeAmountPreview(
-                      amount: widget.addressListViewModel.amount,
-                      currency: widget.addressListViewModel.tokenCurrency?.title.toUpperCase() ??
-                          widget.addressListViewModel.wallet.currency.name.toUpperCase(),
+                      amount: widget.addressListViewModel.displayAmount,
+                      currency: widget.addressListViewModel.cryptoCurrencySymbol,
                       largeQrMode: _largeQrMode),
                   if (infobox != null)
                     ClipRect(

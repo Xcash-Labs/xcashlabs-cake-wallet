@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
 import 'package:cake_wallet/di.dart';
+import 'package:cake_wallet/entities/balance_display_mode.dart';
+import 'package:cake_wallet/entities/bitcoin_amount_display_mode.dart';
 import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/new-ui/modal_navigator.dart';
 import 'package:cake_wallet/new-ui/pages/send_page.dart';
@@ -11,6 +13,7 @@ import 'package:cake_wallet/utils/payment_request.dart';
 import 'package:cake_wallet/view_model/dashboard/dashboard_view_model.dart';
 import 'package:cake_wallet/view_model/monero_account_list/monero_account_list_view_model.dart';
 import 'package:cw_core/card_design.dart';
+import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/unspent_coin_type.dart';
 import 'package:cw_core/wallet_type.dart';
 import 'package:flutter/material.dart';
@@ -49,7 +52,7 @@ class _CardsViewState extends State<CardsView> {
     super.initState();
     _selectedIndex = widget.dashboardViewModel.cardOrder.length - 1;
     reaction(
-        (_) => widget.dashboardViewModel.cardOrder.keys.toList(),
+        (_) => widget.dashboardViewModel.cardOrder.values.toList(),
         (_) => setState(() {
               _selectedIndex = widget.dashboardViewModel.cardOrder.length - 1;
             }));
@@ -83,7 +86,7 @@ class _CardsViewState extends State<CardsView> {
           onTap: () {
             if (compactMode && visualIndex != 0) {
               widget.onCompactModeBackgroundCardsTapped();
-            } else {
+            } else if(!compactMode) {
               setState(() {
                 if (widget.accountListViewModel != null)
                   widget.accountListViewModel!
@@ -99,7 +102,7 @@ class _CardsViewState extends State<CardsView> {
             HapticFeedback.heavyImpact();
           },
           child: Observer(builder: (_) {
-            if(realIndex >= (widget.accountListViewModel?.accounts.length ?? 1)) {
+            if(realIndex > (widget.accountListViewModel?.accounts.length ?? 1)) {
               return Container();
             }
             final account = widget.accountListViewModel?.accounts[realIndex];
@@ -107,11 +110,24 @@ class _CardsViewState extends State<CardsView> {
             final walletBalanceRecord = widget.dashboardViewModel.balanceViewModel.formattedBalances
                 .elementAtOrNull(widget.lightningMode ? 1 : 0);
 
-            final walletBalance = walletBalanceRecord?.availableBalance ?? "0";
-            final walletFiatBalance = walletBalanceRecord?.fiatAvailableBalance ?? "0.00";
+            late final String walletBalance;
+            late final String walletFiatBalance;
+            if (widget.dashboardViewModel.mwebEnabled && widget.dashboardViewModel.hasMweb) {
+              if(widget.dashboardViewModel.balanceViewModel.displayMode == BalanceDisplayMode.hiddenBalance) {
+                walletBalance = '●●●●●●';
+                walletFiatBalance = '●●●●●●';
+              } else {
+                walletBalance = walletBalanceRecord?.combinedAvailableBalance ?? "0";
+                walletFiatBalance = walletBalanceRecord?.combinedFiatAvailableBalance ?? "0.00";
+              }
+            } else {
+              walletBalance = walletBalanceRecord?.availableBalance ?? "0";
+              walletFiatBalance = walletBalanceRecord?.fiatAvailableBalance ?? "${widget.dashboardViewModel.appStore.settingsStore.fiatCurrency.title} 0.00";
+            }
 
             final CardDesign cardDesign;
-            if (widget.dashboardViewModel.cardDesigns.isEmpty)
+            if (widget.dashboardViewModel.cardDesigns.isEmpty ||
+                realIndex >= widget.dashboardViewModel.cardDesigns.length)
               cardDesign = CardDesign.genericDefault;
             else if(widget.lightningMode)
               cardDesign = widget.dashboardViewModel.cardDesigns[realIndex + 1];
@@ -141,13 +157,15 @@ class _CardsViewState extends State<CardsView> {
                       onTap: withdrawFromL2,
                     )
                   ]
-                : [
-                    BalanceCardAction(
-                      label: S.current.buy,
-                      icon: Icons.arrow_forward,
-                      onTap: () => Navigator.of(context).pushNamed(Routes.buySellPage),
-                    )
-                  ];
+                : widget.dashboardViewModel.isEnabledTradeAction
+                    ? [
+                        BalanceCardAction(
+                          label: S.current.buy,
+                          icon: Icons.arrow_forward,
+                          onTap: () => Navigator.of(context).pushNamed(Routes.buySellPage),
+                        )
+                      ]
+                    : [];
 
             final double maxWidth = MediaQuery.of(context).size.width * 0.878;
             final double widthFactor = (widget.cardWidth / maxWidth).clamp(0.0, 1.0);
@@ -158,7 +176,8 @@ class _CardsViewState extends State<CardsView> {
               accountName: accountName,
               accountBalance: accountBalance,
               designSwitchDuration: Duration(milliseconds: 150),
-              assetName: walletBalanceRecord?.formattedAssetTitle ?? "",
+              assetName: walletBalanceRecord?.formattedAssetTitle ?? assetTitleFallback,
+              capitalizeAssetName: _shouldCapitalizeAssetName(),
               balance: walletBalance,
               borderRadius: radius,
               showForeground: widget.showContent,
@@ -171,6 +190,28 @@ class _CardsViewState extends State<CardsView> {
         ),
       ),
     );
+  }
+
+  String get assetTitleFallback => widget.dashboardViewModel.appStore.amountParsingProxy.getCryptoSymbol(
+      widget.lightningMode
+          ? CryptoCurrency.btcln
+          : widget.dashboardViewModel.wallet.currency);
+
+  bool _shouldCapitalizeAssetName() {
+    if(widget.dashboardViewModel.wallet.type != WalletType.bitcoin) {
+      return true;
+    }
+
+    switch (widget.dashboardViewModel.settingsStore.displayAmountsInSatoshi) {
+      case BitcoinAmountDisplayMode.satoshi:
+        return false;
+      case BitcoinAmountDisplayMode.satoshiForLightning:
+        return !widget.lightningMode;
+      case BitcoinAmountDisplayMode.bitcoin:
+        return true;
+      default:
+        return true;
+    }
   }
 
   double _getBoxHeight(int numCards, double overlapAmount) {
@@ -197,15 +238,24 @@ class _CardsViewState extends State<CardsView> {
         _selectedIndex = 0;
       }
 
-      final order = widget.dashboardViewModel.cardOrder.length != numCards
+      Map<int, int> order = widget.dashboardViewModel.cardOrder.length != numCards
           ? Map<int, int>.fromEntries(
               List.generate(numCards, (i) => MapEntry(i, i)),
             )
           : widget.dashboardViewModel.cardOrder;
 
+      for (int i = min(numCards - 1, maxCards); i >= 0; i--) {
+        int visualIndex = (_selectedIndex - i + numCards) % numCards;
+        if (order[visualIndex] == null) {
+          order = Map<int, int>.fromEntries(
+            List.generate(numCards, (i) => MapEntry(i, i)),
+          );
+        }
+      }
+
+
       final bool compactMode = numCards >= compactModeTreshold;
       final double overlapAmount = compactMode ? 5.0 : 60.0;
-
       for (int i = min(numCards - 1, maxCards); i >= 0; i--) {
         int visualIndex = (_selectedIndex - i + numCards) % numCards;
         int realIndex = order[visualIndex]!;
@@ -251,7 +301,7 @@ class _CardsViewState extends State<CardsView> {
       ));
       showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
         return FractionallySizedBox(
-            heightFactor: 0.65,
+            heightFactor: 0.6,
             child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
         );
       });
@@ -293,7 +343,7 @@ class _CardsViewState extends State<CardsView> {
       ));
       showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
         return FractionallySizedBox(
-          heightFactor: 0.65,
+          heightFactor: 0.6,
           child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
         );
       });

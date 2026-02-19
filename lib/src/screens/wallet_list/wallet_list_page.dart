@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:another_flushbar/flushbar.dart';
 import 'package:cake_wallet/core/auth_service.dart';
@@ -31,6 +30,7 @@ import 'package:cake_wallet/view_model/wallet_list/wallet_list_item.dart';
 import 'package:cake_wallet/view_model/wallet_list/wallet_list_view_model.dart';
 import 'package:cake_wallet/wallet_type_utils.dart';
 import 'package:cw_core/currency_for_wallet_type.dart';
+import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/wallet_info.dart';
 import 'package:cw_core/wallet_type.dart';
 import 'package:flutter/material.dart';
@@ -158,7 +158,7 @@ class WalletListBodyState extends State<WalletListBody> {
                     Padding(
                       padding: const EdgeInsets.only(left: 24),
                       child: Text(
-                        S.current.shared_seed_wallet_groups,
+                        S.current.shared_seed_wallets,
                         style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -476,7 +476,10 @@ class WalletListBodyState extends State<WalletListBody> {
   }
 
   Future<void> _loadWallet(WalletListItem wallet) async {
-    if (_loadingWallet) return;
+    if (_loadingWallet) {
+      printV("_loadWallet abandoned because _loadingWallet");
+      return;
+    }
 
     _loadingWallet = true;
 
@@ -499,6 +502,7 @@ class WalletListBodyState extends State<WalletListBody> {
       context,
       onAuthSuccess: (isAuthenticatedSuccessfully) async {
         if (!isAuthenticatedSuccessfully) {
+          printV("!isAuthenticatedSuccessfully");
           _loadingWallet = false;
           return;
         }
@@ -540,6 +544,7 @@ class WalletListBodyState extends State<WalletListBody> {
           await widget.walletListViewModel.loadWallet(wallet);
           // only pop the wallets route in mobile as it will go back to dashboard page
           // in desktop platforms the navigation tree is different
+          unawaited(hideProgressText());
           if (responsiveLayoutUtil.shouldRenderMobileUI) {
             // await Future.delayed(Duration(seconds: 1));
             if (!this.mounted) return;
@@ -549,7 +554,6 @@ class WalletListBodyState extends State<WalletListBody> {
             }
             await widget.onWalletLoaded.call(context);
           }
-          unawaited(hideProgressText());
         } catch (e) {
           await ExceptionHandler.resetLastPopupDate();
           final err = e.toString();
@@ -564,6 +568,7 @@ class WalletListBodyState extends State<WalletListBody> {
       conditionToDetermineIfToUse2FA:
           widget.walletListViewModel.shouldRequireTOTP2FAForAccessingWallet,
     );
+    _loadingWallet = false;
   }
 
   void changeProcessText(String text) {

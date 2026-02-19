@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -25,7 +24,6 @@ class NewMainNavBar extends StatefulWidget {
 class _NEWNewMainNavBarState extends State<NewMainNavBar> {
 
   static const barHeight = 68.0;
-  static const barBottomPadding = 22.0;
 
   static const iconBoxWidth = 48.0;
   static const iconWidth = 28.0;
@@ -99,24 +97,25 @@ class _NEWNewMainNavBarState extends State<NewMainNavBar> {
   }
 
   double calcLeft(int index, double pillWidth) {
-    final double baseOffset = (iconBoxWidth) * index;
+    final baseOffset = iconBoxWidth * index;
 
     double additionalSpacing;
-    if (index > widget.selectedIndex) additionalSpacing = pillWidth-iconBoxWidth;
-     else additionalSpacing = 0;
+    if (index > widget.selectedIndex)
+      additionalSpacing = pillWidth - iconBoxWidth;
+    else
+      additionalSpacing = 0;
 
     return baseOffset + additionalSpacing;
   }
 
-  double calcBarWidth(double pillWidth) {
-    return (iconWidth+iconHorizontalPadding)*(NewMainActions.all.length)+(pillWidth-(iconWidth))+barHorizontalPadding+pillIconSpacing/double.infinity - 2;
+  double calcBarWidth(double pillWidth, int visibleActionsLength) {
+    return (iconWidth + iconHorizontalPadding) * visibleActionsLength + (pillWidth - iconWidth) + barHorizontalPadding + pillIconSpacing / double.infinity - 2;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final backgroundColor =
-        theme.colorScheme.surfaceContainer.withAlpha(127);
+    final backgroundColor = theme.colorScheme.surfaceContainer.withAlpha(127);
     final pillColor = theme.colorScheme.onSurface.withAlpha(25);
     final activeColor = theme.colorScheme.onSurface;
     final inactiveColor = theme.colorScheme.primary;
@@ -130,7 +129,7 @@ class _NEWNewMainNavBarState extends State<NewMainNavBar> {
         context, visibleActions[widget.selectedIndex],
         color: activeColor);
 
-    final barWidth = calcBarWidth(pillWidth);
+    final barWidth = calcBarWidth(pillWidth, visibleActions.length);
 
     final currentAction = visibleActions[widget.selectedIndex];
 
@@ -140,7 +139,8 @@ class _NEWNewMainNavBarState extends State<NewMainNavBar> {
         bottom: !(Platform.isIOS),
         top: false,
         child: Padding(
-         padding: EdgeInsets.only(bottom: Platform.isIOS ? barBottomPadding : 0),
+          // tux PLEASE consult me (malik) before removing this padding.
+         padding: EdgeInsets.only(bottom: Platform.isIOS ? 22 : 12),
           child: AnimatedContainer(
             duration: barResizeDuration,
             curve: Curves.easeOutCubic,

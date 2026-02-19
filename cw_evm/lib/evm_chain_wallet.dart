@@ -252,6 +252,7 @@ abstract class EVMChainWalletBase
       } catch (_) {
         // erc20TokensBox doesn't exist yet, run migration from global box
         await _initEthereumErc20TokensBox();
+        await _normalizeEvmChainErc20TokensBoxKeys();
         return;
       }
     }
@@ -1019,7 +1020,7 @@ abstract class EVMChainWalletBase
       gasFee: estimatedFeesForTransaction,
       priority: _credentials.priority,
       currency: transactionCurrency,
-      feeCurrency: switch (selectedChainId) { 137 => "POL", _ => "ETH" },
+      feeCurrency: EVMChainUtils.getFeeCurrency(selectedChainId),
       maxFeePerGas: maxFeePerGasForTransaction,
       exponent: exponent,
       contractAddress:
@@ -1050,6 +1051,7 @@ abstract class EVMChainWalletBase
 
     final nativeCurrency = switch (selectedChainId) {
       137 => CryptoCurrency.maticpoly,
+      56 => CryptoCurrency.bnb,
       8453 => CryptoCurrency.baseEth,
       42161 => CryptoCurrency.arbEth,
       _ => CryptoCurrency.eth,

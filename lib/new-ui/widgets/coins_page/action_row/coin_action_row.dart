@@ -3,7 +3,6 @@ import 'package:cake_wallet/core/open_crypto_pay/open_cryptopay_service.dart';
 import 'package:cake_wallet/di.dart';
 import 'package:cake_wallet/entities/qr_scanner.dart';
 import 'package:cake_wallet/generated/i18n.dart';
-import 'package:cake_wallet/main.dart';
 import 'package:cake_wallet/new-ui/modal_navigator.dart';
 import 'package:cake_wallet/new-ui/pages/send_page.dart';
 import 'package:cake_wallet/new-ui/pages/swap_page.dart';
@@ -13,6 +12,7 @@ import 'package:cake_wallet/utils/feature_flag.dart';
 import 'package:cake_wallet/utils/payment_request.dart';
 import 'package:cake_wallet/view_model/send/send_view_model.dart';
 import 'package:cake_wallet/view_model/wallet_address_list/wallet_address_list_view_model.dart';
+import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/unspent_coin_type.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -69,7 +69,7 @@ class CoinAction {
             context: context,
             barrierColor: Colors.black.withAlpha(60),
             builder: (context) {
-              return Material(child: ModalNavigator(parentContext: context, rootPage: page));
+              return Material(child: ModalNavigator(parentContext:context,rootPage: page));
             },
           );
         } else {
@@ -78,18 +78,19 @@ class CoinAction {
             await getIt<WalletAddressListViewModel>().setAddressType(
                 bitcoin!.getOptionToType(bitcoin!.getBitcoinLightningReceivePageOption()));
           } else {
-            await getIt<WalletAddressListViewModel>()
-                .setAddressType(bitcoin!.getOptionToType(bitcoin!.getBitcoinSegwitPageOption()));
+            await getIt<WalletAddressListViewModel>().setAddressType(
+                bitcoin!.getOptionToType(bitcoin!.getBitcoinSegwitPageOption()));
           }
           Navigator.of(context).pushNamed(Routes.addressPage);
         }
+        ;
       });
 
   static final swap = CoinAction(
       name: S.current.swap,
       iconPath: "assets/new-ui/exchange.svg",
       action: (context, lightningMode) {
-        final page = getIt.get<NewSwapPage>();
+        final page = getIt.get<NewSwapPage>(param2: lightningMode ? CryptoCurrency.btcln : null);
         if (FeatureFlag.hasNewUiExtraPages) {
           CupertinoScaffold.showCupertinoModalBottomSheet(
             context: context,
@@ -111,7 +112,7 @@ class CoinAction {
       name: S.current.scan,
       iconPath: "assets/new-ui/scan.svg",
       action: (context, lightningMode) async {
-        if (FeatureFlag.hasNewUiExtraPages) {
+        if (false && FeatureFlag.hasNewUiExtraPages) {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -125,27 +126,45 @@ class CoinAction {
 
           if (code == null || code.isEmpty) return;
 
+          late final PaymentRequest req;
           if (SendViewModelBase.isNonZeroAmountLightningInvoice(code) ||
               OpenCryptoPayService.isOpenCryptoPayQR(code)) {
-            Navigator.of(context).pushNamed(Routes.send,
-                arguments: {"paymentRequest": PaymentRequest(code, "", "", "", "")});
-            return;
+            req = PaymentRequest(code, "", "", "", "");
+          } else {
+            final uri = Uri.tryParse(code);
+            if (uri == null) return;
+            req = PaymentRequest.fromUri(uri);
           }
 
-          final uri = Uri.tryParse(code);
-          if (uri == null) return;
-          rootKey.currentState?.handleDeepLinking(uri);
+          final sendPage = getIt.get<NewSendPage>(
+            param1: SendPageParams(initialPaymentRequest: req),
+          );
+
+          CupertinoScaffold.showCupertinoModalBottomSheet(
+            context: context,
+            barrierColor: Colors.black.withAlpha(60),
+            builder: (context) {
+              return Material(
+                child: ModalNavigator(
+                  rootPage: sendPage,
+                  parentContext: context,
+                ),
+              );
+            },
+          );
         }
         ;
+      }
       });
 
   static final all = [send, receive, swap, scan];
 }
 
 class CoinActionRow extends StatelessWidget {
-  const CoinActionRow({super.key, this.lightningMode = false});
+  const CoinActionRow({super.key, this.lightningMode = false, this.showSwap = true});
 
   final bool lightningMode;
+  final bool showSwap;
 
   @override
   Widget build(BuildContext context) {

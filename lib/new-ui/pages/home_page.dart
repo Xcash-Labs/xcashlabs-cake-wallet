@@ -16,6 +16,7 @@ import 'package:cake_wallet/view_model/dashboard/dashboard_view_model.dart';
 import 'package:cake_wallet/view_model/dashboard/nft_view_model.dart';
 import 'package:cake_wallet/view_model/monero_account_list/monero_account_edit_or_create_view_model.dart';
 import 'package:cake_wallet/view_model/monero_account_list/monero_account_list_view_model.dart';
+import 'package:cw_core/wallet_type.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -192,7 +193,9 @@ class _NewHomePageState extends State<NewHomePage> {
   }
 
   double getCardBoxHeight() {
-    final numCards = widget.dashboardViewModel.cardDesigns.length;
+    final numCards = widget.dashboardViewModel.wallet.type == WalletType.bitcoin
+        ? 1
+        : widget.dashboardViewModel.cardDesigns.length;
     final maxCardHeight = MediaQuery.of(context).size.width * 0.878 * (2/3.2);
     final overlapAmount = numCards > 3 ? 5.0 : 60.0;
 

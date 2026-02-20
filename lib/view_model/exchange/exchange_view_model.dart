@@ -956,6 +956,22 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
       }
     }
 
+    if (depositCurrency == CryptoCurrency.btcln &&
+        depositAddress == wallet.walletAddresses.addressForExchange) {
+      final invoice = await bitcoin!.getLightningInvoice(wallet, BigInt.zero);
+      if (invoice != null) {
+        depositAddress = invoice;
+      }
+    }
+
+    if (receiveCurrency == CryptoCurrency.btcln &&
+        receiveAddress == wallet.walletAddresses.addressForExchange) {
+      final invoice = await bitcoin!.getLightningInvoice(wallet, BigInt.zero);
+      if (invoice != null) {
+        receiveAddress = invoice;
+      }
+    }
+
     late final Map<double, ExchangeProvider> providers;
     if (forcedProvider != null) {
       providers = {forcedProviderRate: forcedProvider!};

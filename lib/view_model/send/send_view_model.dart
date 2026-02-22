@@ -1271,6 +1271,9 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
     if (error is TransactionNoDustException) {
       return S.current.tx_no_dust_exception;
     }
+    if (error is TransactionCommitFailedBIP68Final) {
+      return S.current.trying_to_spend_locked_funds;
+    }
     if (error is TransactionCommitFailed) {
       if (error.errorMessage != null && error.errorMessage!.contains("no peers replied")) {
         return S.current.tx_commit_failed_no_peers;

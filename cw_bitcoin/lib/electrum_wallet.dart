@@ -526,18 +526,48 @@ abstract class ElectrumWalletBase
 
   DateTime? _lastSilentPaymentsScan;
   static const Duration _silentPaymentsScanDelay = Duration(minutes: 1);
+  Timer? _syncProgressPingTimer;
+  String _currentSyncOperation = "";
 
   @action
   @override
   Future<void> startSync() async {
+    final startSyncStopwatch = Stopwatch()..start();
+    printV("═══════════════════════════════════════════════════════════════════════");
+    printV("[SYNC_BENCHMARK] startSync() invoked at ${DateTime.now()}");
+    printV("═══════════════════════════════════════════════════════════════════════");
+
+    // Start periodic ping timer to show we're still running
+    _syncProgressPingTimer?.cancel();
+    _syncProgressPingTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      printV("╔════════════════════════════════════════════════════════════════════╗");
+      printV("║ [SYNC_PING] Still syncing... elapsed: ${startSyncStopwatch.elapsed.inSeconds}s");
+      printV("║ [SYNC_PING] Current operation: $_currentSyncOperation");
+      printV("║ [SYNC_PING] Sync status: $syncStatus");
+      printV("╚════════════════════════════════════════════════════════════════════╝");
+    });
+
     try {
       if (syncStatus is SyncronizingSyncStatus) {
+        printV("[SYNC_BENCHMARK] Already synchronizing, exiting early");
+        _syncProgressPingTimer?.cancel();
         return;
       }
 
       syncStatus = SyncronizingSyncStatus();
+      printV("[SYNC_BENCHMARK] Status set to SyncronizingSyncStatus at ${startSyncStopwatch.elapsedMilliseconds}ms");
+
+      // Declare all stopwatches at the start to avoid scope issues
+      final silentPaymentsStopwatch = Stopwatch();
+      final subscribeStopwatch = Stopwatch();
+      final updateBalanceStopwatch = Stopwatch();
+      final updateFeeRatesStopwatch = Stopwatch();
 
       if (hasSilentPaymentsScanning) {
+        silentPaymentsStopwatch.start();
+        _currentSyncOperation = "Silent Payments Processing";
+        printV("[SYNC_BENCHMARK] ▶ Silent payments processing started...");
+        
         silentPaymentsScanningActive = alwaysScan ?? false;
         await _setInitialHeight();
 
@@ -561,33 +591,79 @@ abstract class ElectrumWalletBase
               }
           });
 
-          if (rescanHeights.isNotEmpty)
+          if (rescanHeights.isNotEmpty) {
+            printV("[SYNC_BENCHMARK] Setting listeners for ${rescanHeights.length} rescan heights");
             _setListeners(walletInfo.restoreHeight, rescanHeights: rescanHeights);
+          }
         }
+        
+        silentPaymentsStopwatch.stop();
+        printV("[SYNC_BENCHMARK] ✅ Silent payments processing completed in ${silentPaymentsStopwatch.elapsedMilliseconds}ms");
       }
 
-      //await subscribeForUpdates();
-      //await updateTransactions();
+      // await subscribeForUpdates();
 
-      //await updateAllUnspents();
+      await updateAllUnspents();
+      await updateTransactions();
+      subscribeStopwatch.start();
+      _currentSyncOperation = "Subscribing for Updates";
+      printV("[SYNC_BENCHMARK] ▶ Calling subscribeForUpdates() at ${startSyncStopwatch.elapsedMilliseconds}ms");
+      // await subscribeForUpdates();
+      subscribeStopwatch.stop();
+      printV("[SYNC_BENCHMARK] ✅ subscribeForUpdates() completed in ${subscribeStopwatch.elapsedMilliseconds}ms");
+      
+      updateBalanceStopwatch.start();
+      _currentSyncOperation = "Updating Balance";
+      printV("[SYNC_BENCHMARK] ▶ Calling updateBalance() at ${startSyncStopwatch.elapsedMilliseconds}ms");
       await updateBalance();
+      updateBalanceStopwatch.stop();
+      printV("[SYNC_BENCHMARK] ✅ updateBalance() completed in ${updateBalanceStopwatch.elapsedMilliseconds}ms");
+      
+      updateFeeRatesStopwatch.start();
+      _currentSyncOperation = "Updating Fee Rates";
+      printV("[SYNC_BENCHMARK] ▶ Calling updateFeeRates() at ${startSyncStopwatch.elapsedMilliseconds}ms");
       await updateFeeRates();
+      updateFeeRatesStopwatch.stop();
+      printV("[SYNC_BENCHMARK] ✅ updateFeeRates() completed in ${updateFeeRatesStopwatch.elapsedMilliseconds}ms");
+      printV("[SYNC_BENCHMARK] Fee rates: ${_feeRates}");
 
       _updateFeeRateTimer ??=
           Timer.periodic(const Duration(minutes: 1), (timer) async => await updateFeeRates());
 
       if (alwaysScan == true) {
+        _currentSyncOperation = "Setting Silent Payments Scanning";
         setSilentPaymentsScanning(true);
       } else {
         if (syncStatus is LostConnectionSyncStatus) {
+          printV("[SYNC_BENCHMARK] Lost connection during sync");
+          _currentSyncOperation = "Lost Connection";
+          _syncProgressPingTimer?.cancel();
           return;
         }
         syncStatus = SyncedSyncStatus();
       }
+      
+      startSyncStopwatch.stop();
+      _currentSyncOperation = "Completed";
+      printV("═══════════════════════════════════════════════════════════════════════");
+      printV("[SYNC_BENCHMARK] ✅ startSync() COMPLETED in ${startSyncStopwatch.elapsedMilliseconds}ms (${(startSyncStopwatch.elapsedMilliseconds / 1000).toStringAsFixed(2)}s)");
+      printV("[SYNC_BENCHMARK] Final sync status: $syncStatus");
+      printV("[SYNC_BENCHMARK] Breakdown:");
+      if (hasSilentPaymentsScanning) printV("[SYNC_BENCHMARK]   - Silent Payments: ${silentPaymentsStopwatch.elapsedMilliseconds}ms");
+      printV("[SYNC_BENCHMARK]   - Subscribe Updates: ${subscribeStopwatch.elapsedMilliseconds}ms");
+      printV("[SYNC_BENCHMARK]   - Update Balance: ${updateBalanceStopwatch.elapsedMilliseconds}ms");
+      printV("[SYNC_BENCHMARK]   - Update Fee Rates: ${updateFeeRatesStopwatch.elapsedMilliseconds}ms");
+      printV("═══════════════════════════════════════════════════════════════════════");
+      _syncProgressPingTimer?.cancel();
     } catch (e, stacktrace) {
+      startSyncStopwatch.stop();
+      _currentSyncOperation = "Failed";
+      printV("[SYNC_BENCHMARK] ❌ startSync() FAILED after ${startSyncStopwatch.elapsedMilliseconds}ms");
+      printV("[SYNC_BENCHMARK] Error: $e");
       printV(stacktrace);
       // printV("startSync $e");
       syncStatus = FailedSyncStatus();
+      _syncProgressPingTimer?.cancel();
     }
   }
 
@@ -711,23 +787,40 @@ abstract class ElectrumWalletBase
     List<String> scriptHashes,
     String method, {
     bool? useSSL,
+    Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)? onBatchComplete,
   }) async {
     if (scriptHashes.isEmpty) return '';
 
     printV("KB: GetIsolateBatch: Processing ${scriptHashes.length} items in a single connection");
 
-    return _processIsolateBatchConnection(scriptHashes, method, useSSL);
+    return _processIsolateBatchConnection(scriptHashes, method, useSSL, onBatchComplete: onBatchComplete);
+  }
+
+  static int _batchSizeForMethod(String method) {
+    switch (method) {
+      case 'blockchain.scripthash.get_history':
+        return 10;
+      case 'blockchain.scripthash.get_balance':
+        return 50;
+      case 'blockchain.scripthash.listunspent':
+        return 50;
+      case 'blockchain.transaction.get':
+        return 25;
+      default:
+        return 25;
+    }
   }
 
   Future<String> _processIsolateBatchConnection(
     List<String> scriptHashes,
     String method,
-    bool? useSSL,
-  ) async {
+    bool? useSSL, {
+    Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)? onBatchComplete,
+  }) async {
     if (scriptHashes.isEmpty) return '';
 
     final client = electrum.ElectrumClient();
-    const batchSize = 50;
+    final batchSize = _batchSizeForMethod(method);
     // Map of original index to response
     final Map<int, dynamic> indexedResponses = {};
     final originalScriptHashes = List<String>.from(scriptHashes);
@@ -771,6 +864,9 @@ abstract class ElectrumWalletBase
             for (int i = 0; i < response.length; i++) {
               indexedResponses[thisOffset + i] = response[i];
             }
+            if (onBatchComplete != null) {
+              await onBatchComplete(thisOffset, batchScripthashes, List<dynamic>.from(response));
+            }
           }
         } catch (batchError) {
           printV("[_processIsolateBatchConnection] Batch failed at offset $thisOffset, will retry: $batchError");
@@ -806,6 +902,9 @@ abstract class ElectrumWalletBase
               for (int i = 0; i < response.length; i++) {
                 indexedResponses[offset + i] = response[i];
               }
+              if (onBatchComplete != null) {
+                await onBatchComplete(offset, batch, List<dynamic>.from(response));
+              }
             }
           } catch (retryError) {
             printV("[_processIsolateBatchConnection] Retry failed for batch at offset $offset: $retryError");
@@ -835,6 +934,7 @@ abstract class ElectrumWalletBase
     List<BitcoinAddressRecord> addresses,
     String method, {
     bool? useSSL,
+    Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)? onBatchComplete,
   }) async {
     if (addresses.isEmpty) return '';
 
@@ -843,7 +943,7 @@ abstract class ElectrumWalletBase
 
     printV("KB: GetIsolateAddressBatch: Processing ${scriptHashes.length} items in a single connection");
 
-    return _processIsolateBatchConnection(scriptHashes, method, useSSL);
+    return _processIsolateBatchConnection(scriptHashes, method, useSSL, onBatchComplete: onBatchComplete);
   }
 
   Future<Map<String, Map<String, dynamic>>> batchFetchTransactionDetails(
@@ -1862,6 +1962,9 @@ abstract class ElectrumWalletBase
 
   @action
   Future<void> updateAllUnspents() async {
+    final unspentsSw = Stopwatch()..start();
+    printV("────────────────────────────────────────────────────────────────────────");
+    printV("[SYNC_BENCHMARK] updateAllUnspents() started at ${DateTime.now()}");
     List<BitcoinUnspent> updatedUnspentCoins = [];
 
     final previousUnspentCoins = List<BitcoinUnspent>.from(unspentCoins.where((utxo) =>
@@ -1885,7 +1988,11 @@ abstract class ElectrumWalletBase
     });
 
     try {
+      final batchUnspentSw = Stopwatch()..start();
+      printV("[SYNC_BENCHMARK]   ▶ batchFetchAllUnspent() starting...");
       final allUnspents = await batchFetchAllUnspent();
+      batchUnspentSw.stop();
+      printV("[SYNC_BENCHMARK]   ✅ batchFetchAllUnspent(): ${batchUnspentSw.elapsedMilliseconds}ms — ${allUnspents.length} UTXOs returned");
       updatedUnspentCoins.addAll(allUnspents);
 
       // Update individual address balances
@@ -1909,6 +2016,9 @@ abstract class ElectrumWalletBase
 
     await updateCoins(unspentCoins);
     await _refreshUnspentCoinsInfo();
+    unspentsSw.stop();
+    printV("[SYNC_BENCHMARK] ✅ updateAllUnspents() COMPLETED in ${unspentsSw.elapsedMilliseconds}ms — ${unspentCoins.length} total UTXOs");
+    printV("────────────────────────────────────────────────────────────────────────");
   }
 
   List<BitcoinUnspent> handleFailedUtxoFetch({
@@ -2014,11 +2124,16 @@ abstract class ElectrumWalletBase
 
   // This file wraps electrumClient.getListUnspent to keep socket calls in one file
   Future<List<BitcoinUnspent>?> fetchUnspent(BitcoinAddressRecord address) async {
+    final fetchUnspentSw = Stopwatch()..start();
     List<BitcoinUnspent> updatedUnspentCoins = [];
     final unspents = await electrumClient.getListUnspent(address.getScriptHash(network));
 
     // Failed to fetch unspents
-    if (unspents == null) return null;
+    if (unspents == null) {
+      fetchUnspentSw.stop();
+      printV("[SYNC_BENCHMARK]   fetchUnspent(${address.address}): NULL response in ${fetchUnspentSw.elapsedMilliseconds}ms");
+      return null;
+    }
 
     await Future.wait(unspents.map((unspent) async {
       try {
@@ -2032,6 +2147,8 @@ abstract class ElectrumWalletBase
       } catch (_) {}
     }));
 
+    fetchUnspentSw.stop();
+    printV("[SYNC_BENCHMARK]   fetchUnspent(${address.address}): ${updatedUnspentCoins.length} coins in ${fetchUnspentSw.elapsedMilliseconds}ms");
     return updatedUnspentCoins;
   }
 
@@ -2521,9 +2638,12 @@ abstract class ElectrumWalletBase
 
   @override
   Future<Map<String, ElectrumTransactionInfo>> fetchTransactions() async {
+    final fetchTxSw = Stopwatch()..start();
+    printV("[SYNC_BENCHMARK]   fetchTransactions() invoked — wallet type: $type");
     try {
       final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
 
+      final addrTypeSw = Stopwatch()..start();
       if (type == WalletType.bitcoin) {
         await Future.wait(BITCOIN_ADDRESS_TYPES
             .map((type) => fetchTransactionsForAddressType(historiesWithDetails, type)));
@@ -2538,6 +2658,8 @@ abstract class ElectrumWalletBase
         await Future.wait(DOGECOIN_ADDRESS_TYPES
             .map((type) => fetchTransactionsForAddressType(historiesWithDetails, type)));
       }
+      addrTypeSw.stop();
+      printV("[SYNC_BENCHMARK]   fetchTransactionsForAddressType (all types, parallel): ${addrTypeSw.elapsedMilliseconds}ms — ${historiesWithDetails.length} txs collected");
 
       transactionHistory.transactions.values.forEach((tx) async {
         final isPendingSilentPaymentUtxo =
@@ -2556,6 +2678,8 @@ abstract class ElectrumWalletBase
         }
       });
 
+      fetchTxSw.stop();
+      printV("[SYNC_BENCHMARK]   fetchTransactions() DONE in ${fetchTxSw.elapsedMilliseconds}ms — ${historiesWithDetails.length} total transactions");
       return historiesWithDetails;
     } catch (e) {
       printV("fetchTransactions $e");
@@ -2567,6 +2691,7 @@ abstract class ElectrumWalletBase
     Map<String, ElectrumTransactionInfo> historiesWithDetails,
     BitcoinAddressType type,
   ) async {
+    final batchFetchTypeSw = Stopwatch()..start();
     final addressesByType = walletAddresses.allAddresses.where((addr) => addr.type == type);
     final hiddenAddresses = addressesByType.where((addr) => addr.isHidden == true);
     final receiveAddresses = addressesByType.where((addr) => addr.isHidden == false);
@@ -2585,10 +2710,13 @@ abstract class ElectrumWalletBase
     printV("Request size: ${requestSize}MB");
 
     // Batch fetch all histories
+    final historyBatchSw = Stopwatch()..start();
+    printV("[SYNC_BENCHMARK]     ▶ get_history batch for $type (${addressList.length} addrs) starting...");
     final batchHistoriesJson =
         await getIsolateAddressBatch(addressList, 'blockchain.scripthash.get_history');
+    historyBatchSw.stop();
     final responseSize = ((batchHistoriesJson.length * 1.1) / 1048576).toStringAsFixed(2);
-    printV("Response size: ${responseSize}MB");
+    printV("[SYNC_BENCHMARK]     ✅ get_history batch for $type: ${historyBatchSw.elapsedMilliseconds}ms, response ${responseSize}MB");
 
     // Parse batch histories
     final batchHistories = jsonDecode(batchHistoriesJson) as List;
@@ -2605,11 +2733,18 @@ abstract class ElectrumWalletBase
     }
 
     // Batch fetch transaction details for all new transactions
+    final txDetailsSw = Stopwatch()..start();
+    printV("[SYNC_BENCHMARK]     ▶ batchFetchTransactionDetails() for $type — ${newTxHashes.length} new txs...");
     final txDetailsMap = await batchFetchTransactionDetails(newTxHashes);
+    txDetailsSw.stop();
+    printV("[SYNC_BENCHMARK]     ✅ batchFetchTransactionDetails() for $type: ${txDetailsSw.elapsedMilliseconds}ms, ${txDetailsMap.length} details fetched");
 
     // Build transaction info objects from batched details
+    final buildSw = Stopwatch()..start();
     final currentHeight = await getCurrentChainTip();
     final newTxInfos = await buildTransactionInfoFromBatch(txDetailsMap, currentHeight);
+    buildSw.stop();
+    printV("[SYNC_BENCHMARK]     ✅ buildTransactionInfoFromBatch() for $type: ${buildSw.elapsedMilliseconds}ms, ${newTxInfos.length} tx infos built");
 
     // Process each address and its transactions
     for (final entry in addressHistoriesMap.entries) {
@@ -2660,7 +2795,10 @@ abstract class ElectrumWalletBase
     }
 
     // Save transaction history after processing this address type
+    final saveSw = Stopwatch()..start();
     await transactionHistory.save();
+    saveSw.stop();
+    printV("[SYNC_BENCHMARK]     ✅ transactionHistory.save() for $type: ${saveSw.elapsedMilliseconds}ms");
 
     // Check for gap limit address discovery
     for (final entry in addressHistoriesMap.entries) {
@@ -2711,6 +2849,8 @@ abstract class ElectrumWalletBase
       }
     }
 
+    batchFetchTypeSw.stop();
+    printV("[SYNC_BENCHMARK]   ✅ batchFetchTransactionsForAddressType($type): ${batchFetchTypeSw.elapsedMilliseconds}ms, ${historiesWithDetails.length} total txs in wallet");
     printV(
         "Completed fetching transactions for type $type: ${historiesWithDetails.length} total in wallet");
   }
@@ -3063,6 +3203,7 @@ abstract class ElectrumWalletBase
       {List<Map<String, dynamic>>? preloadedHistory}) async {
     String txid = "";
     throw Exception("To deprecate");
+    printV("Legacy: Fetching history for address: ${addressRecord.address}, preloaded: ${preloadedHistory != null}");
     try {
       final Map<String, ElectrumTransactionInfo> historiesWithDetails = {};
 
@@ -3149,12 +3290,19 @@ abstract class ElectrumWalletBase
   }
 
   Future<void> updateTransactions() async {
-    printV("updateTransactions() called!");
+    final updateTxSw = Stopwatch()..start();
+    printV("────────────────────────────────────────────────────────────────────────");
+    printV("[SYNC_BENCHMARK] updateTransactions() started at ${DateTime.now()}");
+    printV("────────────────────────────────────────────────────────────────────────");
     try {
       if (_isTransactionUpdating) {
+        printV("[SYNC_BENCHMARK] updateTransactions() skipped — already updating");
         return;
       }
+      final chainTipSw = Stopwatch()..start();
       currentChainTip = await getUpdatedChainTip();
+      chainTipSw.stop();
+      printV("[SYNC_BENCHMARK]   getUpdatedChainTip() → $currentChainTip in ${chainTipSw.elapsedMilliseconds}ms");
 
       bool updated = false;
       transactionHistory.transactions.values.forEach((tx) {
@@ -3177,13 +3325,22 @@ abstract class ElectrumWalletBase
       }
 
       _isTransactionUpdating = true;
+      final fetchAllSw = Stopwatch()..start();
+      printV("[SYNC_BENCHMARK]   ▶ fetchTransactions() starting...");
       await fetchTransactions();
+      fetchAllSw.stop();
+      printV("[SYNC_BENCHMARK]   ✅ fetchTransactions() completed in ${fetchAllSw.elapsedMilliseconds}ms");
       walletAddresses.updateReceiveAddresses();
       _isTransactionUpdating = false;
+      updateTxSw.stop();
+      printV("[SYNC_BENCHMARK] ✅ updateTransactions() COMPLETED in ${updateTxSw.elapsedMilliseconds}ms");
+      printV("────────────────────────────────────────────────────────────────────────");
     } catch (e, stacktrace) {
       printV(stacktrace);
       printV(e);
       _isTransactionUpdating = false;
+      updateTxSw.stop();
+      printV("[SYNC_BENCHMARK] ❌ updateTransactions() FAILED after ${updateTxSw.elapsedMilliseconds}ms: $e");
     }
   }
 

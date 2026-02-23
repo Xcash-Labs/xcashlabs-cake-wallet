@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:qr_flutter/qr_flutter.dart' as qr;
 
-class QrImage extends StatelessWidget {
+class QrImage extends StatefulWidget {
   QrImage({
     required this.data,
     this.foregroundColor = Colors.black,
     this.backgroundColor = Colors.white,
-    this.size = 100.0,
+    this.size,
     this.version,
     this.errorCorrectionLevel = qr.QrErrorCorrectLevel.H,
     this.embeddedImagePath,
@@ -22,44 +22,73 @@ class QrImage extends StatelessWidget {
   final String? embeddedImagePath;
 
   @override
+  State<QrImage> createState() => _QrImageState();
+}
+
+class _QrImageState extends State<QrImage> {
+  qr.QrImageView? qrImage = null;
+
+  @override
+  void initState() {
+    super.initState();
+    loadQr();
+  }
+
+  @override
+  void didUpdateWidget(covariant QrImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.data != widget.data ||
+        oldWidget.size != widget.size ||
+        oldWidget.version != widget.version ||
+        oldWidget.errorCorrectionLevel != widget.errorCorrectionLevel ||
+        oldWidget.foregroundColor != widget.foregroundColor ||
+        oldWidget.backgroundColor != widget.backgroundColor ||
+        oldWidget.embeddedImagePath != widget.embeddedImagePath) {
+      setState(() {
+        loadQr();
+      });
+    }
+  }
+
+  void loadQr() {
+    final imagePath = widget.embeddedImagePath ?? 'assets/images/qr-cake.png';
+
+    qrImage = qr.QrImageView(
+      data: widget.data,
+      errorCorrectionLevel: widget.errorCorrectionLevel,
+      version: widget.version ?? qr.QrVersions.auto,
+      size: widget.size,
+      foregroundColor: widget.foregroundColor,
+      backgroundColor: widget.backgroundColor,
+      padding: const EdgeInsets.all(12.0),
+      embeddedImage: imagePath.endsWith(".svg") ? null : AssetImage(imagePath),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final imagePath = embeddedImagePath ?? 'assets/images/qr-cake.png';
+    final imagePath = widget.embeddedImagePath ?? 'assets/images/qr-cake.png';
     final isSvg = imagePath.endsWith('.svg');
 
-    if (isSvg) {
-      final qrSize = size ?? 100.0;
-      final logoSize = qrSize * 0.30;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final qrSize = constraints.biggest.shortestSide;
+        final logoSize = qrSize * 0.25;
 
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          qr.QrImageView(
-            data: data,
-            errorCorrectionLevel: errorCorrectionLevel,
-            version: version ?? qr.QrVersions.auto,
-            size: qrSize,
-            foregroundColor: foregroundColor,
-            backgroundColor: backgroundColor,
-            padding: const EdgeInsets.all(12.0),
-          ),
-          SvgPicture.asset(
-            imagePath,
-            width: logoSize * 0.8,
-            height: logoSize * 0.8,
-          ),
-        ],
-      );
-    } else {
-      return qr.QrImageView(
-        data: data,
-        errorCorrectionLevel: errorCorrectionLevel,
-        version: version ?? qr.QrVersions.auto,
-        size: size,
-        foregroundColor: foregroundColor,
-        backgroundColor: backgroundColor,
-        padding: const EdgeInsets.all(12.0),
-        embeddedImage: AssetImage(imagePath),
-      );
-    }
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            if (qrImage != null) qrImage!,
+            if (isSvg)
+              SvgPicture.asset(
+                imagePath,
+                width: logoSize,
+                height: logoSize,
+              ),
+          ],
+        );
+      },
+    );
   }
 }

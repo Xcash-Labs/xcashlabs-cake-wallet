@@ -61,14 +61,13 @@ class ReceiveQrCode extends StatelessWidget {
                       ),
                       child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: LayoutBuilder(
-                              builder: (context, constraints) => Observer(
-                                  builder: (_) => QrImage(
-                                      data: addressListViewModel.uri.toString(),
-                                      embeddedImagePath: addressListViewModel.tokenCurrency != null
-                                          ? addressListViewModel.tokenCurrency!.iconPath
-                                          : addressListViewModel.qrImage,
-                                      size: constraints.maxWidth)))),
+                          child: Observer(
+                              builder: (_) => QrImage(
+                                  data: addressListViewModel.uri.toString(),
+                                  embeddedImagePath: addressListViewModel.tokenCurrency != null
+                                      ? addressListViewModel.tokenCurrency!.iconPath
+                                      : addressListViewModel.qrImage,
+                              ))),
                     ),
                     AnimatedSize(
                         duration: Duration(milliseconds: 300),

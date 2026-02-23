@@ -13,7 +13,7 @@ import 'package:cake_wallet/src/screens/base_page.dart';
 import 'package:cake_wallet/src/widgets/alert_with_one_action.dart';
 import 'package:cake_wallet/src/widgets/primary_button.dart';
 import 'package:cake_wallet/src/widgets/address_text_field.dart';
-import 'package:cake_wallet/src/widgets/scollable_with_bottom_section.dart';
+import 'package:cake_wallet/src/widgets/scrollable_with_bottom_section.dart';
 import 'package:cake_wallet/src/widgets/base_text_form_field.dart';
 import 'package:cake_wallet/src/screens/exchange/widgets/currency_picker.dart';
 
@@ -28,7 +28,7 @@ class ContactPage extends BasePage {
     _nameController.addListener(() => contactViewModel.name = _nameController.text);
     _addressController.addListener(() => contactViewModel.address = _addressController.text);
 
-    autorun((_) => _currencyTypeController.text = contactViewModel.currency?.toString() ?? '');
+    autorun((_) => _currencyTypeController.text = "${contactViewModel.currency?.toString() ?? ""} ${contactViewModel.currency?.tag != null ? "(${contactViewModel.currency?.tag})" : ""}");
   }
 
   @override

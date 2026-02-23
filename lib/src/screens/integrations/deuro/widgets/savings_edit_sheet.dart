@@ -1,13 +1,17 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:cake_wallet/di.dart';
 import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/src/screens/integrations/deuro/widgets/numpad.dart';
 import 'package:cake_wallet/src/widgets/bottom_sheet/base_bottom_sheet_widget.dart';
 import 'package:cake_wallet/src/widgets/primary_button.dart';
+import 'package:cake_wallet/store/settings_store.dart';
+import 'package:cw_core/crypto_amount_format.dart';
+import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/parse_fixed.dart';
 import 'package:flutter/material.dart';
 
 class SavingsEditSheet extends BaseBottomSheet {
-  final String? balance;
+  final BigInt? balance;
   final String? balanceTitle;
 
   const SavingsEditSheet({
@@ -20,7 +24,8 @@ class SavingsEditSheet extends BaseBottomSheet {
   });
 
   @override
-  Widget contentWidget(BuildContext context) => SizedBox(
+  Widget contentWidget(BuildContext context) =>
+      SizedBox(
         height: 500,
         child: _SavingsEditBody(
           balance: balance,
@@ -32,7 +37,7 @@ class SavingsEditSheet extends BaseBottomSheet {
 }
 
 class _SavingsEditBody extends StatefulWidget {
-  final String? balance;
+  final BigInt? balance;
   final String? balanceTitle;
 
   const _SavingsEditBody({this.balance, this.balanceTitle});
@@ -54,61 +59,77 @@ class _SavingsEditBodyState extends State<_SavingsEditBody> {
     super.dispose();
   }
 
+  String get balanceFormated =>
+      CryptoCurrency.deuro.formatAmount(widget.balance!).withMaxDecimals(6).withLocalSeperator(
+          getIt<SettingsStore>().languageCode);
+
   String amount = '0';
   bool isValid = false;
   final FocusNode _numpadFocusNode = FocusNode();
 
-  void _onPressedAll() => setState(() {
-        amount = widget.balance!;
+  void _onPressedAll() =>
+      setState(() {
+        amount = CryptoCurrency.deuro.formatAmount(widget.balance!);
         isValid = _validate();
       });
 
-  void _onNumberPressed(int i) => setState(() {
+  void _onNumberPressed(int i) =>
+      setState(() {
         amount = amount == '0' ? i.toString() : '${amount}${i}';
         isValid = _validate();
       });
 
-  void _onDeletePressed() => setState(() {
+  void _onDeletePressed() =>
+      setState(() {
         amount = amount.length > 1 ? amount.substring(0, amount.length - 1) : '0';
         isValid = _validate();
       });
 
-  void _onDecimalPressed() => setState(() {
+  void _onDecimalPressed() =>
+      setState(() {
         amount = '${amount.replaceAll('.', '')}.';
         isValid = _validate();
       });
 
   bool _validate() {
     final amountBigInt = parseFixed(amount, 18);
-    final balanceBigInt = parseFixed(widget.balance!, 18);
+    final balanceBigInt = widget.balance!;
     return balanceBigInt >= amountBigInt && amountBigInt > BigInt.zero;
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
+  Widget build(BuildContext context) =>
+      SafeArea(
         child: Column(children: [
           Expanded(
               child: Center(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 26, right: 26, top: 10),
-              child: AutoSizeText(
-                "${amount.toString()} dEuro",
-                maxLines: 1,
-                maxFontSize: 32,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 26, right: 26, top: 10),
+                  child: AutoSizeText(
+                    "${amount.toString()} dEuro",
+                    maxLines: 1,
+                    maxFontSize: 32,
+                    style: Theme
+                        .of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 32,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: Theme
+                          .of(context)
+                          .colorScheme
+                          .onSurface,
                     ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          )),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )),
           if (widget.balance != null && widget.balanceTitle != null) ...[
             Divider(),
             AssetBalanceRow(
               title: widget.balanceTitle!,
-              amount: widget.balance!,
+              amount: balanceFormated,
               onAllPressed: _onPressedAll,
             ),
           ],
@@ -122,9 +143,17 @@ class _SavingsEditBodyState extends State<_SavingsEditBody> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: LoadingPrimaryButton(
               onPressed: () => Navigator.pop(context, amount),
-              text: S.of(context).confirm,
-              color: Theme.of(context).colorScheme.primary,
-              textColor: Theme.of(context).colorScheme.onPrimary,
+              text: S
+                  .of(context)
+                  .confirm,
+              color: Theme
+                  .of(context)
+                  .colorScheme
+                  .primary,
+              textColor: Theme
+                  .of(context)
+                  .colorScheme
+                  .onPrimary,
               isLoading: false,
               isDisabled: !isValid,
             ),
@@ -146,7 +175,8 @@ class AssetBalanceRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) =>
+      Padding(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -159,21 +189,35 @@ class AssetBalanceRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1,
-                          ),
+                      style: Theme
+                          .of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                        color: Theme
+                            .of(context)
+                            .colorScheme
+                            .onSurfaceVariant,
+                        height: 1,
+                      ),
                     ),
                   ],
                 ),
                 SizedBox(height: 6),
                 AutoSizeText(
                   amount,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w400,
-                        height: 1,
-                      ),
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(
+                    color: Theme
+                        .of(context)
+                        .colorScheme
+                        .onSurface,
+                    fontWeight: FontWeight.w400,
+                    height: 1,
+                  ),
                   maxLines: 1,
                   textAlign: TextAlign.start,
                 ),
@@ -186,14 +230,26 @@ class AssetBalanceRow extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      color: Theme.of(context).colorScheme.surfaceContainer,
+                      color: Theme
+                          .of(context)
+                          .colorScheme
+                          .surfaceContainer,
                     ),
                     padding: EdgeInsets.fromLTRB(15, 10, 15, 10),
                     child: Text(
-                      S.of(context).all,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                      S
+                          .of(context)
+                          .all,
+                      style: Theme
+                          .of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(
+                        color: Theme
+                            .of(context)
+                            .colorScheme
+                            .onSurface,
+                      ),
                     ),
                   ),
                 ),

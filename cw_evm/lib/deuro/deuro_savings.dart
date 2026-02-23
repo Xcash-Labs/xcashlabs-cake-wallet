@@ -44,6 +44,8 @@ class DEuro {
 
   Future<BigInt> get approvedBalance => _dEuro.allowance(_address, _savingsGateway.self.address);
 
+  Future<BigInt> get accountBalance => _dEuro.balanceOf(_address);
+
   Future<void> _checkEthBalanceForGasFees(EVMChainTransactionPriority priority) async {
     final ethBalance = await _wallet.getWeb3Client()!.getBalance(_address);
     final currentBalance = ethBalance.getInWei;

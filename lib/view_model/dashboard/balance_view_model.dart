@@ -347,7 +347,7 @@ abstract class BalanceViewModelBase with Store {
 
     return appStore.amountParsingProxy
         .getDisplayCryptoStrungFromBigInt(amount, cryptoCurrency)
-        .withMaxDecimals(8).withLocalSeperator();
+        .withMaxDecimals(8).withLocalSeperator(appStore.settingsStore.languageCode);
   }
 
   @computed
@@ -453,7 +453,8 @@ abstract class BalanceViewModelBase with Store {
       return '0.00';
     }
 
-    return calculateFiatAmount(price: price, cryptoAmount: cryptoAmount);
+    return calculateFiatAmount(
+        price: price, cryptoAmount: cryptoAmount, langCode: appStore.settingsStore.languageCode);
   }
 
   String _formatterAsset(CryptoCurrency asset) {

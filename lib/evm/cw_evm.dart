@@ -374,6 +374,14 @@ class CWEVM extends EVM {
   }
 
   @override
+  Future<BigInt>? getDEuroAccountBalance(WalletBase wallet) {
+    if (wallet.chainId == 1 && wallet is EVMChainWallet) {
+      return DEuro(wallet).accountBalance;
+    }
+    return null;
+  }
+
+  @override
   Future<PendingTransaction>? addDEuroSaving(
       WalletBase wallet, BigInt amount, TransactionPriority priority) {
     if (wallet.chainId == 1 && wallet is EVMChainWallet) {

@@ -21,6 +21,7 @@ import 'package:cake_wallet/wownero/wownero.dart';
 import 'package:cake_wallet/zano/zano.dart';
 import 'package:cake_wallet/zcash/zcash.dart';
 import 'package:cw_core/balance.dart';
+import 'package:cw_core/crypto_amount_format.dart';
 import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/currency_for_wallet_type.dart';
 import 'package:cw_core/format_fixed.dart';
@@ -108,9 +109,11 @@ abstract class OutputBase with Store {
 
   String roundedFiatAmount(int digits) {
     if (fiatAmount.split(".").last.length <= digits) {
-      return fiatAmount;
+      return fiatAmount.withLocalSeperator(_appStore.settingsStore.languageCode);
     }
-    return double.parse(fiatAmount).toStringAsPrecision(digits);
+    return double.parse(fiatAmount)
+        .toStringAsPrecision(digits)
+        .withLocalSeperator(_appStore.settingsStore.languageCode);
   }
 
   @observable
@@ -275,11 +278,14 @@ abstract class OutputBase with Store {
           ? _wallet.currency
           : cryptoCurrencyHandler();
 
-      final cryptoAmount =
-          double.parse(_appStore.amountParsingProxy.getCanonicalCryptoAmount(estimatedFee, currency));
+      final cryptoAmount = double.parse(
+          _appStore.amountParsingProxy.getCanonicalCryptoAmount(estimatedFee, currency));
 
       return calculateFiatAmountRaw(
-          price: _fiatConversationStore.prices[currency]!, cryptoAmount: cryptoAmount);
+        price: _fiatConversationStore.prices[currency]!,
+        cryptoAmount: cryptoAmount,
+        langCode: _appStore.settingsStore.languageCode,
+      );
     } catch (_) {
       return '0.00';
     }
@@ -353,7 +359,10 @@ abstract class OutputBase with Store {
           : cryptoCurrencyHandler();
 
       final fiat = calculateFiatAmount(
-          price: _fiatConversationStore.prices[cryptoCurrency]!, cryptoAmount: cryptoAmount_);
+        price: _fiatConversationStore.prices[cryptoCurrency]!,
+        cryptoAmount: cryptoAmount_,
+        raw: true
+      );
       if (fiatAmount != fiat) {
         fiatAmount = fiat;
       }

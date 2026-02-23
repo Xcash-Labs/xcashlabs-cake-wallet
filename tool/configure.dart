@@ -1515,6 +1515,7 @@ abstract class EVM {
   Future<BigInt>? getDEuroAccruedInterest(WalletBase wallet) => null;
   Future<BigInt>? getDEuroInterestRate(WalletBase wallet) => null;
   Future<BigInt>? getDEuroSavingsApproved(WalletBase wallet) => null;
+  Future<BigInt>? getDEuroAccountBalance(WalletBase wallet) => null;
   Future<PendingTransaction>? addDEuroSaving(WalletBase wallet, BigInt amount, TransactionPriority priority) => null;
   Future<PendingTransaction>? removeDEuroSaving(WalletBase wallet, BigInt amount, TransactionPriority priority) => null;
   Future<PendingTransaction>? reinvestDEuroInterest(WalletBase wallet, TransactionPriority priority) => null;

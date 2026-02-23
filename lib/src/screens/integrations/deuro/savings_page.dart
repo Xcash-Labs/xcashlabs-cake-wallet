@@ -411,8 +411,8 @@ class DEuroSavingsPage extends BasePage {
             ? S.of(context).deuro_savings_available_to_add
             : S.of(context).deuro_savings_available_to_remove,
         balance: isAdding
-            ? _dEuroViewModel.accountBalanceFormated
-            : _dEuroViewModel.savingsBalanceFormated,
+            ? _dEuroViewModel.accountBalance
+            : _dEuroViewModel.savingsBalance,
         footerType: FooterType.none,
         maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),

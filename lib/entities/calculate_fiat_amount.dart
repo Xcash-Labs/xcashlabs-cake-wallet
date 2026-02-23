@@ -1,6 +1,9 @@
-String calculateFiatAmount({double? price, String? cryptoAmount, bool raw = false}) {
+import 'package:cw_core/crypto_amount_format.dart';
+
+String calculateFiatAmount(
+    {double? price, String? cryptoAmount, bool raw = false, String? langCode}) {
   if (price == null || cryptoAmount == null) {
-    return '0.00';
+    return '0.00'.withLocalSeperator(langCode);
   }
 
   cryptoAmount = cryptoAmount.replaceAll(',', '.');
@@ -10,25 +13,14 @@ String calculateFiatAmount({double? price, String? cryptoAmount, bool raw = fals
   final result = _result < 0 ? _result * -1 : _result;
 
   if (result == 0.0) {
-    return '0.00';
+    return '0.00'.withLocalSeperator(langCode);
   }
 
-  if(raw) {
+  if (raw) {
     return result.toStringAsFixed(2);
   }
 
-  var formatted = '';
-  final parts = result.toString().split('.');
-
-  if (parts.length >= 2) {
-    if (parts[1].length > 2) {
-      formatted = formatWithCommas(parts[0] + '.' + parts[1].substring(0, 2));
-    } else {
-      formatted = formatWithCommas(parts[0] + '.' + parts[1]);
-    }
-  } else {
-    formatted = formatWithCommas(parts[0]);
-  }
+  var formatted = result.toStringAsFixed(2).withLocalSeperator(langCode);
 
   return result > 0.01 ? formatted : '< 0.01';
 }

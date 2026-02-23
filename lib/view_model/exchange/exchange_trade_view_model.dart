@@ -175,7 +175,7 @@ abstract class ExchangeTradeViewModelBase with Store {
 
         amount = calculateFiatAmount(
           price: fiatConversionStore.prices[trade.to]!,
-          cryptoAmount: receiveAmount,
+          cryptoAmount: receiveAmount
         );
       }
     } catch (_) {

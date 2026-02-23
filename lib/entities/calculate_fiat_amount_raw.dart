@@ -1,6 +1,6 @@
-import 'calculate_fiat_amount.dart';
+import 'package:cw_core/crypto_amount_format.dart';
 
-String calculateFiatAmountRaw({required double cryptoAmount, double? price}) {
+String calculateFiatAmountRaw({required double cryptoAmount, double? price, required String langCode}) {
   if (price == null) {
     return '0.00';
   }
@@ -11,5 +11,5 @@ String calculateFiatAmountRaw({required double cryptoAmount, double? price}) {
     return '0.00';
   }
 
-  return result > 0.01 ? formatWithCommas(result.toStringAsFixed(2)) : '< 0.01';
+  return result > 0.01 ? result.toStringAsFixed(2).withLocalSeperator(langCode) : '< 0.01';
 }

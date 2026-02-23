@@ -50,6 +50,7 @@ import 'package:cake_wallet/view_model/unspent_coins/unspent_coins_list_view_mod
 import 'package:cake_wallet/wownero/wownero.dart';
 import 'package:cake_wallet/zano/zano.dart';
 import 'package:cake_wallet/zcash/zcash.dart';
+import 'package:cw_core/crypto_amount_format.dart';
 import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/currency_for_wallet_type.dart';
 import 'package:cw_core/erc20_token.dart';
@@ -202,7 +203,7 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
 
   @computed
   String get pendingTransactionFiatAmount {
-    if (pendingTransaction == null) return '0.00';
+    if (pendingTransaction == null) return '0.00'.withLocalSeperator(_settingsStore.languageCode);
 
     try {
       var currency = _fiatConversationStore.prices.keys
@@ -210,11 +211,13 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
       if (currency == CryptoCurrency.btcln) currency = CryptoCurrency.btc;
 
       final fiat = calculateFiatAmount(
-          price: _fiatConversationStore.prices[currency],
-          cryptoAmount: pendingTransaction!.amountFormatted);
+        price: _fiatConversationStore.prices[currency],
+        cryptoAmount: pendingTransaction!.amountFormatted,
+        langCode: _settingsStore.languageCode,
+      );
       return fiat;
     } catch (_) {
-      return '0.00';
+      return '0.00'.withLocalSeperator(_settingsStore.languageCode);
     }
   }
 
@@ -226,6 +229,7 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
         final fiat = calculateFiatAmount(
           price: _fiatConversationStore.prices[currency]!,
           cryptoAmount: pendingTransaction!.feeFormattedValue,
+          langCode: _settingsStore.languageCode,
         );
         return fiat;
       } else {

@@ -11,6 +11,7 @@ import 'package:cake_wallet/tron/tron.dart';
 import 'package:cake_wallet/wownero/wownero.dart';
 import 'package:cake_wallet/zano/zano.dart';
 import 'package:cake_wallet/zcash/zcash.dart';
+import 'package:cw_core/crypto_amount_format.dart';
 import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/transaction_direction.dart';
 import 'package:cw_core/transaction_info.dart';
@@ -53,9 +54,9 @@ class TransactionListItem extends ActionListItem with Keyable {
     if (balanceViewModel.wallet.type == WalletType.bitcoin) {
       final isLightning = (transaction.additionalInfo["isLightning"] as bool?) ?? false;
       final crypto = isLightning ? CryptoCurrency.btcln : CryptoCurrency.btc;
-      return '${_appStore.amountParsingProxy.getDisplayCryptoString(transaction.amount, crypto)} ${_appStore.amountParsingProxy.getCryptoSymbol(crypto)}';
+      return '${_appStore.amountParsingProxy.getDisplayCryptoString(transaction.amount, crypto).withLocalSeperator(_appStore.settingsStore.languageCode)} ${_appStore.amountParsingProxy.getCryptoSymbol(crypto)}';
     }
-    return transaction.amountFormatted();
+    return transaction.amountFormatted().withLocalSeperator(_appStore.settingsStore.languageCode);
   }
 
   String get formattedTitle {
@@ -179,21 +180,27 @@ class TransactionListItem extends ActionListItem with Keyable {
     switch (balanceViewModel.wallet.type) {
       case WalletType.monero:
         amount = calculateFiatAmountRaw(
-            cryptoAmount: monero!.formatterMoneroAmountToDouble(amount: transaction.amount),
-            price: price);
+          cryptoAmount: monero!.formatterMoneroAmountToDouble(amount: transaction.amount),
+          price: price,
+          langCode: _appStore.settingsStore.languageCode,
+        );
         break;
       case WalletType.wownero:
         amount = calculateFiatAmountRaw(
-            cryptoAmount: wownero!.formatterWowneroAmountToDouble(amount: transaction.amount),
-            price: price);
+          cryptoAmount: wownero!.formatterWowneroAmountToDouble(amount: transaction.amount),
+          price: price,
+          langCode: _appStore.settingsStore.languageCode,
+        );
         break;
       case WalletType.bitcoin:
       case WalletType.litecoin:
       case WalletType.bitcoinCash:
       case WalletType.dogecoin:
         amount = calculateFiatAmountRaw(
-            cryptoAmount: bitcoin!.formatterBitcoinAmountToDouble(amount: transaction.amount),
-            price: price);
+          cryptoAmount: bitcoin!.formatterBitcoinAmountToDouble(amount: transaction.amount),
+          price: price,
+          langCode: _appStore.settingsStore.languageCode,
+        );
         break;
       case WalletType.ethereum:
       case WalletType.polygon:
@@ -205,13 +212,16 @@ class TransactionListItem extends ActionListItem with Keyable {
         amount = calculateFiatAmountRaw(
           cryptoAmount: evm!.formatterEVMAmountToDouble(transaction: transaction),
           price: price,
+          langCode: _appStore.settingsStore.languageCode,
         );
         break;
       case WalletType.nano:
         amount = calculateFiatAmountRaw(
-            cryptoAmount: double.parse(nanoUtil!.getRawAsUsableString(
-                nano!.getTransactionAmountRaw(transaction).toString(), nanoUtil!.rawPerNano)),
-            price: price);
+          cryptoAmount: double.parse(nanoUtil!.getRawAsUsableString(
+              nano!.getTransactionAmountRaw(transaction).toString(), nanoUtil!.rawPerNano)),
+          price: price,
+          langCode: _appStore.settingsStore.languageCode,
+        );
         break;
       case WalletType.solana:
         final asset = solana!.assetOfTransaction(balanceViewModel.wallet, transaction);
@@ -219,6 +229,7 @@ class TransactionListItem extends ActionListItem with Keyable {
         amount = calculateFiatAmountRaw(
           cryptoAmount: solana!.getTransactionAmountRaw(transaction),
           price: price,
+          langCode: _appStore.settingsStore.languageCode,
         );
         break;
       case WalletType.tron:
@@ -228,6 +239,7 @@ class TransactionListItem extends ActionListItem with Keyable {
         amount = calculateFiatAmountRaw(
           cryptoAmount: cryptoAmount,
           price: price,
+          langCode: _appStore.settingsStore.languageCode,
         );
         break;
       case WalletType.zano:
@@ -240,17 +252,21 @@ class TransactionListItem extends ActionListItem with Keyable {
         amount = calculateFiatAmountRaw(
             cryptoAmount: zano!.formatterIntAmountToDouble(
                 amount: transaction.amount, currency: asset, forFee: false),
-            price: price);
+            price: price,
+            langCode: _appStore.settingsStore.languageCode);
         break;
       case WalletType.decred:
         amount = calculateFiatAmountRaw(
             cryptoAmount: decred!.formatterDecredAmountToDouble(amount: transaction.amount),
-            price: price);
+            price: price,
+            langCode: _appStore.settingsStore.languageCode);
         break;
       case WalletType.zcash:
         amount = calculateFiatAmountRaw(
-            cryptoAmount: zcash!.formatterZcashAmountToDouble(amount: BigInt.from(transaction.amount)),
-            price: price);
+            cryptoAmount:
+                zcash!.formatterZcashAmountToDouble(amount: BigInt.from(transaction.amount)),
+            price: price,
+            langCode: _appStore.settingsStore.languageCode);
 
       case WalletType.none:
       case WalletType.banano:

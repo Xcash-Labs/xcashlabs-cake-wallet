@@ -11,6 +11,7 @@ import 'package:cake_wallet/new-ui/widgets/receive_page/receive_label_widget.dar
 import 'package:cake_wallet/new-ui/widgets/receive_page/receive_large_amount_preview.dart';
 import 'package:cake_wallet/new-ui/widgets/receive_page/receive_qr_code.dart';
 import 'package:cake_wallet/new-ui/widgets/receive_page/receive_token_display.dart';
+import 'package:cake_wallet/utils/share_util.dart';
 import 'package:cake_wallet/view_model/dashboard/dashboard_view_model.dart';
 import 'package:cake_wallet/view_model/dashboard/receive_option_view_model.dart';
 import 'package:cake_wallet/view_model/wallet_address_list/wallet_address_list_item.dart';
@@ -22,7 +23,6 @@ import 'package:cw_core/utils/print_verbose.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:mobx/mobx.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:cake_wallet/view_model/wallet_address_list/wallet_address_list_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -200,7 +200,10 @@ class _NewReceivePageState extends State<NewReceivePage> {
               },
               onTrailingPressed: () {
                 if (_largeQrMode) {
-                  Share.share(widget.addressListViewModel.uri.toString());
+                  ShareUtil.share(
+                    text: widget.addressListViewModel.uri.toString(),
+                    context: context,
+                  );
                 } else if (widget.addressListViewModel.hasAddressRotation) {
                   widget.addressListViewModel.rotateAddress();
                 }

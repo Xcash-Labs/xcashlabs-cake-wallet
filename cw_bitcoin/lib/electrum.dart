@@ -248,8 +248,7 @@ class ElectrumClient {
       final decoded = json.decode(message);
 
       if (decoded is List) {
-        printV(
-            "Isolate batch response (first 500 chars): ${message.substring(0, message.length > 500 ? 500 : message.length)}");
+        printV("Isolate batch response (first 500 chars): ${message.substring(0, message.length > 500 ? 500 : message.length)}");
         _batchHandleIsolateResponse(decoded);
       } else if (decoded is Map<String, dynamic>) {
         printV(message);
@@ -273,8 +272,7 @@ class ElectrumClient {
         final decoded = json.decode(isolateUnterminatedString);
 
         if (decoded is List) {
-          printV(
-              "Isolate batch response (first 500 chars): ${isolateUnterminatedString.substring(0, isolateUnterminatedString.length > 500 ? 500 : isolateUnterminatedString.length)}");
+          printV("Isolate batch response (first 500 chars): ${isolateUnterminatedString.substring(0, isolateUnterminatedString.length > 500 ? 500 : isolateUnterminatedString.length)}");
           _batchHandleIsolateResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
           printV(isolateUnterminatedString);
@@ -294,14 +292,11 @@ class ElectrumClient {
         final decoded = json.decode(isolateUnterminatedString);
 
         if (decoded is List) {
-          printV(
-              "Isolate batch response (first 500 chars): ${isolateUnterminatedString.substring(0, isolateUnterminatedString.length > 500 ? 500 : isolateUnterminatedString.length)}");
+          printV("Isolate batch response (first 500 chars): ${isolateUnterminatedString.substring(0, isolateUnterminatedString.length > 500 ? 500 : isolateUnterminatedString.length)}");
           _batchHandleIsolateResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
           printV(isolateUnterminatedString);
-          printV("handle isolateResponse: $decoded");
           _handleIsolateResponse(decoded);
-          printV("handle isolateResponse: $decoded");
         }
         isolateUnterminatedString = '';
       }
@@ -317,8 +312,7 @@ class ElectrumClient {
       // Check if it's a batch response (array) or single response (map)
 
       if (decoded is List) {
-        printV(
-            "Batch response (first 500 chars): ${message.substring(0, message.length > 500 ? 500 : message.length)}");
+        printV("Batch response (first 500 chars): ${message.substring(0, message.length > 500 ? 500 : message.length)}");
         _batchHandleResponse(decoded);
       } else if (decoded is Map<String, dynamic>) {
         printV(message);
@@ -344,8 +338,7 @@ class ElectrumClient {
         final decoded = json.decode(unterminatedString);
 
         if (decoded is List) {
-          printV(
-              "Batch response (first 500 chars): ${unterminatedString.substring(0, unterminatedString.length > 500 ? 500 : unterminatedString.length)}");
+          printV("Batch response (first 500 chars): ${unterminatedString.substring(0, unterminatedString.length > 500 ? 500 : unterminatedString.length)}");
           _batchHandleResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
           printV(unterminatedString);
@@ -365,8 +358,7 @@ class ElectrumClient {
         final decoded = json.decode(unterminatedString);
 
         if (decoded is List) {
-          printV(
-              "Batch response (first 500 chars): ${unterminatedString.substring(0, unterminatedString.length > 500 ? 500 : unterminatedString.length)}");
+          printV("Batch response (first 500 chars): ${unterminatedString.substring(0, unterminatedString.length > 500 ? 500 : unterminatedString.length)}");
           _batchHandleResponse(decoded);
         } else if (decoded is Map<String, dynamic>) {
           printV(unterminatedString);
@@ -390,7 +382,7 @@ class ElectrumClient {
       if (batchResponse.first is Map<String, dynamic>) {
         firstResponseId = batchResponse.first['id'] as int?;
       }
-
+      
       if (firstResponseId != null) {
         // Find the task that matches this batch (registered with the first ID)
         final taskId = firstResponseId.toString();
@@ -412,7 +404,7 @@ class ElectrumClient {
       if (batchResponse.first is Map<String, dynamic>) {
         firstResponseId = batchResponse.first['id'] as int?;
       }
-
+      
       if (firstResponseId != null) {
         // Find the task that matches this batch (registered with the first ID)
         final taskId = firstResponseId.toString();
@@ -502,7 +494,7 @@ class ElectrumClient {
       // Increment _id first to get base ID for this batch
       _id += 1;
       final baseId = _id;
-
+      
       // Build batch request payload with unique IDs
       final List<Map<String, dynamic>> batchRequest = [];
       for (int i = 0; i < scriptHashes.length; i++) {
@@ -513,7 +505,7 @@ class ElectrumClient {
           'params': [scriptHashes[i]],
         });
       }
-
+      
       // Update _id to account for all batch items
       _id = baseId + scriptHashes.length - 1;
 
@@ -566,7 +558,7 @@ class ElectrumClient {
       // Increment _isolateId first to get base ID for this batch
       _isolateId += 1;
       final baseId = _isolateId;
-
+      
       // Build batch request payload with unique IDs
       final List<Map<String, dynamic>> batchRequest = [];
       for (int i = 0; i < scriptHashes.length; i++) {
@@ -574,7 +566,7 @@ class ElectrumClient {
         final params = method == 'blockchain.scripthash.get_history'
             ? [scriptHashes[i], 930000, -1]
             : [scriptHashes[i]];
-
+        
         batchRequest.add({
           'jsonrpc': '2.0',
           'id': baseId + i,
@@ -582,7 +574,7 @@ class ElectrumClient {
           'params': params,
         });
       }
-
+      
       // Update _isolateId to account for all batch items
       _isolateId = baseId + scriptHashes.length - 1;
 
@@ -615,7 +607,7 @@ class ElectrumClient {
           'isolateGetData: substring last 100 characters of response: ${response.toString().substring(response.toString().length - 100)}');
 
       // Response is already decoded by _batchHandleIsolateResponse
-
+      
       final jsonSortedList = response as List<dynamic>;
       printV("Batch response came back");
       // Sort by id field
@@ -638,10 +630,9 @@ class ElectrumClient {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getHistory(String scriptHash) => call(
-        method: 'blockchain.scripthash.get_history',
-        params: [scriptHash],
-      ).then((dynamic result) {
+  Future<List<Map<String, dynamic>>> getHistory(String scriptHash) =>
+      call(method: 'blockchain.scripthash.get_history', params: [scriptHash], )
+          .then((dynamic result) {
         if (result is List) {
           return result.map((dynamic val) {
             if (val is Map<String, dynamic>) {
@@ -1128,10 +1119,7 @@ class ElectrumClient {
     final method = response['method'];
     final id = response['id'] as String?;
     final result = response['result'];
-    // Only log non-null results to reduce noise from unused addresses
-    if (result != null) {
-      printV("method: $method, id: $id, result: $result");
-    }
+    printV("method: $method, id: $id, result: $result");
     try {
       final error = response['error'] as Map<String, dynamic>?;
       if (error != null) {
@@ -1164,10 +1152,7 @@ class ElectrumClient {
     final method = response['method'];
     final id = response['id'] as String?;
     final result = response['result'];
-    // Only log non-null results to reduce noise from unused addresses
-    if (result != null) {
-      printV("isolate method: $method, id: $id, result: $result");
-    }
+    printV("isolate method: $method, id: $id, result: $result");
     try {
       final error = response['error'] as Map<String, dynamic>?;
       if (error != null) {

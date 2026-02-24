@@ -151,12 +151,6 @@ class OtherSettingsPage extends BasePage {
                         ),
                       if (FeatureFlag.hasDevOptions)
                         SettingsCellWithArrow(
-                          title: '[dev] exchange provider logs',
-                          handler: (BuildContext context) =>
-                              Navigator.of(context).pushNamed(Routes.devExchangeProviderLogs),
-                        ),
-                      if (FeatureFlag.hasDevOptions)
-                        SettingsCellWithArrow(
                           title: '[dev] browse sqlite db',
                           handler: (BuildContext context) async {
                             final data = await dumpDb();

@@ -390,12 +390,40 @@ abstract class ZcashWalletBase
       syncStatus = StartingScanSyncStatus(height);
       printV("rescanning from: $height");
       await storeZcashHeight(height);
+      await gcTmpWallets();
       await ZcashWalletService.runInDbMutex(() async => WarpApi.rescanFrom(coin, height));
       await startSync();
     } catch (e) {
       printV("Rescan error: $e");
       syncStatus = FailedSyncStatus(error: e.toString());
       rethrow;
+    }
+  }
+
+  static Future<void> gcTmpWallets() async {
+    final zcashDir = await pathForWalletTypeDir(type: WalletType.zcash);
+    final tmpWallets = Directory(zcashDir);
+    if (!await tmpWallets.exists()) {
+      return;
+    }
+    final List<int> skipAccounts = [];
+    final directories = await tmpWallets.list().toList();
+    for (final dir in directories) {
+      final bn = p.basename(dir.path);
+      final walletFile = File(p.join(zcashDir, bn, bn));
+      if (!walletFile.existsSync()) continue;
+      final acc = int.tryParse(walletFile.readAsStringSync());
+      if (acc == null) {
+        printV("Failed to parse account number from file name: $bn, aborting");
+        return;
+      }
+      skipAccounts.add(acc);
+    }
+    final list = WarpApi.getAccountList(coin);
+    for (final acc in list) {
+      if (skipAccounts.contains(acc.id)) continue;
+      WarpApi.deleteAccount(coin, acc.id);
+      printV("Deleted account ${acc.id}");
     }
   }
 
@@ -880,6 +908,7 @@ abstract class ZcashWalletBase
     printV("height: ${credentials.height}");
     if (credentials.height != null) {
       await storeZcashHeight(credentials.height!);
+      await gcTmpWallets();
       unawaited(
         Future.delayed(Duration(seconds: 2)).then(
           (_) => ZcashWalletService.runInDbMutex(

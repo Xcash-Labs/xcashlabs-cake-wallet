@@ -25,6 +25,9 @@ jobs:
         BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
         ANDROID_AVD_HOME: /root/.android/avd
       volumes:
+        - /opt/cw_cache_android/root/_workspace/build:${{ github.workspace }}/build
+        - /opt/cw_cache_android/root/.cargo/registry:/root/.cargo/registry
+        - /opt/cw_cache_android/root/.cargo/git:/root/.cargo/git
         - /opt/cw_cache_android/root/.cache:/root/.cache
         - /opt/cw_cache_android/root/.android/avd/:/root/.android/avd
         - /opt/cw_cache_android/root/.ccache:/root/.ccache
@@ -79,7 +82,7 @@ jobs:
 
           echo "const tronGridApiKey = '${{ secrets.TRON_GRID_API_KEY }}';" >> cw_tron/lib/.secrets.g.dart
           echo "const tronNowNodesApiKey = '${{ secrets.TRON_NOW_NODES_API_KEY }}';" >> cw_tron/lib/.secrets.g.dart
-          
+
           echo "const breezApiKey = '${{ secrets.BREEZ_API_KEY }}';" >> cw_bitcoin/lib/.secrets.g.dart
 
           echo "${{ secrets.MAIN_SECRETS_FILE }}" | base64 --decode > lib/.secrets.g.dart
@@ -177,9 +180,6 @@ jobs:
       - name: Build generated code
         run: |
           flutter --version
-          flutter clean
-          rm -rf .dart_tool
-          rm pubspec.lock
           flutter pub get
           ./model_generator.sh async
 

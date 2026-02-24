@@ -17,6 +17,8 @@ jobs:
         BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
         DESKTOP_FORCE_MOBILE: Y
       volumes:
+        - /opt/cw_cache_android/root/.cargo/registry:/root/.cargo/registry
+        - /opt/cw_cache_android/root/.cargo/git:/root/.cargo/git
         - /opt/cw_cache_linux/root/.cache:/root/.cache
         - /opt/cw_cache_linux/root/.ccache:/root/.ccache
         - /opt/cw_cache_linux/root/.pub-cache/:/root/.pub-cache
@@ -65,7 +67,7 @@ jobs:
 
           echo "const tronGridApiKey = '${{ secrets.TRON_GRID_API_KEY }}';" >> cw_tron/lib/.secrets.g.dart
           echo "const tronNowNodesApiKey = '${{ secrets.TRON_NOW_NODES_API_KEY }}';" >> cw_tron/lib/.secrets.g.dart
-          
+
           echo "const breezApiKey = '${{ secrets.BREEZ_API_KEY }}';" >> cw_bitcoin/lib/.secrets.g.dart
 
           echo "${{ secrets.MAIN_SECRETS_FILE }}" | base64 --decode > lib/.secrets.g.dart

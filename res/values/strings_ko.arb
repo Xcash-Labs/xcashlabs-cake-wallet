@@ -600,6 +600,7 @@
   "max_amount": "최대: ${value}",
   "max_value": "최대: ${value} ${currency}",
   "memo": "메모:",
+  "memo_optional": "메모(선택사항)",
   "message": "메시지",
   "message_verified": "메시지가 성공적으로 확인되었습니다",
   "messages": "메시지",

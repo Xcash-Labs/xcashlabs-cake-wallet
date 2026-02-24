@@ -20,7 +20,7 @@ class NewSendMemoInput extends StatelessWidget {
           Expanded(
             child: TextField(
                 controller: memoController,
-              decoration: InputDecoration(hintText: S.of(context).transaction_memo_optional),
+              decoration: InputDecoration(hintText: S.of(context).memo_optional),
             ),
           ),
           SizedBox(width:12),

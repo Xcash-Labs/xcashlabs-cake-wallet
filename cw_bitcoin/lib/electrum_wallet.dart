@@ -603,8 +603,7 @@ abstract class ElectrumWalletBase
 
       // await subscribeForUpdates();
 
-      await updateAllUnspents();
-      await updateTransactions();
+      //await updateAllUnspents();
       subscribeStopwatch.start();
       _currentSyncOperation = "Subscribing for Updates";
       printV("[SYNC_BENCHMARK] ▶ Calling subscribeForUpdates() at ${startSyncStopwatch.elapsedMilliseconds}ms");
@@ -809,6 +808,19 @@ abstract class ElectrumWalletBase
       default:
         return 25;
     }
+  }
+
+  Future<String> getIsolateBatch(
+    List<String> scriptHashes,
+    String method, {
+    bool? useSSL,
+    Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)? onBatchComplete,
+  }) async {
+    if (scriptHashes.isEmpty) return '';
+
+    printV("KB: GetIsolateBatch: Processing ${scriptHashes.length} items in a single connection");
+
+    return _processIsolateBatchConnection(scriptHashes, method, useSSL, onBatchComplete: onBatchComplete);
   }
 
   Future<String> _processIsolateBatchConnection(
@@ -2126,6 +2138,7 @@ abstract class ElectrumWalletBase
   Future<List<BitcoinUnspent>?> fetchUnspent(BitcoinAddressRecord address) async {
     final fetchUnspentSw = Stopwatch()..start();
     List<BitcoinUnspent> updatedUnspentCoins = [];
+    printV("Fetching unspents for address: ${address.address}");
     final unspents = await electrumClient.getListUnspent(address.getScriptHash(network));
 
     // Failed to fetch unspents

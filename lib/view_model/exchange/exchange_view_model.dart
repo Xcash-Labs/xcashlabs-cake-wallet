@@ -1060,6 +1060,10 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
         depositCurrency = CryptoCurrency.arbEth;
         receiveCurrency = CryptoCurrency.xmr;
         break;
+      case WalletType.bsc:
+        depositCurrency = CryptoCurrency.bnb;
+        receiveCurrency = CryptoCurrency.xmr;
+        break;
       case WalletType.solana:
         depositCurrency = CryptoCurrency.sol;
         receiveCurrency = CryptoCurrency.xmr;
@@ -1278,12 +1282,11 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
 
   @action
   Future<void> _injectUserEthTokensIntoCurrencyLists() async {
-    final userTokens = await TokenUtilities.loadAllUniqueEvmTokens();
-
+    final tokens = await TokenUtilities.loadEvmTokensForSwap();
     final toAddReceive = <CryptoCurrency>[];
     final toAddDeposit = <CryptoCurrency>[];
 
-    for (final token in userTokens) {
+    for (final token in tokens) {
       if (!_listContainsToken(receiveCurrencies, token)) toAddReceive.add(token);
       if (!_listContainsToken(depositCurrencies, token)) toAddDeposit.add(token);
     }
@@ -1316,12 +1319,11 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
 
   @action
   Future<void> _injectUserSplTokensIntoCurrencyLists() async {
-    final userTokens = await TokenUtilities.loadAllUniqueSolTokens();
-
+    final tokens = await TokenUtilities.loadSolTokensForSwap();
     final toAddReceive = <CryptoCurrency>[];
     final toAddDeposit = <CryptoCurrency>[];
 
-    for (final token in userTokens) {
+    for (final token in tokens) {
       if (!_listContainsSplToken(receiveCurrencies, token)) toAddReceive.add(token);
       if (!_listContainsSplToken(depositCurrencies, token)) toAddDeposit.add(token);
     }
@@ -1344,12 +1346,11 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
 
   @action
   Future<void> _injectUserTronTokensIntoCurrencyLists() async {
-    final userTokens = await TokenUtilities.loadAllUniqueTronTokens();
-
+    final tokens = await TokenUtilities.loadTronTokensForSwap();
     final toAddReceive = <CryptoCurrency>[];
     final toAddDeposit = <CryptoCurrency>[];
 
-    for (final token in userTokens) {
+    for (final token in tokens) {
       if (!_listContainsTronToken(receiveCurrencies, token)) toAddReceive.add(token);
       if (!_listContainsTronToken(depositCurrencies, token)) toAddDeposit.add(token);
     }

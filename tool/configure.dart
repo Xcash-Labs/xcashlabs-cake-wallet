@@ -34,8 +34,9 @@ Future<void> main(List<String> args) async {
   final hasDogecoin = args.contains('${prefix}dogecoin');
   final hasBase = args.contains('${prefix}base');
   final hasArbitrum = args.contains('${prefix}arbitrum');
+  final hasBsc = args.contains('${prefix}bsc');
   final hasZcash = args.contains('${prefix}zcash');
-  final hasEVM = hasEthereum || hasPolygon || hasBase || hasArbitrum;
+  final hasEVM = hasEthereum || hasPolygon || hasBase || hasArbitrum || hasBsc;
   final excludeFlutterSecureStorage = args.contains('${prefix}excludeFlutterSecureStorage');
 
   await generateBitcoin(hasBitcoin);
@@ -69,6 +70,7 @@ Future<void> main(List<String> args) async {
     hasDogecoin: hasDogecoin,
     hasBase: hasBase,
     hasArbitrum: hasArbitrum,
+    hasBsc: hasBsc,
     hasZcash: hasZcash,
   );
   await generateWalletTypes(
@@ -87,6 +89,7 @@ Future<void> main(List<String> args) async {
     hasDogecoin: hasDogecoin,
     hasBase: hasBase,
     hasArbitrum: hasArbitrum,
+    hasBsc: hasBsc,
     hasZcash: hasZcash,
   );
   await injectSecureStorage(!excludeFlutterSecureStorage);
@@ -740,15 +743,12 @@ abstract class BitcoinCash {
   """;
 
   const bitcoinCashEmptyDefinition = 'BitcoinCash? bitcoinCash;\n';
-  const bitcoinCashCWDefinition =
-      'BitcoinCash? bitcoinCash = CWBitcoinCash();\n';
+  const bitcoinCashCWDefinition = 'BitcoinCash? bitcoinCash = CWBitcoinCash();\n';
 
   final output = '$bitcoinCashCommonHeaders\n' +
       (hasImplementation ? '$bitcoinCashCWHeaders\n' : '\n') +
       (hasImplementation ? '$bitcoinCashCwPart\n\n' : '\n') +
-      (hasImplementation
-          ? bitcoinCashCWDefinition
-          : bitcoinCashEmptyDefinition) +
+      (hasImplementation ? bitcoinCashCWDefinition : bitcoinCashEmptyDefinition) +
       '\n' +
       bitcoinCashContent;
 
@@ -883,8 +883,7 @@ abstract class NanoUtil {
   """;
 
   const nanoEmptyDefinition = 'Nano? nano;\nNanoUtil? nanoUtil;\n';
-  const nanoCWDefinition =
-      'Nano? nano = CWNano();\nNanoUtil? nanoUtil = CWNanoUtil();\n';
+  const nanoCWDefinition = 'Nano? nano = CWNano();\nNanoUtil? nanoUtil = CWNanoUtil();\n';
 
   final output = '$nanoCommonHeaders\n' +
       (hasImplementation ? '$nanoCWHeaders\n' : '\n') +
@@ -969,7 +968,9 @@ abstract class Solana {
   String getTokenAddress(CryptoCurrency asset);
   List<int>? getValidationLength(CryptoCurrency type);
   double? getEstimateFees(WalletBase wallet);
+  List<SPLToken> getDefaultSPLTokens();
   List<String> getDefaultTokenContractAddresses();
+  List<String> getDefaultTokenSymbols();
   bool isTokenAlreadyAdded(WalletBase wallet, String contractAddress);
   
   // Jupiter swap transaction handling
@@ -1094,7 +1095,9 @@ abstract class Tron {
   String? getTronTRC20EstimatedFee(WalletBase wallet);
 
   void updateTronGridUsageState(WalletBase wallet, bool isEnabled);
+  List<TronToken> getDefaultTronTokens();
   List<String> getDefaultTokenContractAddresses();
+  List<String> getDefaultTokenSymbols();
   bool isTokenAlreadyAdded(WalletBase wallet, String contractAddress);
 }
   """;
@@ -1323,6 +1326,7 @@ abstract class DogeCoin {
 Future<void> generateEVM(bool hasImplementation) async {
   final outputFile = File(evmOutputPath);
   const evmCommonHeaders = """
+import 'dart:math' as math;
 import 'package:cake_wallet/core/utilities.dart';
 import 'package:cake_wallet/view_model/send/output.dart';
 import 'package:cw_core/crypto_currency.dart';
@@ -1346,6 +1350,11 @@ import 'package:web3dart/web3dart.dart';
 
 """;
   const evmCWHeaders = """
+import 'package:cake_wallet/core/fiat_conversion_service.dart';
+import 'package:cake_wallet/di.dart';
+import 'package:cake_wallet/entities/fiat_api_mode.dart';
+import 'package:cake_wallet/entities/fiat_currency.dart';
+import 'package:cake_wallet/store/settings_store.dart';
 import 'package:cw_evm/utils/evm_chain_formatter.dart';
 import 'package:cw_evm/evm_chain_mnemonics.dart';
 import 'package:cw_evm/evm_chain_registry.dart';
@@ -1483,7 +1492,9 @@ abstract class EVM {
   HardwareWalletService getTrezorHardwareWalletService(trezor.TrezorConnect connect);
   
   // Utility methods
+  List<Erc20Token> getDefaultTokensByChainId(int chainId);
   List<String> getDefaultTokenContractAddresses(WalletBase wallet);
+  List<String> getDefaultTokenSymbols(WalletBase wallet);
   bool isTokenAlreadyAdded(WalletBase wallet, String contractAddress);
   String? getEVMNativeEstimatedFee(WalletBase wallet);
   String? getEVMERC20EstimatedFee(WalletBase wallet);
@@ -1519,6 +1530,8 @@ abstract class EVM {
   String? getExplorerUrlForChainId(int chainId, {bool showProtocol = true});
   
   bool hasPriorityFee(int chainId);
+
+  Future<void> discoverAndAddWalletTokens(WalletBase wallet);
 }
 
 class ChainInfo {
@@ -1601,7 +1614,7 @@ abstract class Zcash {
       String? passphrase,
       required int? height});
   WalletCredentials createZcashRestoreWalletFromPrivateKey(
-      {required String name, required String privateKey, required String password});
+      {required String name, required String privateKey, required String password, required int height});
   String getAddress(WalletBase wallet);
   String getPrivateKey(WalletBase wallet);
   String getPublicKey(WalletBase wallet);
@@ -1636,8 +1649,9 @@ abstract class Zcash {
   dynamic getOptionToType(ReceivePageOption option);
   void unlockDatabase(String password);
   Future<int> getHeightByDate(DateTime date);
+  bool showMissingFundsCard(WalletBase wallet);
+  Future<void> rescanInternalChange(WalletBase wallet);
 }
-
   """;
 
   const zcashEmptyDefinition = 'Zcash? zcash;\n';
@@ -1674,6 +1688,7 @@ Future<void> generatePubspec({
   required bool hasDogecoin,
   required bool hasBase,
   required bool hasArbitrum,
+  required bool hasBsc,
   required bool hasZcash,
 }) async {
   const cwCore = """
@@ -1745,8 +1760,7 @@ Future<void> generatePubspec({
   final inputLines = inputText.split('\n');
   final dependenciesIndex = inputLines.indexWhere((line) => Platform.isWindows
       // On Windows it could contains `\r` (Carriage Return). It could be fixed in newer dart versions.
-      ? line.toLowerCase() == 'dependencies:\r' ||
-          line.toLowerCase() == 'dependencies:'
+      ? line.toLowerCase() == 'dependencies:\r' || line.toLowerCase() == 'dependencies:'
       : line.toLowerCase() == 'dependencies:');
   var output = cwCore;
 
@@ -1786,7 +1800,7 @@ Future<void> generatePubspec({
     output += '\n$flutterSecureStorage\n';
   }
 
-  if (hasEthereum || hasPolygon || hasBase || hasArbitrum) {
+  if (hasEthereum || hasPolygon || hasBase || hasArbitrum || hasBsc) {
     output += '\n$cwEVM';
   }
 
@@ -1834,6 +1848,7 @@ Future<void> generateWalletTypes({
   required bool hasDogecoin,
   required bool hasBase,
   required bool hasArbitrum,
+  required bool hasBsc,
   required bool hasZcash,
 }) async {
   final walletTypesFile = File(walletTypesPath);
@@ -1856,6 +1871,10 @@ Future<void> generateWalletTypes({
 
   if (hasEthereum) {
     outputContent += '\tWalletType.ethereum,\n';
+  }
+
+  if (hasBsc) {
+    outputContent += '\tWalletType.bsc,\n';
   }
 
   if (hasSolana) {

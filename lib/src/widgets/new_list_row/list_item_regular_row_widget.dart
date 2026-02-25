@@ -52,13 +52,13 @@ class ListItemRegularRowWidget extends StatelessWidget {
                         child: iconPath!.split(".").last.toLowerCase() == "svg"
                             ? SvgPicture.asset(
                                 iconPath!,
-                                width: 24,
-                                height: 24,
+                                width: 26,
+                                height: 26,
                               )
                             : Image.asset(
                                 iconPath!,
-                                width: 24,
-                                height: 24,
+                                width: 26,
+                                height: 26,
                               ),
                       ),
                     Flexible(

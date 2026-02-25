@@ -1007,6 +1007,7 @@ class ElectrumClient {
     // Only clears errors and unterminated string, leaves tasks or reset ID
     // This preserves active subscriptions while clearing error state
     _errors.clear();
+    _isolateErrors.clear();
     unterminatedString = '';
   }
 
@@ -1014,7 +1015,10 @@ class ElectrumClient {
     _id = 0;
     _tasks.clear();
     _errors.clear();
+    _isolateTasks.clear();
+    _isolateErrors.clear();
     unterminatedString = '';
+
   }
 
   void _registryTask(int id, Completer<dynamic> completer) =>
@@ -1076,6 +1080,7 @@ class ElectrumClient {
     _isolateTasks.clear();
   }
 
+  // Only used by socket (we won't subscribe via isolate socket)
   void _methodHandler({required String method, required Map<String, dynamic> request}) {
     switch (method) {
       case 'blockchain.headers.subscribe':

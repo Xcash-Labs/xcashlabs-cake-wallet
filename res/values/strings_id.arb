@@ -750,6 +750,7 @@
   "privacy": "Privasi",
   "privacy_and_security": "Privasi & Keamanan",
   "privacy_and_security_desc": "Konfigurasikan pengaturan otentikasi dan keamanan dan atur Cake 2FA.",
+  "privacy_desc": "Ubah pengaturan privasi dan aktifkan atau nonaktifkan fitur privasi khusus.",
   "privacy_features": "Fitur privasi",
   "privacy_policy": "Kebijakan Privasi",
   "privacy_settings": "Pengaturan privasi",
@@ -1352,5 +1353,6 @@
   "zcash_card_enable_later": "Anda selalu dapat mengaktifkan kartu ini nanti di pengaturan",
   "zcash_card_missing_funds": "Dana hilang?",
   "zcash_card_scan": "Pindai",
-  "zcash_card_warning": "Jangan tutup aplikasi hingga prosedur selesai, jika Anda melakukannya, proses ini perlu dimulai ulang dari awal."
+  "zcash_card_warning": "Jangan tutup aplikasi hingga prosedur selesai, jika Anda melakukannya, proses ini perlu dimulai ulang dari awal.",
+  "connections_desc": "Kelola koneksi ke layanan dan API pihak ketiga"
 }

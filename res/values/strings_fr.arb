@@ -748,6 +748,7 @@
   "privacy": "Confidentialité",
   "privacy_and_security": "Confidentialité et sécurité",
   "privacy_and_security_desc": "Configurez les paramètres d'authentification et de sécurité et configurez Cake 2FA.",
+  "privacy_desc": "Modifiez les paramètres de confidentialité et activez des fonctionnalités de confidentialité spéciales.",
   "privacy_features": "Fonctionnalités de confidentialité",
   "privacy_policy": "Politique de confidentialité",
   "privacy_settings": "Paramètres de confidentialité",
@@ -1349,5 +1350,6 @@
   "zcash_card_enable_later": "Vous pourrez toujours activer cette carte plus tard dans les paramètres",
   "zcash_card_missing_funds": "Des fonds manquants ?",
   "zcash_card_scan": "Balayage",
-  "zcash_card_warning": "Ne fermez pas l'application tant que la procédure n'est pas terminée, si vous le faites, ce processus devra redémarrer à partir de zéro."
+  "zcash_card_warning": "Ne fermez pas l'application tant que la procédure n'est pas terminée, si vous le faites, ce processus devra redémarrer à partir de zéro.",
+  "connections_desc": "Gérer les connexions aux services et aux API tierces"
 }

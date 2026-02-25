@@ -748,6 +748,7 @@
   "privacy": "Soukromí",
   "privacy_and_security": "Ochrana osobních údajů a zabezpečení",
   "privacy_and_security_desc": "Nakonfigurujte nastavení ověřování a zabezpečení a nastavte Cake 2FA.",
+  "privacy_desc": "Změňte nastavení ochrany osobních údajů a přepínejte speciální funkce ochrany osobních údajů.",
   "privacy_features": "Funkce ochrany osobních údajů",
   "privacy_policy": "Zásady ochrany soukromí",
   "privacy_settings": "Nastavení soukromí",
@@ -1349,5 +1350,6 @@
   "zcash_card_enable_later": "Tuto kartu můžete kdykoli povolit později v nastavení",
   "zcash_card_missing_funds": "Chybějící finanční prostředky?",
   "zcash_card_scan": "Skenovat",
-  "zcash_card_warning": "Nezavírejte aplikaci, dokud se postup nedokončí, pokud tak učiníte, bude nutné tento proces restartovat od nuly."
+  "zcash_card_warning": "Nezavírejte aplikaci, dokud se postup nedokončí, pokud tak učiníte, bude nutné tento proces restartovat od nuly.",
+  "connections_desc": "Správa připojení ke službám a rozhraním API třetích stran"
 }

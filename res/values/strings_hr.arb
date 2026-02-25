@@ -748,6 +748,7 @@
   "privacy": "Privatnost",
   "privacy_and_security": "Privatnost i sigurnost",
   "privacy_and_security_desc": "Konfigurirajte postavke provjere autentičnosti i sigurnosti te postavite Cake 2FA.",
+  "privacy_desc": "Promijenite postavke privatnosti i uključite posebne značajke privatnosti.",
   "privacy_features": "Značajke privatnosti",
   "privacy_policy": "Pravila privatnosti",
   "privacy_settings": "Postavke privatnosti",
@@ -1349,5 +1350,6 @@
   "zcash_card_enable_later": "Tu karticu uvijek možete omogućiti kasnije u postavkama",
   "zcash_card_missing_funds": "Nedostaju sredstva?",
   "zcash_card_scan": "Skenirati",
-  "zcash_card_warning": "Ne zatvarajte aplikaciju dok se postupak ne dovrši, ako to učinite, ovaj će se postupak morati ponovno pokrenuti ispočetka."
+  "zcash_card_warning": "Ne zatvarajte aplikaciju dok se postupak ne dovrši, ako to učinite, ovaj će se postupak morati ponovno pokrenuti ispočetka.",
+  "connections_desc": "Upravljajte vezama prema uslugama i API-jima trećih strana"
 }

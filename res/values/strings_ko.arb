@@ -749,6 +749,7 @@
   "privacy": "개인 정보 보호",
   "privacy_and_security": "개인정보 보호 및 보안",
   "privacy_and_security_desc": "인증 및 보안 설정을 구성하고 Cake 2FA를 설정합니다.",
+  "privacy_desc": "개인정보 설정을 변경하고 특별한 개인정보 기능을 켜고 끄세요.",
   "privacy_features": "개인 정보 보호 기능",
   "privacy_policy": "개인정보 보호정책",
   "privacy_settings": "개인 정보 보호 설정",
@@ -1350,5 +1351,6 @@
   "zcash_card_enable_later": "나중에 설정에서 언제든지 이 카드를 활성화할 수 있습니다.",
   "zcash_card_missing_funds": "자금이 부족합니까?",
   "zcash_card_scan": "주사",
-  "zcash_card_warning": "절차가 완료될 때까지 앱을 닫지 마십시오. 그렇게 하면 이 프로세스를 처음부터 다시 시작해야 합니다."
+  "zcash_card_warning": "절차가 완료될 때까지 앱을 닫지 마십시오. 그렇게 하면 이 프로세스를 처음부터 다시 시작해야 합니다.",
+  "connections_desc": "서비스 및 서드파티 API에 대한 연결을 관리합니다"
 }

@@ -581,6 +581,7 @@
   "privacy": "Ñemihapegua",
   "privacy_and_security": "Privacidad & Seguridad rehegua .",
   "privacy_and_security_desc": "Emohenda jekuaauka ha seguridad ñemboheko ha ñembosako’i torta 2FA.",
+  "privacy_desc": "Embojuehe ñemigua reko ñeha'ã ha emopu'ã ñemigua mba'eporu.",
   "privacy_features": "Ñe’ẽñemi rehegua mba’ekuaarã .",
   "privacy_policy": "Tekopy ñemi rehegua",
   "privacy_settings": "Ñemohenda ñemi rehegua",
@@ -1088,5 +1089,6 @@
   "zcash_card_enable_later": "Ikatu akóinte emboguata ko tarjeta upe rire ñembohekorãme .",
   "zcash_card_missing_funds": "¿Ofalta umi fondo?",
   "zcash_card_scan": "Escaneo rehegua .",
-  "zcash_card_warning": "Ani remboty pe app ojejapopa peve pe procedimiento, rejapo ramo upéicha ko proceso tekotevẽta oñepyrũ jey cero guive."
+  "zcash_card_warning": "Ani remboty pe app ojejapopa peve pe procedimiento, rejapo ramo upéicha ko proceso tekotevẽta oñepyrũ jey cero guive.",
+  "connections_desc": "Emohenda joaju umi servicio ha API mbohapýha rehegua"
 }

@@ -746,6 +746,7 @@
   "privacy": "Quyền riêng tư",
   "privacy_and_security": "Quyền riêng tư & Bảo mật",
   "privacy_and_security_desc": "Định cấu hình cài đặt xác thực và bảo mật cũng như thiết lập Cake 2FA.",
+  "privacy_desc": "Thay đổi cài đặt quyền riêng tư và bật/tắt các tính năng quyền riêng tư đặc biệt.",
   "privacy_features": "Tính năng bảo mật",
   "privacy_policy": "Chính sách quyền riêng tư",
   "privacy_settings": "Cài đặt quyền riêng tư",
@@ -1346,5 +1347,6 @@
   "zcash_card_enable_later": "Bạn luôn có thể bật thẻ này sau trong cài đặt",
   "zcash_card_missing_funds": "Thiếu tiền?",
   "zcash_card_scan": "Quét",
-  "zcash_card_warning": "Không đóng ứng dụng cho đến khi quy trình hoàn tất, nếu bạn làm như vậy thì quy trình này sẽ cần phải khởi động lại từ đầu."
+  "zcash_card_warning": "Không đóng ứng dụng cho đến khi quy trình hoàn tất, nếu bạn làm như vậy thì quy trình này sẽ cần phải khởi động lại từ đầu.",
+  "connections_desc": "Quản lý kết nối tới các dịch vụ và API của bên thứ ba"
 }

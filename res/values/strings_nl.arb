@@ -748,6 +748,7 @@
   "privacy": "Privacy",
   "privacy_and_security": "Privacy en veiligheid",
   "privacy_and_security_desc": "Configureer authenticatie- en beveiligingsinstellingen en stel Cake 2FA in.",
+  "privacy_desc": "Wijzig privacyinstellingen en schakel speciale privacyfuncties in of uit.",
   "privacy_features": "Privacyfuncties",
   "privacy_policy": "Privacybeleid",
   "privacy_settings": "Privacy-instellingen",
@@ -1350,5 +1351,6 @@
   "zcash_card_enable_later": "Je kunt deze kaart altijd later inschakelen in de instellingen",
   "zcash_card_missing_funds": "Ontbrekende fondsen?",
   "zcash_card_scan": "Scannen",
-  "zcash_card_warning": "Sluit de app niet totdat de procedure is voltooid. Als u dit wel doet, moet dit proces helemaal opnieuw worden opgestart."
+  "zcash_card_warning": "Sluit de app niet totdat de procedure is voltooid. Als u dit wel doet, moet dit proces helemaal opnieuw worden opgestart.",
+  "connections_desc": "Beheer verbindingen met diensten en API's van derden"
 }

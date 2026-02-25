@@ -748,6 +748,7 @@
   "privacy": "Gizlilik",
   "privacy_and_security": "Gizlilik ve Güvenlik",
   "privacy_and_security_desc": "Kimlik doğrulama ve güvenlik ayarlarını yapılandırın ve Cake 2FA'yı kurun.",
+  "privacy_desc": "Gizlilik ayarlarını değiştirin ve özel gizlilik özelliklerini açıp kapatın.",
   "privacy_features": "Gizlilik özellikleri",
   "privacy_policy": "Gizlilik Politikası",
   "privacy_settings": "Gizlilik ayarları",
@@ -1349,5 +1350,6 @@
   "zcash_card_enable_later": "Bu kartı daha sonra istediğiniz zaman ayarlardan etkinleştirebilirsiniz",
   "zcash_card_missing_funds": "Fonlar mı eksik?",
   "zcash_card_scan": "Tara",
-  "zcash_card_warning": "Prosedür tamamlanana kadar uygulamayı kapatmayın, bunu yaparsanız bu işlemin sıfırdan yeniden başlatılması gerekecektir."
+  "zcash_card_warning": "Prosedür tamamlanana kadar uygulamayı kapatmayın, bunu yaparsanız bu işlemin sıfırdan yeniden başlatılması gerekecektir.",
+  "connections_desc": "Hizmetlere ve üçüncü taraf API'lere bağlantıları yönetin"
 }

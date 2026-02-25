@@ -748,6 +748,7 @@
   "privacy": "Privacy",
   "privacy_and_security": "Privacy at Seguridad",
   "privacy_and_security_desc": "I-configure ang mga setting ng pagpapatotoo at seguridad at pag-setup ng Cake 2FA.",
+  "privacy_desc": "Baguhin ang mga setting ng privacy at i-toggle ang mga espesyal na feature ng privacy.",
   "privacy_features": "Mga tampok sa privacy",
   "privacy_policy": "Patakaran sa Pagkapribado",
   "privacy_settings": "Settings para sa pagsasa-pribado",
@@ -1349,5 +1350,6 @@
   "zcash_card_enable_later": "Maaari mong paganahin ang card na ito anumang oras sa ibang pagkakataon sa mga setting",
   "zcash_card_missing_funds": "Kulang ng pondo?",
   "zcash_card_scan": "I-scan",
-  "zcash_card_warning": "Huwag isara ang app hanggang sa makumpleto ang pamamaraan, kung gagawin mo ito, kakailanganing i-restart ang prosesong ito mula sa simula."
+  "zcash_card_warning": "Huwag isara ang app hanggang sa makumpleto ang pamamaraan, kung gagawin mo ito, kakailanganing i-restart ang prosesong ito mula sa simula.",
+  "connections_desc": "Pamahalaan ang mga koneksyon sa mga serbisyo at third party na API"
 }

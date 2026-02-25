@@ -750,6 +750,7 @@
   "privacy": "Keɓantawa",
   "privacy_and_security": "Keɓantawa & Tsaro",
   "privacy_and_security_desc": "Saita ingantaccen saitin tsaro da saitin Cake 2FA.",
+  "privacy_desc": "Canza saitunan sirri kuma ku kunna fasalulluka na musamman na sirri.",
   "privacy_features": "Siffofin sirri",
   "privacy_policy": "takardar kebantawa",
   "privacy_settings": "Saitunan sirri",
@@ -1352,5 +1353,6 @@
   "zcash_card_enable_later": "Kuna iya kunna wannan katin koyaushe a cikin saitunan",
   "zcash_card_missing_funds": "Bace kudi?",
   "zcash_card_scan": "Duba",
-  "zcash_card_warning": "Kar a rufe app ɗin har sai an kammala aikin, idan kun yi haka wannan tsari zai buƙaci sake farawa daga karce."
+  "zcash_card_warning": "Kar a rufe app ɗin har sai an kammala aikin, idan kun yi haka wannan tsari zai buƙaci sake farawa daga karce.",
+  "connections_desc": "Gudanar da haɗin gwiwa zuwa ayyuka da API na ɓangare na uku"
 }

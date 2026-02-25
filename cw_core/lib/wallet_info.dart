@@ -327,29 +327,28 @@ class DerivationInfo {
 
 class WalletInfo {
   WalletInfo(
-    this.internalId,
-    this.id,
-    this.name,
-    this.type,
-    this.isRecovery,
-    this.restoreHeight,
-    this.timestamp,
-    this.dirPath,
-    this.path,
-    this.address,
-    this.yatEid,
-    this.yatLastUsedAddressRaw,
-    this.showIntroCakePayCard,
-    this.derivationInfoId,
-    this.hardwareWalletType,
-    this.parentAddress,
-    this.hashedWalletIdentifier,
-    this.isNonSeedWallet,
-    this.sortOrder,
-    this.addressPageType,
-    this.receiveInfoboxDismissed
-
-  ) : _yatLastUsedAddressController = StreamController<String>.broadcast();
+      this.internalId,
+      this.id,
+      this.name,
+      this.type,
+      this.isRecovery,
+      this.restoreHeight,
+      this.timestamp,
+      this.dirPath,
+      this.path,
+      this.address,
+      this.yatEid,
+      this.yatLastUsedAddressRaw,
+      this.showIntroCakePayCard,
+      this.derivationInfoId,
+      this.hardwareWalletType,
+      this.parentAddress,
+      this.hashedWalletIdentifier,
+      this.isNonSeedWallet,
+      this.sortOrder,
+      this.addressPageType,
+      this.receiveInfoboxDismissed)
+      : _yatLastUsedAddressController = StreamController<String>.broadcast();
 
   factory WalletInfo.external({
     required String id,
@@ -373,28 +372,27 @@ class WalletInfo {
     bool? receiveInfoboxDismissed,
   }) {
     return WalletInfo(
-      0,
-      id,
-      name,
-      type,
-      isRecovery,
-      restoreHeight,
-      date.millisecondsSinceEpoch,
-      dirPath,
-      path,
-      address,
-      yatEid,
-      yatLastUsedAddressRaw,
-      showIntroCakePayCard,
-      derivationInfoId ?? -1,
-      hardwareWalletType,
-      parentAddress,
-      hashedWalletIdentifier,
-      isNonSeedWallet ?? false,
-      sortOrder ?? 0,
-      null,
-      receiveInfoboxDismissed ?? false
-    );
+        0,
+        id,
+        name,
+        type,
+        isRecovery,
+        restoreHeight,
+        date.millisecondsSinceEpoch,
+        dirPath,
+        path,
+        address,
+        yatEid,
+        yatLastUsedAddressRaw,
+        showIntroCakePayCard,
+        derivationInfoId ?? -1,
+        hardwareWalletType,
+        parentAddress,
+        hashedWalletIdentifier,
+        isNonSeedWallet ?? false,
+        sortOrder ?? 0,
+        null,
+        receiveInfoboxDismissed ?? false);
   }
 
   static String get tableName => 'walletInfo';
@@ -557,29 +555,29 @@ class WalletInfo {
   StreamController<String> _yatLastUsedAddressController;
 
   Map<String, dynamic> toJson() => {
-    selfIdColumn: internalId,
-    "id": id,
-    "name": name,
-    "type": type.index,
-    "isRecovery": isRecovery ? 1 : 0,
-    "restoreHeight": restoreHeight,
-    "timestamp": timestamp,
-    "dirPath": dirPath,
-    "path": path,
-    "address": address,
-    "yatEid": yatEid,
-    "yatLastUsedAddressRaw": yatLastUsedAddressRaw,
-    "showIntroCakePayCard": showIntroCakePayCard == true ? 1 : 0, // SQL regression: null -> false
-    "walletInfoDerivationInfoId": derivationInfoId,
-    "hardwareWalletType": hardwareWalletType?.index,
-    "parentAddress": parentAddress,
-    "hashedWalletIdentifier": hashedWalletIdentifier,
-    "isNonSeedWallet": isNonSeedWallet ? 1 : 0,
-    "sortOrder": sortOrder,
-    "addressPageType": addressPageType,
-    "receiveInfoboxDismissed": receiveInfoboxDismissed ? 1 : 0,
-
-  };
+        selfIdColumn: internalId,
+        "id": id,
+        "name": name,
+        "type": type.index,
+        "isRecovery": isRecovery ? 1 : 0,
+        "restoreHeight": restoreHeight,
+        "timestamp": timestamp,
+        "dirPath": dirPath,
+        "path": path,
+        "address": address,
+        "yatEid": yatEid,
+        "yatLastUsedAddressRaw": yatLastUsedAddressRaw,
+        "showIntroCakePayCard":
+            showIntroCakePayCard == true ? 1 : 0, // SQL regression: null -> false
+        "walletInfoDerivationInfoId": derivationInfoId,
+        "hardwareWalletType": hardwareWalletType?.index,
+        "parentAddress": parentAddress,
+        "hashedWalletIdentifier": hashedWalletIdentifier,
+        "isNonSeedWallet": isNonSeedWallet ? 1 : 0,
+        "sortOrder": sortOrder,
+        "addressPageType": addressPageType,
+        "receiveInfoboxDismissed": receiveInfoboxDismissed ? 1 : 0,
+      };
 
   factory WalletInfo.fromJson(Map<String, dynamic> json) {
     return WalletInfo(
@@ -646,6 +644,94 @@ class WalletInfo {
       return null;
     }
     return list[0];
+  }
+
+  /// Removes duplicate WalletInfo entries that share the same id
+  /// keeps the row with the lowest internalId and deletes the rest
+  static Future<void> removeDuplicates() async {
+    try {
+      final all = await getAll();
+      final groups = <String, List<WalletInfo>>{};
+
+      for (final wallet in all) {
+        groups.putIfAbsent(wallet.id, () => []).add(wallet);
+      }
+
+      for (final entry in groups.entries) {
+        final duplicates = entry.value;
+        if (duplicates.length <= 1) continue;
+
+        duplicates.sort(
+          (a, b) => a.internalId.compareTo(b.internalId),
+        );
+
+        for (int i = 1; i < duplicates.length; i++) {
+          final dup = duplicates[i];
+          await _deleteCascade(dup.internalId);
+        }
+
+        printV(
+          'Removed ${duplicates.length - 1} duplicate(s) '
+          'for wallet "${entry.key}"',
+        );
+      }
+    } catch (e) {
+      printV('Error removing duplicate wallets: $e');
+    }
+  }
+
+  static Future<void> _deleteCascade(int walletInfoId) async {
+    final rows = await db.query(
+      tableName,
+      columns: ['walletInfoDerivationInfoId'],
+      where: '$selfIdColumn = ?',
+      whereArgs: [walletInfoId],
+    );
+
+    final derivationInfoId =
+        rows.isNotEmpty ? rows.first['walletInfoDerivationInfoId'] as int? : null;
+
+    await WalletInfoAddress.deleteByType(
+      walletInfoId,
+      WalletInfoAddressType.used,
+    );
+    await WalletInfoAddress.deleteByType(
+      walletInfoId,
+      WalletInfoAddressType.hidden,
+    );
+    await WalletInfoAddress.deleteByType(
+      walletInfoId,
+      WalletInfoAddressType.manual,
+    );
+    await WalletInfoAddressInfo.deleteByWalletInfoId(
+      walletInfoId,
+    );
+    await WalletInfoAddressMap.deleteByWalletInfoId(
+      walletInfoId,
+    );
+    await db.delete(
+      tableName,
+      where: '$selfIdColumn = ?',
+      whereArgs: [walletInfoId],
+    );
+
+    if (derivationInfoId != null) {
+      final refs = await db.query(
+        tableName,
+        columns: [selfIdColumn],
+        where: 'walletInfoDerivationInfoId = ?',
+        whereArgs: [derivationInfoId],
+        limit: 1,
+      );
+
+      if (refs.isEmpty) {
+        await db.delete(
+          DerivationInfo.tableName,
+          where: '${DerivationInfo.selfIdColumn} = ?',
+          whereArgs: [derivationInfoId],
+        );
+      }
+    }
   }
 
   Future<void> updateRestoreHeight(int height) async {

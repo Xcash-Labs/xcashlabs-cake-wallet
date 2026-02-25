@@ -281,6 +281,7 @@ Future<void> initializeAppConfigs({bool loadWallet = true}) async {
     CakeHive.registerAdapter(TronTokenAdapter());
   }
   await performHiveMigration();
+  await WalletInfo.removeDuplicates();
 
   final secureStorage = secureStorageShared;
   final transactionDescriptionsBoxKey =

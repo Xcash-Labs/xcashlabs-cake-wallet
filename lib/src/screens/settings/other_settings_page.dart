@@ -21,6 +21,8 @@ import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:path/path.dart' as p;
 
+import 'widgets/settings_switcher_cell.dart';
+
 class OtherSettingsPage extends BasePage {
   OtherSettingsPage(this._otherSettingsViewModel) {
     if (_otherSettingsViewModel.sendViewModel.isElectrumWallet) {
@@ -43,6 +45,22 @@ class OtherSettingsPage extends BasePage {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
+                      SettingsSwitcherCell(
+                          title: S.current.settings_save_recipient_address,
+                          value: _otherSettingsViewModel.shouldSaveRecipientAddress,
+                          onValueChange: (BuildContext _, bool value) {
+                            _otherSettingsViewModel.setShouldSaveRecipientAddress(value);
+                          }),
+                      if (_otherSettingsViewModel.isAutoGenerateSubaddressesVisible)
+                        SettingsSwitcherCell(
+                          title: _otherSettingsViewModel.isMoneroWallet
+                              ? S.current.auto_generate_subaddresses
+                              : S.current.auto_generate_addresses,
+                          value: _otherSettingsViewModel.isAutoGenerateSubaddressesEnabled,
+                          onValueChange: (BuildContext _, bool value) {
+                            _otherSettingsViewModel.setAutoGenerateSubaddresses(value);
+                          },
+                        ),
                       if (_otherSettingsViewModel.displayTransactionPriority)
                         _otherSettingsViewModel.walletType == WalletType.bitcoin
                             ? SettingsPriorityPickerCell(

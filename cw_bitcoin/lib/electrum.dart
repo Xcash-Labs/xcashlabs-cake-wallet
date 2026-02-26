@@ -501,8 +501,8 @@ class ElectrumClient {
 
     try {
       // Increment _id first to get base ID for this batch
-      _id += 1;
-      final baseId = _id;
+      _isolateId += 1;
+      var baseId = _isolateId;
 
       // Build batch request payload with unique IDs
       final List<Map<String, dynamic>> batchRequest = [];
@@ -564,24 +564,26 @@ class ElectrumClient {
     }
 
     try {
-      // Increment _isolateId first to get base ID for this batch
+      // Increment _isolateId first to get base ID for this batch      
+      // should fix our previous error
       _isolateId += 1;
-      final baseId = _isolateId;
-
+      var baseId = _isolateId;
       // Build batch request payload with unique IDs
       final List<Map<String, dynamic>> batchRequest = [];
       for (int i = 0; i < scriptHashes.length; i++) {
         // Add height parameters for get_history calls (BCH Electrum protocol)
+        // Reverted to debug for history for bug catching
         final params = method == 'blockchain.scripthash.get_history'
             ? [scriptHashes[i], 930000, -1]
             : [scriptHashes[i]];
 
         batchRequest.add({
           'jsonrpc': '2.0',
-          'id': baseId,
+          'id': _isolateId + i,
           'method': method,
           'params': params,
         });
+        _isolateId++;
       }
 
       // Update _isolateId to account for all batch items

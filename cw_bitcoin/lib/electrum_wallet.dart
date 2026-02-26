@@ -1005,12 +1005,14 @@ abstract class ElectrumWalletBase
         .where((element) => element.type != SegwitAddresType.mweb)
         .toList();
 
+    printV("Fetch all unspent");
     if (addresses.isEmpty) return [];
 
     printV("KB: batchFetchAllUnspent: Fetching unspents for ${addresses.length} addresses");
 
     final batchResponse =
         await getIsolateAddressBatch(addresses, 'blockchain.scripthash.listunspent');
+    developer.log(batchResponse);
     final decoded = jsonDecode(batchResponse) as List;
     final List<BitcoinUnspent> allUnspents = [];
 
@@ -1044,7 +1046,6 @@ abstract class ElectrumWalletBase
         }
       }
     }
-
     return allUnspents;
   }
 
@@ -1568,6 +1569,7 @@ abstract class ElectrumWalletBase
   Future<PendingTransaction> createTransaction(Object credentials) async {
     try {
       // start by updating unspent coins
+      printV("Updating all unspent coins - not Karl's fn");
       await updateAllUnspents();
 
       final outputs = <BitcoinOutput>[];

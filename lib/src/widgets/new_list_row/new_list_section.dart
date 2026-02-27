@@ -93,6 +93,7 @@ class NewListSections extends StatelessWidget {
       return ListItemRegularRowWidget(
         keyValue: item.keyValue,
         label: item.label,
+        bottomWidget: item.bottomWidget,
         subtitle: item.subtitle,
         trailingText: item.trailingText,
         iconPath: item.iconPath,

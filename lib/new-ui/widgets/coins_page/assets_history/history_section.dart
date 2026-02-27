@@ -1,8 +1,10 @@
+import 'package:cake_wallet/di.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/assets_history/anonpay_history_tile.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/assets_history/history_order_tile.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/assets_history/history_tile.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/assets_history/history_trade_tile.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/assets_history/payjoin_history_tile.dart';
+import 'package:cake_wallet/new-ui/widgets/coins_page/assets_history/transaction_details_modal.dart';
 import 'package:cake_wallet/routes.dart';
 import 'package:cake_wallet/utils/date_formatter.dart';
 import 'package:cake_wallet/view_model/dashboard/anonpay_transaction_list_item.dart';
@@ -54,8 +56,14 @@ class HistorySection extends StatelessWidget {
               if (transaction.additionalInfo["isLightning"] == true) asset = CryptoCurrency.btcln;
 
               return GestureDetector(
-                onTap: () => Navigator.of(context)
-                    .pushNamed(Routes.transactionDetails, arguments: transaction),
+                // onTap: () => Navigator.of(context)
+                //     .pushNamed(Routes.transactionDetails, arguments: transaction),
+                onTap: (){
+                  final page = getIt.get<TransactionDetailsModal>(param1: transaction);
+                  showModalBottomSheet(isScrollControlled: true,useSafeArea:true,backgroundColor:Theme.of(context).colorScheme.surface,context: context, builder: (context){
+                    return page;
+                  });
+                },
                 child: HistoryTile(
                     title: item.formattedTitle + item.formattedStatus + transactionType,
                     date: DateFormat('HH:mm').format(transaction.date),

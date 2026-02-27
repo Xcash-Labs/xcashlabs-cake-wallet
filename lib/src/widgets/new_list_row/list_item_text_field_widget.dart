@@ -34,6 +34,7 @@ class _ListItemTextFieldWidgetState extends State<ListItemTextFieldWidget> {
   @override
   Widget build(BuildContext context) {
     return ListItemStyleWrapper(
+      verticalPadding: false,
         isFirstInSection: widget.isFirstInSection,
         isLastInSection: widget.isLastInSection,
         builder: (context, textStyle, labelStyle) {

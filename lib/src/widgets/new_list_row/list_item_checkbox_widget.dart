@@ -40,7 +40,6 @@ class _ListItemCheckboxWidgetState extends State<ListItemCheckboxWidget> {
         widget.onChanged(!widget.value);
       },
       isFirstInSection: widget.isFirstInSection,
-      height: widget.subtitle != null ? 64 : 50,
       isLastInSection: widget.isLastInSection,
       builder: (context, textStyle, labelStyle) {
         return Row(

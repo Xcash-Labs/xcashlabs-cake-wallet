@@ -8,13 +8,13 @@ class ListItemStyleWrapper extends StatelessWidget {
     required this.builder,
     this.hasImage,
     this.onTap,
-    this.height = 50,
+    this.verticalPadding=true
   });
 
   final bool isFirstInSection;
   final bool isLastInSection;
+  final bool verticalPadding;
   final bool ?hasImage;
-  final double height;
   final VoidCallback? onTap;
   final Widget Function(BuildContext context, TextStyle textStyle, TextStyle labelStyle) builder;
 
@@ -46,7 +46,6 @@ class ListItemStyleWrapper extends StatelessWidget {
         child: Column(
           children: [
             Container(
-                height: height,
                 decoration: ShapeDecoration(
                   shape: RoundedSuperellipseBorder(
                     borderRadius: radius,
@@ -58,7 +57,7 @@ class ListItemStyleWrapper extends StatelessWidget {
                     child: InkWell(
                         onTap: onTap,
                         child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: verticalPadding? 12:0),
                             child: builder(context, textStyle, labelStyle))))),
             if(hasImage == true && isLastInSection == false) Container(
               color: theme.colorScheme.surfaceContainer,

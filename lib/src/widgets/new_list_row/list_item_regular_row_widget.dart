@@ -15,7 +15,8 @@ class ListItemRegularRowWidget extends StatelessWidget {
     this.isFirstInSection = false,
     this.isLastInSection = false,
     this.showArrow = true,
-    this.trailingIconPath
+    this.trailingIconPath,
+    this.bottomWidget,
   });
 
   final String keyValue;
@@ -29,6 +30,7 @@ class ListItemRegularRowWidget extends StatelessWidget {
   final bool isLastInSection;
   final bool showArrow;
   final String? trailingIconPath;
+  final Widget? bottomWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -38,71 +40,77 @@ class ListItemRegularRowWidget extends StatelessWidget {
         hasImage: iconPath != null ? true : false,
         isFirstInSection: isFirstInSection,
         isLastInSection: isLastInSection,
-        height: subtitle != null ? 64 : 50,
         builder: (context, textStyle, labelStyle) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            spacing:12,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    if(iconPath != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12.0),
-                        child: iconPath!.split(".").last.toLowerCase() == "svg"
-                            ? SvgPicture.asset(
-                                iconPath!,
-                                width: 24,
-                                height: 24,
-                              )
-                            : Image.asset(
-                                iconPath!,
-                                width: 24,
-                                height: 24,
-                              ),
-                      ),
-                    Flexible(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(label, style: textStyle),
-                          if (subtitle != null)
-                            Text(
-                              subtitle!,
-                              style: labelStyle.copyWith(fontSize: 12),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (trailingText != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: Text(
-                        trailingText!,
-                        style: labelStyle,
-                      ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        if(iconPath != null)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12.0),
+                            child: iconPath!.split(".").last.toLowerCase() == "svg"
+                                ? SvgPicture.asset(
+                                    iconPath!,
+                                    width: 24,
+                                    height: 24,
+                                  )
+                                : Image.asset(
+                                    iconPath!,
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                          ),
+                        Flexible(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(label, style: textStyle),
+                              if (subtitle != null)
+                                Text(
+                                  subtitle!,
+                                  style: labelStyle.copyWith(fontSize: 12),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  if(trailingIconPath != null)
-                    SvgPicture.asset(
-                      trailingIconPath!,
-                      width:18,
-                      colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurfaceVariant,BlendMode.srcIn),
-                    )
-                  else if(showArrow)
-                  SvgPicture.asset(
-                    "assets/new-ui/arrow_forward.svg",
-                    height: 14,
-                    color: theme.colorScheme.onSurfaceVariant
-                  )
+                  ),
+
+                  Row(
+                    children: [
+                      if (trailingText != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: Text(
+                            trailingText!,
+                            style: labelStyle,
+                          ),
+                        ),
+                      if(trailingIconPath != null)
+                        SvgPicture.asset(
+                          trailingIconPath!,
+                          width:18,
+                          colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurfaceVariant,BlendMode.srcIn),
+                        )
+                      else if(showArrow)
+                      SvgPicture.asset(
+                        "assets/new-ui/arrow_forward.svg",
+                        height: 14,
+                        color: theme.colorScheme.onSurfaceVariant
+                      )
+                    ],
+                  ),
                 ],
               ),
+              if(bottomWidget != null) bottomWidget!
             ],
           );
         }

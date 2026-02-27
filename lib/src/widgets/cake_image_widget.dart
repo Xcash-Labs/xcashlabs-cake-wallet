@@ -12,6 +12,7 @@ class CakeImageWidget extends StatelessWidget {
     this.errorWidget,
     this.color,
     this.borderRadius = 24.0,
+    this.colorFilter,
   });
 
   final String? imageUrl;
@@ -21,6 +22,7 @@ class CakeImageWidget extends StatelessWidget {
   final Widget? loadingWidget;
   final Widget? errorWidget;
   final Color? color;
+  final ColorFilter? colorFilter;
   final double borderRadius;
 
   @override
@@ -40,6 +42,7 @@ class CakeImageWidget extends StatelessWidget {
               height: height,
               width: width,
               color: color,
+              colorFilter: colorFilter,
               fit: fit ?? BoxFit.contain,
             )
           : Image.asset(
@@ -56,6 +59,7 @@ class CakeImageWidget extends StatelessWidget {
               height: height,
               width: width,
               color: color,
+              colorFilter: colorFilter,
               fit: fit ?? BoxFit.contain,
               placeholderBuilder: (_) {
                 return loadingWidget ?? const Center(child: CircularProgressIndicator());

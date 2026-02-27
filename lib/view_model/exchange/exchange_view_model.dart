@@ -422,9 +422,9 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
   @computed
   Future<List<WalletInfo>> get receiveWallets async {
     WalletType? type;
-    type = cryptoCurrencyToWalletType(receiveCurrency);
+    type = cryptoCurrencyOrTokenToWalletType(receiveCurrency);
     if (type == null) {
-      type = cryptoCurrencyToWalletType(CryptoCurrency.fromString(receiveCurrency.tag ?? ""));
+      type = cryptoCurrencyOrTokenToWalletType(CryptoCurrency.fromString(receiveCurrency.tag ?? ""));
     }
 
     return await WalletInfo.selectList("type = ?", [type!.index]);
@@ -443,9 +443,9 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
   @computed
   Future<List<WalletInfo>> get depositWallets async {
     WalletType? type;
-    type = cryptoCurrencyToWalletType(depositCurrency);
+    type = cryptoCurrencyOrTokenToWalletType(depositCurrency);
     if (type == null) {
-      type = cryptoCurrencyToWalletType(CryptoCurrency.fromString(depositCurrency.tag ?? ""));
+      type = cryptoCurrencyOrTokenToWalletType(CryptoCurrency.fromString(depositCurrency.tag ?? ""));
     }
 
     return await WalletInfo.selectList("type = ?", [type!.index]);

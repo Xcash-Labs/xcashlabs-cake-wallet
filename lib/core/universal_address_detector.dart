@@ -74,7 +74,7 @@ class UniversalAddressDetector {
 
       // Determine currency from scheme
       final currency = CryptoCurrency.fromString(uri.scheme.toLowerCase());
-      final walletType = cryptoCurrencyToWalletType(currency);
+      final walletType = cryptoCurrencyOrTokenToWalletType(currency);
       final chainId = getChainIdByCryptoCurrency(currency);
 
       return AddressDetectionResult(
@@ -233,7 +233,7 @@ class UniversalAddressDetector {
     // Test each pattern in order of specificity
     for (final pattern in detectionPatterns) {
       if (pattern.pattern.hasMatch(cleanInput)) {
-        final walletType = cryptoCurrencyToWalletType(pattern.currency);
+        final walletType = cryptoCurrencyOrTokenToWalletType(pattern.currency);
         final chainId = getChainIdByCryptoCurrency(pattern.currency);
         final amount = _getAmountFromInvoice(cleanInput, pattern.currency);
 

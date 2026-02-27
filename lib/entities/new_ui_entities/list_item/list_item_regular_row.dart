@@ -11,7 +11,8 @@ class ListItemRegularRow extends ListItem {
     this.onTap,
     this.trailingIconPath,
     this.showArrow = true,
-    this.bottomWidget
+    this.bottomWidget,
+    this.trailingWidget
   });
 
   final String? subtitle;
@@ -21,4 +22,5 @@ class ListItemRegularRow extends ListItem {
   final VoidCallback? onTap;
   final bool showArrow;
   final Widget? bottomWidget;
+  final Widget? trailingWidget;
 }

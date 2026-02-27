@@ -17,6 +17,7 @@ class ListItemRegularRowWidget extends StatelessWidget {
     this.showArrow = true,
     this.trailingIconPath,
     this.bottomWidget,
+    this.trailingWidget
   });
 
   final String keyValue;
@@ -31,6 +32,7 @@ class ListItemRegularRowWidget extends StatelessWidget {
   final bool showArrow;
   final String? trailingIconPath;
   final Widget? bottomWidget;
+  final Widget? trailingWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +96,8 @@ class ListItemRegularRowWidget extends StatelessWidget {
                             style: labelStyle,
                           ),
                         ),
-                      if(trailingIconPath != null)
+                      if(trailingWidget != null) trailingWidget!
+                      else if(trailingIconPath != null)
                         SvgPicture.asset(
                           trailingIconPath!,
                           width:18,

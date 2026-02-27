@@ -126,7 +126,6 @@ import 'package:hive/hive.dart';
 import 'package:ledger_flutter_plus/ledger_flutter_plus.dart' as ledger;
 import 'package:bitbox_flutter/bitbox_flutter.dart' as bitbox;
 import 'package:trezor_connect/trezor_connect.dart' as trezor;
-import "package:breez_sdk_spark_flutter/src/rust/errors.dart";
 import 'package:blockchain_utils/blockchain_utils.dart';
 import 'package:bip39/bip39.dart' as bip39;
 """;
@@ -156,6 +155,7 @@ import 'package:cw_bitcoin/hardware/litecoin_ledger_service.dart';
 import 'package:cw_bitcoin/hardware/bitbox_service.dart';
 import 'package:cw_bitcoin/hardware/trezor_service.dart';
 import 'package:mobx/mobx.dart';
+import "package:breez_sdk_spark_flutter/src/rust/errors.dart";
 """;
   const bitcoinCwPart = "part 'cw_bitcoin.dart';";
   const bitcoinContent = """

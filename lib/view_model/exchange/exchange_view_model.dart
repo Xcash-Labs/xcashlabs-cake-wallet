@@ -445,10 +445,16 @@ abstract class ExchangeViewModelBase extends WalletChangeListenerViewModel with 
     WalletType? type;
     type = cryptoCurrencyOrTokenToWalletType(depositCurrency);
     if (type == null) {
-      type = cryptoCurrencyOrTokenToWalletType(CryptoCurrency.fromString(depositCurrency.tag ?? ""));
+      try {
+        type = cryptoCurrencyOrTokenToWalletType(CryptoCurrency.fromString(depositCurrency.tag ?? ""));
+      } catch (_) {}
     }
 
-    return await WalletInfo.selectList("type = ?", [type!.index]);
+    if (type != null) {
+      return await WalletInfo.selectList("type = ?", [type.index]);
+    }
+
+    return await WalletInfo.getAll();
   }
 
   @action

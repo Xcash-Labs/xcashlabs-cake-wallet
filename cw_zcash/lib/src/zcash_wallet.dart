@@ -395,7 +395,6 @@ abstract class ZcashWalletBase
     } catch (e) {
       printV("Rescan error: $e");
       syncStatus = FailedSyncStatus(error: e.toString());
-      rethrow;
     }
   }
 

@@ -31,20 +31,22 @@ class CardsView extends StatefulWidget {
       required this.accountListViewModel,
       required this.lightningMode,
       required this.onCompactModeBackgroundCardsTapped,
-      required this.cardWidth, required this.showContent});
+      required this.showContent});
 
   final DashboardViewModel dashboardViewModel;
   final MoneroAccountListViewModel? accountListViewModel;
   final VoidCallback onCompactModeBackgroundCardsTapped;
   final bool lightningMode;
   final bool showContent;
-  final double cardWidth;
+
 
   @override
   _CardsViewState createState() => _CardsViewState();
 }
 
 class _CardsViewState extends State<CardsView> {
+  late final cardWidth = MediaQuery.of(context).size.width*0.878;
+
   late int _selectedIndex;
 
   @override
@@ -171,11 +173,11 @@ class _CardsViewState extends State<CardsView> {
                     : [];
 
             final double maxWidth = MediaQuery.of(context).size.width * 0.878;
-            final double widthFactor = (widget.cardWidth / maxWidth).clamp(0.0, 1.0);
+            final double widthFactor = (cardWidth / maxWidth).clamp(0.0, 1.0);
             final double radius = 10.0 + (10.0 * widthFactor);
 
             return BalanceCard(
-              width: widget.cardWidth,
+              width: cardWidth,
               accountName: accountName,
               accountBalance: accountBalance,
               designSwitchDuration: Duration(milliseconds: 150),
@@ -220,7 +222,7 @@ class _CardsViewState extends State<CardsView> {
   double _getBoxHeight(int numCards, double overlapAmount) {
     return
         /* height of initial card */
-        (2 / 3.2) * (widget.cardWidth) +
+        (2 / 3.2) * (cardWidth) +
             /* height of bg card * amount of bg cards */
             overlapAmount * ((numCards) - 1);
   }
@@ -228,7 +230,7 @@ class _CardsViewState extends State<CardsView> {
   @override
   Widget build(BuildContext context) {
     return Observer(builder: (_) {
-      final parentWidth = widget.cardWidth;
+      final parentWidth = cardWidth;
 
       final children = <Widget>[];
 
@@ -268,12 +270,12 @@ class _CardsViewState extends State<CardsView> {
 
       return Container(
         height: _getBoxHeight(numCards, overlapAmount),
-        width: widget.cardWidth,
+        width: cardWidth,
         child: SizedBox(
           key: ValueKey(_getBoxHeight(numCards, overlapAmount)),
           // height: _getBoxHeight(numCards, overlapAmount),
-          width: widget.cardWidth,
-          child: Stack(alignment: Alignment.centerLeft, children: children),
+          width: cardWidth,
+          child: Stack(alignment: Alignment.center, children: children),
         ),
       );
     });

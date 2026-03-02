@@ -38,17 +38,43 @@ class NewHomePage extends StatefulWidget {
 class _NewHomePageState extends State<NewHomePage> {
   MoneroAccountListViewModel? accountListViewModel;
   bool _lightningMode = false;
+  final GlobalKey _cardsViewKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
+  double _triggerOffset = double.infinity;
+  bool _showHeader = false;
 
   @override
   void initState() {
     super.initState();
     _setAccountViewModel();
+    _scrollController.addListener(_onScroll);
     reaction((_)=>widget.dashboardViewModel.wallet, (_) {
       _setAccountViewModel();
       setState(() {
         _lightningMode = false;
       });
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _calculateTriggerOffset();
+    });
+  }
+
+  void _calculateTriggerOffset() {
+    final RenderBox? renderBox = _cardsViewKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null) {
+      setState(() {
+        _triggerOffset = renderBox.size.height;
+      });
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.offset >= _triggerOffset && !_showHeader) {
+      setState(() => _showHeader = true);
+    } else if (_scrollController.offset < _triggerOffset && _showHeader) {
+      setState(() => _showHeader = false);
+    }
   }
 
   void _setAccountViewModel() {
@@ -74,6 +100,7 @@ class _NewHomePageState extends State<NewHomePage> {
       child: Stack(
         children: [
           CustomScrollView(
+            controller: _scrollController,
             physics: BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             slivers: [
               SliverPadding(
@@ -112,40 +139,24 @@ class _NewHomePageState extends State<NewHomePage> {
                     ),
                     SizedBox(height: 24),
                     Observer(
-                      builder: (_)=>WalletInfoBar(
+                      builder: (_) => WalletInfoBar(
                           lightningMode: _lightningMode,
                           hardwareWalletType: widget.dashboardViewModel.wallet.hardwareWalletType,
                           name: widget.dashboardViewModel.wallet.name,
-                          onCustomizeButtonTap: openCustomizer
-                      ),
+                          onCustomizeButtonTap: openCustomizer),
                     ),
                     SizedBox(height: 24),
                   ],
                 ),
               ),
-              Observer(
-                builder: (_) => SliverPersistentHeader(
-                  pinned: true,
-                  delegate: CardsViewHeaderDelegate(
-                    maxHeight: getCardBoxHeight(),
-                    sideWidget: CompactWalletHeader(dashboardViewModel: widget.dashboardViewModel,accountListViewModel: accountListViewModel,),
-                    bottomWidget: CompactCoinActionRow(lightningMode: _lightningMode,showSwap: widget.dashboardViewModel.isEnabledSwapAction),
-                    minHeight: 100.0,
-                    maxWidth: MediaQuery.of(context).size.width * 0.878,
-                    minWidth: 80,
-                    topPadding: MediaQuery.of(context).padding.top,
-                    cardsViewBuilder: (context, dynamicWidth, showText) {
-                      return CardsView(
-                        cardWidth: dynamicWidth,
-                        showContent: showText,
-                        key: ValueKey(widget.dashboardViewModel.wallet.name),
-                        dashboardViewModel: widget.dashboardViewModel,
-                        accountListViewModel: accountListViewModel,
-                        onCompactModeBackgroundCardsTapped: openCustomizer,
-                        lightningMode: _lightningMode,
-                      );
-                    },
-                  ),
+              SliverToBoxAdapter(
+                child: CardsView(
+                  key: _cardsViewKey,
+                  showContent: true,
+                  dashboardViewModel: widget.dashboardViewModel,
+                  accountListViewModel: accountListViewModel,
+                  onCompactModeBackgroundCardsTapped: openCustomizer,
+                  lightningMode: _lightningMode,
                 ),
               ),
               SliverToBoxAdapter(
@@ -162,8 +173,11 @@ class _NewHomePageState extends State<NewHomePage> {
                           children: [
                             CoinActionRow(
                               lightningMode: _lightningMode,
-                              showSwap: widget.dashboardViewModel.isEnabledSwapAction,),
-                            MwebAd(dashboardViewModel: widget.dashboardViewModel,),
+                              showSwap: widget.dashboardViewModel.isEnabledSwapAction,
+                            ),
+                            MwebAd(
+                              dashboardViewModel: widget.dashboardViewModel,
+                            ),
                           ],
                         );
                       },
@@ -199,6 +213,26 @@ class _NewHomePageState extends State<NewHomePage> {
               ),
             ),
           ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: IgnorePointer(
+              ignoring: !_showHeader,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _showHeader ? 1 : 0,
+                child: Observer(
+                  builder: (_) => CompactWalletHeader(
+                    onHeaderTapped: () => _scrollController.animateTo(0,
+                        duration: Duration(milliseconds: 300), curve: Curves.easeOutCubic),
+                    dashboardViewModel: widget.dashboardViewModel,
+                    accountListViewModel: accountListViewModel,
+                    lightningMode: _lightningMode,
+                    showSwap: widget.dashboardViewModel.isEnabledSwapAction,
+                  ),
+                ),
+              ),
+            ),
+          )
         ],
       ),
     );
@@ -253,149 +287,5 @@ class _NewHomePageState extends State<NewHomePage> {
       await bloc.stream.firstWhere((s) => s is CardCustomizerSaved);
     }
     widget.dashboardViewModel.loadCardDesigns();
-  }
-}
-
-class CardsViewHeaderDelegate extends SliverPersistentHeaderDelegate {
-  CardsViewHeaderDelegate({
-    required this.minHeight,
-    required this.maxHeight,
-    required this.minWidth,
-    required this.maxWidth,
-    required this.topPadding,
-    required this.sideWidget,
-    required this.bottomWidget,
-    required this.cardsViewBuilder,
-  });
-
-  final double minHeight;
-  final double maxHeight;
-  final double minWidth;
-  final double maxWidth;
-  final double topPadding;
-  final Widget sideWidget;
-  final Widget bottomWidget;
-  final Widget Function(BuildContext, double, bool) cardsViewBuilder;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final double scrollRange = maxExtent - minExtent;
-    final double progress = (shrinkOffset / scrollRange).clamp(0.0, 1.0);
-
-    final double currentCardWidth = maxWidth - (progress * (maxWidth - minWidth));
-
-    final double fadeThreshold = 0.6;
-    final double elementsOpacity =
-        ((progress - fadeThreshold) / (1.0 - fadeThreshold)).clamp(0.0, 1.0);
-
-    return Stack(
-      children: [
-        Positioned(
-          child: Stack(
-            children: [
-              Positioned(
-                top:0,bottom:0,left:0,right:0,
-                child: Opacity(
-                  opacity: progress,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: <Color>[
-                          Theme.of(context).colorScheme.surfaceDim.withAlpha(5),
-                          Theme.of(context).colorScheme.surfaceDim.withAlpha(25),
-                          Theme.of(context).colorScheme.surfaceDim.withAlpha(50),
-                          Theme.of(context).colorScheme.surfaceDim.withAlpha(100),
-                          Theme.of(context).colorScheme.surfaceDim.withAlpha(150),
-                          Theme.of(context).colorScheme.surfaceDim.withAlpha(175),
-                          Theme.of(context).colorScheme.surfaceDim.withAlpha(200),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 36 * progress,
-                bottom: 0,
-                left: 18,
-                right: 18,
-                child: Opacity(
-                  opacity: progress,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      height: 74,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 36*progress,
-                bottom: 0,
-                left: minWidth+42,
-                right: 36,
-                child: Opacity(
-                  opacity: elementsOpacity,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: sideWidget,
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment(-progress, 0.0),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: 36*progress,
-                    left: 30 * progress,
-                  ),
-                  child: SizedBox(
-                    width: currentCardWidth,
-                    child: cardsViewBuilder(context, currentCardWidth, progress == 0),
-                  ),
-                ),
-              ),
-
-
-            ],
-          ),
-        ),
-
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 36,
-          child: Opacity(
-            opacity: elementsOpacity,
-            child: Center(
-              child: bottomWidget,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  double get maxExtent => maxHeight > minExtent ? maxHeight : minExtent;
-
-  @override
-  double get minExtent => minHeight + topPadding + 40;
-
-  @override
-  bool shouldRebuild(covariant CardsViewHeaderDelegate oldDelegate) {
-    return oldDelegate.maxHeight != maxHeight ||
-        oldDelegate.minHeight != minHeight ||
-        oldDelegate.topPadding != topPadding ||
-        oldDelegate.sideWidget != sideWidget ||
-        oldDelegate.bottomWidget != bottomWidget ||
-        oldDelegate.cardsViewBuilder != cardsViewBuilder;
   }
 }

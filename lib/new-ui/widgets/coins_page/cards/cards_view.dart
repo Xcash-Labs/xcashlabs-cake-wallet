@@ -102,7 +102,7 @@ class _CardsViewState extends State<CardsView> {
             HapticFeedback.heavyImpact();
           },
           child: Observer(builder: (_) {
-            if(realIndex > (widget.accountListViewModel?.accounts.length ?? 1)) {
+            if(realIndex >= (widget.accountListViewModel?.accounts.length ?? 1)) {
               return Container();
             }
             final account = widget.accountListViewModel?.accounts[realIndex];
@@ -258,7 +258,7 @@ class _CardsViewState extends State<CardsView> {
 
 
       final bool compactMode = numCards >= compactModeTreshold;
-      final double overlapAmount = compactMode ? 5.0 : 60.0;
+      final double overlapAmount = compactMode ? 5.0 : 46.0;
       for (int i = min(numCards - 1, maxCards); i >= 0; i--) {
         int visualIndex = (_selectedIndex - i + numCards) % numCards;
         int realIndex = order[visualIndex]!;
@@ -303,9 +303,12 @@ class _CardsViewState extends State<CardsView> {
         mode: SendPageModes.lightningDeposit,
       ));
       showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
-        return FractionallySizedBox(
-            heightFactor: 0.6,
-            child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SizedBox(
+              height:MediaQuery.of(context).size.height*0.6,
+              child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
+          ),
         );
       });
     } else {
@@ -345,9 +348,12 @@ class _CardsViewState extends State<CardsView> {
         mode: SendPageModes.lightningWithdrawal,
       ));
       showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
-        return FractionallySizedBox(
-          heightFactor: 0.6,
-          child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SizedBox(
+height:MediaQuery.of(context).size.height*0.6,
+              child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
+          ),
         );
       });
     } else {

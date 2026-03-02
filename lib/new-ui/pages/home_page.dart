@@ -9,6 +9,7 @@ import 'package:cake_wallet/new-ui/widgets/coins_page/action_row/coin_action_row
 import 'package:cake_wallet/new-ui/widgets/coins_page/assets_history/assets_history_section.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/cards/cards_view.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/compact_wallet_header.dart';
+import 'package:cake_wallet/new-ui/widgets/coins_page/mweb_ad.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/top_bar_widget/top_bar.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/unconfirmed_balance_widget.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/wallet_info.dart';
@@ -155,8 +156,17 @@ class _NewHomePageState extends State<NewHomePage> {
                       dashboardViewModel: widget.dashboardViewModel,
                     ),
                     SizedBox(height: 24),
-                    CoinActionRow(lightningMode: _lightningMode,
-                      showSwap: widget.dashboardViewModel.isEnabledSwapAction,
+                    Observer(
+                      builder: (_) {
+                        return Column(
+                          children: [
+                            CoinActionRow(
+                              lightningMode: _lightningMode,
+                              showSwap: widget.dashboardViewModel.isEnabledSwapAction,),
+                            MwebAd(dashboardViewModel: widget.dashboardViewModel,),
+                          ],
+                        );
+                      },
                     ),
                     SizedBox(height: 24),
                     Observer(
@@ -238,8 +248,10 @@ class _NewHomePageState extends State<NewHomePage> {
       },
     );
 
-    bloc.add(DesignSaved());
-    await bloc.stream.firstWhere((s) => s is CardCustomizerSaved);
+    if(accountListViewModel == null) {
+      bloc.add(DesignSaved());
+      await bloc.stream.firstWhere((s) => s is CardCustomizerSaved);
+    }
     widget.dashboardViewModel.loadCardDesigns();
   }
 }

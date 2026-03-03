@@ -65,7 +65,13 @@ class PayjoinManager {
     });
   }
 
-  void writePayjoinLog(String message) => _logStreamController.add(message);
+  void writePayjoinLog(String message) {
+    if (_logStreamController.isClosed) return;
+
+    try {
+      _logStreamController.add(message);
+    } catch (_) {}
+  }
 
   Future<void> resumeSessions() async {
     final allSessions = _payjoinStorage.readAllOpenSessions(_wallet.id);

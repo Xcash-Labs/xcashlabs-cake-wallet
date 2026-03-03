@@ -12,12 +12,19 @@ import 'package:cake_wallet/src/widgets/new_list_row/new_list_section.dart';
 import 'package:cake_wallet/src/widgets/picker.dart';
 import 'package:cake_wallet/utils/feature_flag.dart';
 import 'package:cake_wallet/utils/show_pop_up.dart';
+import 'package:cake_wallet/utils/share_util.dart';
 import 'package:cake_wallet/view_model/settings/other_settings_view_model.dart';
+import 'package:cw_core/node.dart';
+import 'package:cw_core/pathForWallet.dart';
 import 'package:cw_core/wallet_info.dart';
 import 'package:cw_core/transaction_priority.dart';
 import 'package:cw_core/wallet_type.dart';
 import 'package:cw_core/db/sqlite.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:get_it/get_it.dart';
+import 'package:hive/hive.dart';
+import 'package:path/path.dart' as p;
 
 class OtherSettingsPage extends BasePage {
   OtherSettingsPage(this._otherSettingsViewModel) {
@@ -133,6 +140,18 @@ class OtherSettingsPage extends BasePage {
                 },
               }),
           ),
+          if(_otherSettingsViewModel.walletType == WalletType.bitcoin) ...[
+            ListItemRegularRow(
+                keyValue: "export_lightning_logs",
+                label: S.of(context).export_lightning_logs,
+                onTap: () => onExportLNLog
+            ),
+            ListItemRegularRow(
+                keyValue: "export_payjoin_logs",
+                label: S.of(context).export_payjoin_logs,
+                onTap: () => onExportPJLog
+            ),
+          ],
           ListItemRegularRow(
               keyValue: "security_backup_page_sign_and_verify",
               label: S.current.sign_verify_title,
@@ -214,5 +233,21 @@ class OtherSettingsPage extends BasePage {
       }
       ),
     );
+  }
+
+  Future<void> onExportLNLog(BuildContext context) async {
+    final file = await _otherSettingsViewModel.getLightningLog();
+
+    if (file != null) {
+      await ShareUtil.shareFile(filePath: file.path, fileName: "Lightning.log", context: context);
+    }
+  }
+
+  Future<void> onExportPJLog(BuildContext context) async {
+    final file = await _otherSettingsViewModel.getPayjoinLog();
+
+    if (file != null) {
+      await ShareUtil.shareFile(filePath: file.path, fileName: "Payjoin.log", context: context);
+    }
   }
 }

@@ -43,7 +43,7 @@ class PrivacyPage extends BasePage {
                       if (_privacySettingsViewModel.isAutoGenerateSubaddressesVisible)
                         ListItemToggle(
                             keyValue: "auto_generate_subaddresses",
-                            label: S.current.auto_generate_subaddresses,
+                            label: S.current.coin_control,
                             value: _privacySettingsViewModel.isAutoGenerateSubaddressesEnabled,
                             onChanged: (val) {
                               _privacySettingsViewModel.setAutoGenerateSubaddresses(val);
@@ -55,6 +55,12 @@ class PrivacyPage extends BasePage {
                           onChanged: (val) {
                             _privacySettingsViewModel.setShouldSaveRecipientAddress(val);
                           }),
+                      ListItemRegularRow(
+                          iconPath: "assets/new-ui/settings_row_icons/coin-control.svg",
+                          keyValue: "silent_payments",
+                          label: S.current.silent_payments,
+                          onTap: () =>
+                              Navigator.of(context).pushNamed(Routes.unspentCoinsList)),
                     ],
                     "": [
                     if (_privacySettingsViewModel.isBitcoin)

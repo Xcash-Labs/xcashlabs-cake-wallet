@@ -47,6 +47,20 @@ abstract class PrivacySettingsViewModelBase with Store {
       ].contains(_wallet.type);
 
   @computed
+  bool get hasCoinControl =>
+      [
+        WalletType.bitcoin,
+        WalletType.litecoin,
+        WalletType.monero,
+        WalletType.wownero,
+        WalletType.decred,
+        WalletType.bitcoinCash,
+        WalletType.dogecoin
+      ].contains(_wallet.type);
+
+  bool get isMoneroWallet => _wallet.type == WalletType.monero;
+
+  @computed
   bool get shouldSaveRecipientAddress => _settingsStore.shouldSaveRecipientAddress;
 
   @computed
@@ -92,6 +106,8 @@ abstract class PrivacySettingsViewModelBase with Store {
   @computed
   bool get canUsePayjoin => _wallet.type == WalletType.bitcoin && DeviceInfo.instance.isMobile;
 
+  bool get canUseLightning => _wallet.type == WalletType.bitcoin;
+
   @action
   void setShouldSaveRecipientAddress(bool value) =>
       _settingsStore.shouldSaveRecipientAddress = value;
@@ -120,4 +136,7 @@ abstract class PrivacySettingsViewModelBase with Store {
     _settingsStore.usePayjoin = value;
     bitcoin!.updatePayjoinState(_wallet, value);
   }
+
+  @action
+  void setUseLightning(bool value) => bitcoin!.updateUseLightning(_wallet, value);
 }

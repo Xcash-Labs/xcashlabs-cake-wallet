@@ -15,7 +15,10 @@ class ListItemRegularRowWidget extends StatelessWidget {
     this.isFirstInSection = false,
     this.isLastInSection = false,
     this.showArrow = true,
-    this.trailingIconPath
+    this.trailingIconPath,
+    this.truncateTrailingText = false,
+    this.foregroundColor,
+    this.trailingIconSize,
   });
 
   final String keyValue;
@@ -29,10 +32,17 @@ class ListItemRegularRowWidget extends StatelessWidget {
   final bool isLastInSection;
   final bool showArrow;
   final String? trailingIconPath;
+  final bool truncateTrailingText;
+  final Color? foregroundColor;
+  final double? trailingIconSize;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final trailingTextToShow = truncateTrailingText && trailingText != null && trailingText!.length > 20
+        ? "${trailingText!.substring(0, 17)}..."
+        : trailingText;
+
     return ListItemStyleWrapper(
       onTap: onTap,
         hasImage: iconPath != null ? true : false,
@@ -66,7 +76,7 @@ class ListItemRegularRowWidget extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(label, style: textStyle),
+                          Text(label, style: foregroundColor == null ? textStyle : textStyle.copyWith(color: foregroundColor)),
                           if (subtitle != null)
                             Text(
                               subtitle!,
@@ -81,19 +91,20 @@ class ListItemRegularRowWidget extends StatelessWidget {
 
               Row(
                 children: [
-                  if (trailingText != null)
+                  if (trailingTextToShow != null)
                     Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: Text(
-                        trailingText!,
+                        trailingTextToShow,
                         style: labelStyle,
                       ),
                     ),
                   if(trailingIconPath != null)
                     SvgPicture.asset(
                       trailingIconPath!,
-                      width:18,
-                      colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurfaceVariant,BlendMode.srcIn),
+                      height: trailingIconSize ?? 18,
+                      width:trailingIconSize ?? 18,
+                      colorFilter: ColorFilter.mode(foregroundColor ?? Theme.of(context).colorScheme.onSurfaceVariant,BlendMode.srcIn),
                     )
                   else if(showArrow)
                   SvgPicture.asset(

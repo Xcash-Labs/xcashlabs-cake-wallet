@@ -50,6 +50,98 @@ class ElectrumClient {
   final List<DateTime> _recentRequestTimestamps = [];
   // ─────────────────────────────────────────────────────────────────────────────
 
+  // ── Batching ─────────────────────────────────────────────────────────────────
+
+  String serverVersion = '';
+
+  Future<dynamic> getHistoryData(List<String> scriptHashes) async {
+    batchGetData(scriptHashes, 'blockchain.scripthash.get_history');
+    for (var i = 0; i < scriptHashes.length; i++) {
+      final sh = scriptHashes[i];
+      printV('getHistoryData: Requested history for scripthash $sh');
+    }
+  }
+      
+
+  Future<dynamic> batchGetData(List<String> scriptHashes, String method) async {
+    if (scriptHashes.isEmpty) {
+      return {};
+    }
+
+    try {
+      // OPTIMIZATION: Split into batches of max 50 operations
+      const int maxBatchSize = 50;
+      final List<dynamic> allResults = [];
+      
+      // We're not going to loop the whole dataset here
+      // Loop the data in the invoking function so we can save results even when future batches fail
+      for (int batchStart = 0; batchStart < scriptHashes.length; batchStart += maxBatchSize) {
+        final batchEnd = (batchStart + maxBatchSize < scriptHashes.length) 
+            ? batchStart + maxBatchSize 
+            : scriptHashes.length;
+        final batchScriptHashes = scriptHashes.sublist(batchStart, batchEnd);
+        
+        // Build batch request payload for this chunk
+        final List<Map<String, dynamic>> batchRequest = [];
+        for (int i = 0; i < batchScriptHashes.length; i++) {
+          var _reqId = _id + 1; // Increment global request ID for each operation
+          batchRequest.add({
+            'jsonrpc': '2.0',
+            'id': _reqId,  // Maintain global ordering
+            'method': method,
+            'params': [batchScriptHashes[i]],
+          });
+        }
+
+        final batchRequestJson = json.encode(batchRequest);
+        printV('batchGetData: Sending batch ${batchStart ~/ maxBatchSize + 1} of ${(scriptHashes.length / maxBatchSize).ceil()} (${batchScriptHashes.length} operations)');
+
+        // Send batch request
+        if (!isConnected) {
+          throw Exception('Not connected to Electrum server');
+        }
+
+        final completer = Completer<dynamic>();
+        _id += 1;
+        final requestId = _id;
+        _registryTask(requestId, completer);
+
+        // Write the batch request directly to socket
+        socket!.write(batchRequestJson + '\n');
+        printV('batchGetData: Batch request sent with ID: $requestId');
+
+        final response = await completer.future;
+        
+        if (response is List<dynamic>) {
+          allResults.addAll(response);
+        }
+        
+        // OPTIMIZATION: 100ms delay between batches to allow server processing time
+        // This prevents overwhelming Fulcrum's request queue and gives it time to query bitcoind
+        if (batchEnd < scriptHashes.length) {
+          await Future.delayed(Duration(milliseconds: 100));
+        }
+      }
+
+      // Sort all results by id field to maintain deterministic ordering
+      // Outside of non-key-value maps, we want to order transactions correctly
+      // The invoking function is expected to implement matching for results to script hashes too, not just for numbered lists
+      allResults.sort((a, b) {
+        if (a is Map<String, dynamic> && b is Map<String, dynamic>) {
+          final aId = a['id'] as int? ?? 0;
+          final bId = b['id'] as int? ?? 0;
+          return aId.compareTo(bId);
+        }
+        return 0;
+      });
+
+      return allResults;
+    } catch (e) {
+      printV('batchGetResponse error: $e');
+      return {};
+    }
+  }
+
   bool get isConnected => socket != null && socket?.isClosed == false;
   ProxySocket? socket;
   void Function(ConnectionStatus)? onConnectionStatusChange;
@@ -459,10 +551,10 @@ class ElectrumClient {
   Future<dynamic> call(
       {required String method, List<Object> params = const [], Function(int)? idCallback}) async {
     if (!isConnected) return null;
-
     final completer = Completer<dynamic>();
     _id += 1;
     final id = _id;
+    printV("[${method}] call with $_id started with params: $params");
     idCallback?.call(id);
     _registryTask(id, completer);
     _requestCount++;

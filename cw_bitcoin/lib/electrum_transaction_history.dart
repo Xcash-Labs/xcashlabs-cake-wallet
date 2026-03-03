@@ -74,7 +74,9 @@ abstract class ElectrumTransactionHistoryBase
   Future<void> _load() async {
     try {
       final content = await _read();
-      final txs = content['transactions'] as Map<String, dynamic>? ?? {};
+      //final txs = content['transactions'] as Map<String, dynamic>? ?? {};
+      final txs = {};
+      printV("TODO: Removes tx history for debug -- undo when done");
 
       txs.entries.forEach((entry) {
         final val = entry.value;

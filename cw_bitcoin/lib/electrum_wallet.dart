@@ -548,8 +548,7 @@ abstract class ElectrumWalletBase
   Future<void> startSync() async {
     final historyBatchSw = Stopwatch()..start();
     printV(
-        "[SYNC_BENCHMARK]     ▶ get_history batch for $type (${addressList.length} addrs) starting...");
-
+        "[SYNC_BENCHMARK]     ▶ get_history batch for addrs) starting...");
     final addressList = await getWalletAddressList();
     final method = "blockchain.scripthash.get_history";
     var batchCollection = Map<int, String>();
@@ -2670,7 +2669,7 @@ abstract class ElectrumWalletBase
     }
   }
 
-  // A helper method to prepare and send batch requests for a list of BitcoinAddressRecords
+  // A helper method to prepare, send and manage batch requests for a list of BitcoinAddressRecords
   // Return the results as a Map of scriptHash to result
   Future<dynamic> getBatchCollectionResults(List<BitcoinAddressRecord> batch, String method) async {
     if (batch.isEmpty) {
@@ -2811,11 +2810,8 @@ abstract class ElectrumWalletBase
 
   Future<String> getScripthashBatch(
     List<BitcoinAddressRecord> addresses,
-    String method, {
-    bool? useSSL,
-    Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)?
-        onBatchComplete,
-  }) async {
+    String method) async {
+
     throw UnimplementedError("Batch scripthash fetching is deprecated");
     if (addresses.isEmpty) return '';
     for (var i = 0; i < 6 && i < addresses.length; i++) {

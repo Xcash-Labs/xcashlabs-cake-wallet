@@ -120,9 +120,9 @@ class _NewDashboardState extends State<NewDashboard> {
     final currentAppVersion = VersionComparator.getExtendedVersionNumber(
         widget.dashboardViewModel.settingsStore.appVersion);
     final lastSeenAppVersion = sharedPrefs.getInt(PreferencesKey.lastSeenAppVersion);
-    final isNewInstall = sharedPrefs.getBool(PreferencesKey.isNewInstall);
+    final isNewInstall = sharedPrefs.getBool(PreferencesKey.isNewInstall) ?? true;
 
-    if (currentAppVersion != lastSeenAppVersion && !isNewInstall!) {
+    if (currentAppVersion != lastSeenAppVersion && !isNewInstall) {
       Future<void>.delayed(
         Duration(seconds: 1),
         () {
@@ -138,7 +138,7 @@ class _NewDashboardState extends State<NewDashboard> {
       );
 
       sharedPrefs.setInt(PreferencesKey.lastSeenAppVersion, currentAppVersion);
-    } else if (isNewInstall!) {
+    } else if (isNewInstall) {
       sharedPrefs.setInt(PreferencesKey.lastSeenAppVersion, currentAppVersion);
     }
   }

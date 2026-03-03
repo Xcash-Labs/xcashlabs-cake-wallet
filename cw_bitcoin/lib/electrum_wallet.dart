@@ -2671,7 +2671,7 @@ abstract class ElectrumWalletBase
   }
 
   // A helper method to prepare and send batch requests for a list of BitcoinAddressRecords
-  // Returns the results as a Map of scriptHash to result
+  // Return the results as a Map of scriptHash to result
   Future<dynamic> getBatchCollectionResults(List<BitcoinAddressRecord> batch, String method) async {
     if (batch.isEmpty) {
       return {};
@@ -2689,24 +2689,21 @@ abstract class ElectrumWalletBase
         batchCount++;
         final batchRequestJson = json.encode(batchRequest);
         printV('batchGetHistory: Batch request JSON: $batchRequestJson');
-
-        // Send batch request
-        if (!isConnected) {
-          throw Exception('Not connected to Electrum server');
-        }
+        
+        // Now we have valid JSON, we invoke the function to send it
+        final response = await electrumClient.getBatchResults(batchRequestJson);
+        return response;
       }
     } catch (e) {
       printV("Error preparing batch request: $e");
       rethrow;
     }
-
-    return results;
   }
 
   Future<String> _processIsolateBatchConnection(
       List<BitcoinAddress> addresses, String method) async {
     if (addresses.isEmpty) return '';
-
+    throw UnimplementedError();
     final batchSize = _batchSizeForMethod(method);
     // Map of original index to response
     final Map<int, dynamic> indexedResponses = {};
@@ -2737,7 +2734,7 @@ abstract class ElectrumWalletBase
         _lastBatchStart = DateTime.now();
 
         try {
-          final response = await client.isolateGetData(batchScripthashes, method);
+          //final response = await client.isolateGetData(batchScripthashes, method);
           printV("KB: _processIsolateBatchConnection: Response received for offset $thisOffset");
 
           if (response is List) {
@@ -2819,6 +2816,7 @@ abstract class ElectrumWalletBase
     Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)?
         onBatchComplete,
   }) async {
+    throw UnimplementedError("Batch scripthash fetching is deprecated");
     if (addresses.isEmpty) return '';
     for (var i = 0; i < 6 && i < addresses.length; i++) {
       printV(addresses[i]);
@@ -2835,6 +2833,7 @@ abstract class ElectrumWalletBase
   Future<Map<String, Map<String, dynamic>>> batchFetchTransactionDetails(
     List<String> txHashes,
   ) async {
+    throw UnimplementedError("Batch fetching transaction details is not implemented yet");
     if (txHashes.isEmpty) return {};
 
     final requestSize = ((txHashes.join(',').length * 1.1) / 1048576).toStringAsFixed(2);
@@ -2866,6 +2865,7 @@ abstract class ElectrumWalletBase
   }
 
   Future<List<BitcoinUnspent>> batchFetchAllUnspent() async {
+    throw UnimplementedError("Batch fetching unspents is not implemented yet");
     final addresses = walletAddresses.allAddresses
         .where((element) => element.type != SegwitAddresType.mweb)
         .toList();

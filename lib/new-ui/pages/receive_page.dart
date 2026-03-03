@@ -1,4 +1,5 @@
 import 'package:cake_wallet/core/utilities.dart';
+import 'package:cake_wallet/entities/auto_generate_subaddress_status.dart';
 import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/new-ui/widgets/receive_page/payjoin_copy_modal.dart';
 import 'package:cake_wallet/new-ui/widgets/receive_page/receive_address_type.dart';
@@ -163,12 +164,11 @@ class _NewReceivePageState extends State<NewReceivePage> {
     final hasAddressTypeSelector = widget.receiveOptionViewModel.options.length > 1;
     final hasLabel = _addressItemWithLabel?.name != null && _addressItemWithLabel!.name!.isNotEmpty;
     final infoboxDismissed = widget.addressListViewModel.wallet.walletInfo.receiveInfoboxDismissed;
-    final infobox = ReceiveInfoBox.forWalletType(widget.addressListViewModel.type, onDismissed: () {
-      widget.addressListViewModel.dismissInfobox();
-      setState(() {});
-    },
-        autoGenerateSubaddressStatus:
-            widget.dashboardViewModel.settingsStore.autoGenerateSubaddressStatus);
+    final infobox = ReceiveInfoBox.forWalletType(widget.addressListViewModel.type,
+        onDismissed: () {
+          widget.addressListViewModel.dismissInfobox();
+          setState(() {});
+        }, autoGenerateSubaddressStatus: widget.lightningMode ? AutoGenerateSubaddressStatus.disabled : widget.dashboardViewModel.settingsStore.autoGenerateSubaddressStatus);
 
     return Container(
       decoration: BoxDecoration(

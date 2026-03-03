@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:bitcoin_base/bitcoin_base.dart';
+import 'package:cw_bitcoin/bitcoin_address_record.dart';
 import 'package:cw_bitcoin/bitcoin_amount_format.dart';
 import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/utils/proxy_socket/abstract.dart';
@@ -60,6 +61,34 @@ class ElectrumClient {
       final sh = scriptHashes[i];
       printV('getHistoryData: Requested history for scripthash $sh');
     }
+  }
+
+  Future<dynamic> getBatchResults(String batch) async {
+    if (batch.isEmpty) {
+      return {};
+    }
+    if (!isConnected) {
+      throw Exception('Not connected to Electrum server');
+    }
+    try {
+      final completer = Completer<dynamic>();
+      final requestId = _id;
+      _registryTask(requestId, completer);
+      socket!.write(batch + '\n');
+      
+      final response = await completer.future.timeout(
+        Duration(seconds: 60),
+        onTimeout: () {
+          throw TimeoutException('Batch request timed out after 60 seconds');
+        },
+      );
+      return response;
+    } catch (e) {
+      printV("Error preparing batch request: $e");
+      rethrow;
+    }
+
+    
   }
       
 
@@ -563,6 +592,7 @@ class ElectrumClient {
     _recentRequestTimestamps.add(_reqNow);
     _recentRequestTimestamps.removeWhere((t) => _reqNow.difference(t).inSeconds > 10);
     printV("[ELECTRUM_REQ] id=$id method=$method | session=#$_requestsThisConnection total=#$_requestCount req/s:${(_recentRequestTimestamps.length / 10.0).toStringAsFixed(2)}");
+    printV("We write to socket: ${jsonrpc(method: method, id: id, params: params)}");
     socket!.write(jsonrpc(method: method, id: id, params: params));
 
     return completer.future;

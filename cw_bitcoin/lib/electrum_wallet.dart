@@ -266,8 +266,9 @@ abstract class ElectrumWalletBase
   final updateFeeRatesStopwatch = Stopwatch();
   DateTime _lastBatchStart = DateTime.now();
   DateTime _lastBatchResponse = DateTime.now();
+  int batchCount = 0;
 
-// ── end of batch timers ──────────────────────────────────────────────────────────  
+// ── end of batch timers ──────────────────────────────────────────────────────────
 
   Future<bool> checkIfMempoolAPIIsEnabled() async {
     bool isMempoolAPIEnabled = (await sharedPrefs.future).getBool("use_mempool_fee_api") ?? true;
@@ -533,9 +534,32 @@ abstract class ElectrumWalletBase
   DateTime? _lastSilentPaymentsScan;
   static const Duration _silentPaymentsScanDelay = Duration(minutes: 1);
 
+  // Karl's helper benchmarker to get wallet list
+  Future<List<BitcoinAddressRecord>> getWalletAddressList() async {
+    final addresses = walletAddresses.allAddresses
+        .where((address) => address.address.isNotEmpty)
+        .where((address) => RegexUtils.addressTypeFromStr(address.address, network) is! MwebAddress)
+        .toList();
+    return addresses;
+  }
+
   @action
   @override
   Future<void> startSync() async {
+    final historyBatchSw = Stopwatch()..start();
+    printV(
+        "[SYNC_BENCHMARK]     ▶ get_history batch for $type (${addressList.length} addrs) starting...");
+
+    final addressList = await getWalletAddressList();
+    final method = "blockchain.scripthash.get_history";
+    var batchCollection = Map<int, String>();
+    for (var i = 0; i < 30; i++) {
+      batchCollection[i] = addressList[i].getScriptHash(network);
+    }
+    final batchHistoriesJson =
+        await getBatchCollectionResults(addressList, 'blockchain.scripthash.get_history');
+    historyBatchSw.stop();
+    return;
     final _startSyncSw = Stopwatch()..start();
     printV("[startSync] ▶ BEGIN at ${DateTime.now()}");
     try {
@@ -2578,11 +2602,16 @@ abstract class ElectrumWalletBase
     // final balances = await Future.wait(balanceFutures);
     final balances = balanceResponse as List<Map<String, dynamic>>;
 
-    if (balanceResponse.length > 0 && balanceResponse.first['confirmed'] == null) {
+    // TODO: Is this 'if' necessary? TCP sockets should take care of this themselves
+    // in their onError callback?
+    // TODO: This contains a tweak to fall back onto a balance we've confirmed thus far if server returns an empty response, which is a workaround for a specific issue with Fulcrum servers where they return empty responses instead of properly closing the connection when they're overloaded. We should test if this is still necessary after we update our Fulcrum servers to the latest version, which should have this issue fixed.
+    if (balanceResponse.length == 0 /* && balanceResponse[0] == null */) {
       // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
-      printV("got null balance responses from the server, setting connection status to lost");
+      printV("got zero length balance response from the server, setting connection status to lost");
       syncStatus = LostConnectionSyncStatus();
-      return balance[currency] ?? ElectrumBalance(confirmed: 0, unconfirmed: 0, frozen: 0);
+      return balance[currency] ??
+          ElectrumBalance(
+              confirmed: totalConfirmed, unconfirmed: totalUnconfirmed, frozen: totalFrozen);
     }
 
     for (var i = 0; i < balances.length; i++) {
@@ -2607,26 +2636,24 @@ abstract class ElectrumWalletBase
     );
   }
 
+  Future<void> getHistory({required Map<int, String> batch}) async {}
+
+  Future<void> getTransactionDetails() async {}
   // This method will batch and retrieve a list of data for a list of scriptHashes
   // It returns the JSON string
   // It implements a minimum 2 second wait before sending additional data, and is designed to
   // not overwhelm the server with requests while waiting to receive data back
   // Lastly, it is in line with what certain experts consider best practice in terms
   // of the idea of batches of 50 being normal for Fulcrum
-  Future<String> getIsolateBatch(
-    List<String> scriptHashes,
-    String method, {
-    bool? useSSL,
-    Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)?
-        onBatchComplete,
-  }) async {
-    if (scriptHashes.isEmpty) return '';
+  // Future<String> getIsolateBatch(List<String> scriptHashes, String method) async {
+  //   if (scriptHashes.isEmpty) return '';
 
-    printV("KB: GetIsolateBatch: Processing ${scriptHashes.length} items in a single connection");
+  //   printV(
+  //       "KB: GetIsolateBatch: Processing ${scriptHashes.length} items in a single connection using method $method");
 
-    return _processIsolateBatchConnection(scriptHashes, method, useSSL,
-        onBatchComplete: onBatchComplete);
-  }
+  //   return _processIsolateBatchConnection(scriptHashes, method, useSSL,
+  //       onBatchComplete: onBatchComplete);
+  // }
 
   static int _batchSizeForMethod(String method) {
     switch (method) {
@@ -2643,27 +2670,52 @@ abstract class ElectrumWalletBase
     }
   }
 
-  Future<String> _processIsolateBatchConnection(
-    List<String> scriptHashes,
-    String method,
-    bool? useSSL, {
-    Future<void> Function(int offset, List<String> scriptHashes, List<dynamic> results)?
-        onBatchComplete,
-  }) async {
-    if (scriptHashes.isEmpty) return '';
+  // A helper method to prepare and send batch requests for a list of BitcoinAddressRecords
+  // Returns the results as a Map of scriptHash to result
+  Future<dynamic> getBatchCollectionResults(List<BitcoinAddressRecord> batch, String method) async {
+    if (batch.isEmpty) {
+      return {};
+    }
+    try {
+      final List<Map<String, dynamic>> batchRequest = [];
+      for (var i = 0; i < batch.length; i++) {
+        final sh = batch[i].getScriptHash(network);
+        var id = batchCount + 1;
+        batchRequest.add({
+          'id': i,
+          'method': method,
+          'params': [sh],
+        });
+        batchCount++;
+        final batchRequestJson = json.encode(batchRequest);
+        printV('batchGetHistory: Batch request JSON: $batchRequestJson');
 
-    final client = electrum.ElectrumClient();
+        // Send batch request
+        if (!isConnected) {
+          throw Exception('Not connected to Electrum server');
+        }
+      }
+    } catch (e) {
+      printV("Error preparing batch request: $e");
+      rethrow;
+    }
+
+    return results;
+  }
+
+  Future<String> _processIsolateBatchConnection(
+      List<BitcoinAddress> addresses, String method) async {
+    if (addresses.isEmpty) return '';
+
     final batchSize = _batchSizeForMethod(method);
     // Map of original index to response
     final Map<int, dynamic> indexedResponses = {};
     final originalScriptHashes = List<String>.from(scriptHashes);
 
+    // logic for batching has been moved to invoking function for ease of saving
+    // that said, this can be easily adapted if needed
     try {
-      printV(
-          "KB: _processBatch:  ${originalScriptHashes.length} items");
       int currentOffset = 0;
-      final Map<int, List<String>> failedSubBatches = {};
-
       while (currentOffset < originalScriptHashes.length) {
         final batchEnd = (currentOffset + batchSize < originalScriptHashes.length)
             ? currentOffset + batchSize

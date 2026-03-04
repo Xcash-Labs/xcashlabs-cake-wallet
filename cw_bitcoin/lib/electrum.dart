@@ -51,6 +51,12 @@ class ElectrumClient {
   final List<DateTime> _recentRequestTimestamps = [];
   // ─────────────────────────────────────────────────────────────────────────────
 
+  // ── Reconnection backoff ─────────────────────────────────────────────────────
+  static const _backoffBase = Duration(seconds: 5);
+  static const _maxBackoff = Duration(seconds: 60);
+  int _consecutiveFailures = 0;
+  // ─────────────────────────────────────────────────────────────────────────────
+
   // ── Batching ─────────────────────────────────────────────────────────────────
 
   String serverVersion = '';
@@ -82,6 +88,7 @@ class ElectrumClient {
           throw TimeoutException('Batch request timed out after 60 seconds');
         },
       );
+      printV("Do we have a response for batch request? ${response != null}");
       return response;
     } catch (e) {
       printV("Error preparing batch request: $e");
@@ -113,11 +120,13 @@ class ElectrumClient {
         
         // Build batch request payload for this chunk
         final List<Map<String, dynamic>> batchRequest = [];
+        final int batchStartId = _id + 1;
         for (int i = 0; i < batchScriptHashes.length; i++) {
-          var _reqId = _id + 1; // Increment global request ID for each operation
+          final reqId = batchStartId + i;
+          _id = reqId;  // Keep _id in sync
           batchRequest.add({
             'jsonrpc': '2.0',
-            'id': _reqId,  // Maintain global ordering
+            'id': reqId,
             'method': method,
             'params': [batchScriptHashes[i]],
           });
@@ -131,16 +140,21 @@ class ElectrumClient {
           throw Exception('Not connected to Electrum server');
         }
 
+        // Use a special string ID for batch requests to avoid conflicts
         final completer = Completer<dynamic>();
-        _id += 1;
-        final requestId = _id;
-        _registryTask(requestId, completer);
+        final batchId = 'batch_${batchStartId}_${_id}';
+        _tasks[batchId] = SocketTask(completer: completer, isSubscription: false);
 
         // Write the batch request directly to socket
         socket!.write(batchRequestJson + '\n');
-        printV('batchGetData: Batch request sent with ID: $requestId');
+        printV('batchGetData: Batch request sent with ID range: $batchStartId-$_id (batch key: $batchId)');
 
-        final response = await completer.future;
+        final response = await completer.future.timeout(
+          Duration(seconds: 60),
+          onTimeout: () {
+            throw TimeoutException('Batch request timed out after 60 seconds');
+          },
+        );
         
         if (response is List<dynamic>) {
           allResults.addAll(response);
@@ -244,10 +258,10 @@ class ElectrumClient {
             if (message.isEmpty || message.replaceAll(RegExp(r'[\s\x00-\x1F\x7F]'), '').isEmpty) {
               continue;
             }
+            printV("Received message: $message");
             _parseResponse(message);
           }
         } catch (e) {
-          
           printV("socket.listen: $e");
         }
       },
@@ -277,10 +291,53 @@ class ElectrumClient {
     keepAlive();
   }
 
+
+      // Check for single response (object) or batch response
   void _parseResponse(String message) {
     try {
-      final response = json.decode(message) as Map<String, dynamic>;
-      _handleResponse(response);
+      final decoded = json.decode(message);
+      // Handle batch response (list) or single response (object)
+      if (decoded is List) {
+        // Handle batch response - find matching batch task by ID range
+        printV("Received batch response with ${decoded.length} items");
+        
+        if (decoded.isEmpty) {
+          printV('Warning: Received empty batch response');
+          return;
+        }
+        
+        // Extract ID range from batch response
+        final ids = decoded
+            .where((item) => item is Map<String, dynamic> && item['id'] != null)
+            .map((item) => item['id'] as int)
+            .toList();
+        
+        if (ids.isEmpty) {
+          printV('Warning: Batch response has no valid IDs');
+          return;
+        }
+        
+        ids.sort();
+        final minId = ids.first;
+        final maxId = ids.last;
+        final batchId = 'batch_${minId}_${maxId}';
+        
+        printV('Looking for batch task with key: $batchId');
+        
+        // Find and complete the matching batch task
+        final task = _tasks[batchId];
+        if (task != null && !task.isSubscription && task.completer != null && !task.completer!.isCompleted) {
+          task.completer!.complete(decoded);
+          _tasks.remove(batchId);
+          printV('Completed batch request $batchId with ${decoded.length} results');
+        } else {
+          printV('Warning: No matching batch task found for $batchId. Available tasks: ${_tasks.keys.where((k) => k.startsWith("batch_")).toList()}');
+        }
+      } else if (decoded is Map<String, dynamic>) {
+        // Handle single response
+        printV("Received response for message ID: ${decoded['id']} with method: ${decoded['method']}");
+        _handleResponse(decoded);
+      }
     } on FormatException catch (e) {
       final msg = e.message.toLowerCase();
 
@@ -329,6 +386,14 @@ class ElectrumClient {
     } catch (_) {
       _setConnectionStatus(ConnectionStatus.disconnected);
     }
+  }
+
+  /// Calculate next reconnection delay using linear backoff
+  /// Formula: base_delay * (failures + 1), capped at max_backoff
+  /// Examples: 5s, 10s, 15s, 20s, ... up to 60s
+  Duration getReconnectionDelay() {
+    final delay = _backoffBase * (_consecutiveFailures + 1);
+    return delay > _maxBackoff ? _maxBackoff : delay;
   }
 
   Future<List<String>> version() =>
@@ -711,6 +776,7 @@ class ElectrumClient {
 
   void _setConnectionStatus(ConnectionStatus status) {
     final now = DateTime.now();
+    
     if (status == ConnectionStatus.connected) {
       if (_disconnectedAt != null) {
         final reconnectMs = now.difference(_disconnectedAt!).inMilliseconds;
@@ -721,6 +787,10 @@ class ElectrumClient {
       _connectionEstablishedAt = now;
       _requestsThisConnection = 0;
       _disconnectedAt = null;
+      // Reset backoff on successful connection
+      _consecutiveFailures = 0;
+      // Restart ping timer
+      keepAlive();
     } else if (status == ConnectionStatus.disconnected || status == ConnectionStatus.failed) {
       _disconnectedAt = now;
       if (_connectionEstablishedAt != null) {
@@ -729,6 +799,13 @@ class ElectrumClient {
       } else {
         printV("[ELECTRUM_DISCONNECT] status=$status at $now (no prior connection recorded)");
       }
+      // Increment failure counter and calculate next backoff
+      _consecutiveFailures++;
+      final nextDelay = getReconnectionDelay();
+      printV("[BACKOFF] Failure #$_consecutiveFailures, next retry in ${nextDelay.inSeconds}s");
+      // Stop ping timer during disconnection
+      _aliveTimer?.cancel();
+      _aliveTimer = null;
     }
     onConnectionStatusChange?.call(status);
     _connectionStatus = status;

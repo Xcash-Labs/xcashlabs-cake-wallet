@@ -3302,7 +3302,10 @@ abstract class ElectrumWalletBase
 
       _isTryingToConnect = true;
 
-      Timer(Duration(seconds: 5), () {
+      final reconnectionDelay = electrumClient.getReconnectionDelay();
+      printV("[RECONNECT] Scheduling retry in ${reconnectionDelay.inSeconds}s");
+
+      Timer(reconnectionDelay, () {
         if (this.syncStatus is NotConnectedSyncStatus ||
             this.syncStatus is LostConnectionSyncStatus) {
           this.electrumClient.connectToUri(

@@ -80,6 +80,25 @@ class _CardCustomizerState extends State<CardCustomizer> {
                           children: [
                             Text(S.of(context).account_name),
                             TextField(
+                              maxLength: 32,
+                              decoration: InputDecoration(counterText: ""),
+                              onChanged: (value) {
+                                context.read<CardCustomizerBloc>().add(AccountNameChanged(value));
+                              },
+                              controller: accountNameController,
+                            )
+                          ],
+                        ),
+                      ),
+                    if (editEnabled)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                        child: Column(
+                          spacing: 8.0,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(S.of(context).account_name),
+                            TextField(
                               onChanged: (value) {
                                 context.read<CardCustomizerBloc>().add(AccountNameChanged(value));
                               },

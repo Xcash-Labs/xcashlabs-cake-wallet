@@ -256,7 +256,7 @@ String walletTypeToDisplayName(WalletType type) {
     case WalletType.dogecoin:
       return 'Dogecoin (DOGE)';
     case WalletType.base:
-      return 'Base (BASE)';
+      return 'Base';
     case WalletType.arbitrum:
       return 'Arbitrum (ARB)';
     case WalletType.zcash:
@@ -268,7 +268,7 @@ String walletTypeToDisplayName(WalletType type) {
   }
 }
 
-WalletType? cryptoCurrencyToWalletType(CryptoCurrency type) {
+WalletType? _cryptoCurrencyToWalletType(CryptoCurrency type) {
   switch (type) {
     case CryptoCurrency.xmr:
       return WalletType.monero;
@@ -315,9 +315,13 @@ WalletType? cryptoCurrencyToWalletType(CryptoCurrency type) {
 }
 
 WalletType? cryptoCurrencyOrTokenToWalletType(CryptoCurrency type) {
+  if(type.tag == CryptoCurrency.bnb.tag) {
+    return _cryptoCurrencyToWalletType(CryptoCurrency.bnb);
+  }
+
   if(type.tag != null && ![CryptoCurrency.btcln.tag, CryptoCurrency.bnb.tag].contains(type.tag)) {
-    return cryptoCurrencyToWalletType(CryptoCurrency.fromString(type.tag!));
+    return _cryptoCurrencyToWalletType(CryptoCurrency.fromString(type.tag!));
   } else {
-    return cryptoCurrencyToWalletType(type);
+    return _cryptoCurrencyToWalletType(type);
   }
 }

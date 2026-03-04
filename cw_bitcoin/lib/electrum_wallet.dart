@@ -551,11 +551,14 @@ abstract class ElectrumWalletBase
     final addressList = await getWalletAddressList();
     final method = "blockchain.scripthash.get_history";
     var batchCollection = Map<int, String>();
+    List<String> scriptHashes = [];
     for (var i = 0; i < 30; i++) {
       batchCollection[i] = addressList[i].getScriptHash(network);
+      scriptHashes.add(addressList[i].getScriptHash(network));
     }
-    final batchHistoriesJson =
-        await getBatchCollectionResults(addressList, 'blockchain.scripthash.get_history');
+    // final batchHistoriesJson =
+    //     await getBatchCollectionResults(addressList, 'blockchain.scripthash.get_history');
+    final batchHistoriesJson = await electrumClient.batchGetData(scriptHashes, method);
     historyBatchSw.stop();
     return;
     final _startSyncSw = Stopwatch()..start();

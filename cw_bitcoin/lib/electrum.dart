@@ -93,7 +93,7 @@ class ElectrumClient {
       
 
   Future<dynamic> batchGetData(List<String> scriptHashes, String method) async {
-    throw UnimplementedError("Deprecated");
+    // throw UnimplementedError("Deprecated");
     if (scriptHashes.isEmpty) {
       return {};
     }

@@ -547,8 +547,7 @@ abstract class ElectrumWalletBase
   @override
   Future<void> startSync() async {
     final historyBatchSw = Stopwatch()..start();
-    printV(
-        "[SYNC_BENCHMARK]     ▶ get_history batch for addrs) starting...");
+    printV("[SYNC_BENCHMARK]     ▶ get_history batch for addrs) starting...");
     final addressList = await getWalletAddressList();
     final method = "blockchain.scripthash.get_history";
     var batchCollection = Map<int, String>();
@@ -2560,9 +2559,9 @@ abstract class ElectrumWalletBase
     // final String method = "blockchain.scripthash.get_balance";
 
     // var balanceResponse = await electrumClient.batchGetData(scriptHashes, method);
-
-    final balanceResponse =
-        await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
+    // throw ErrorDescription("Change this to use non-isolate batch method");
+    // final balanceResponse =
+    //     await getIsolateBatch(scriptHashes, 'blockchain.scripthash.get_balance');
 
     var totalFrozen = 0;
     var totalConfirmed = 0;
@@ -2599,34 +2598,34 @@ abstract class ElectrumWalletBase
     });
 
     // final balances = await Future.wait(balanceFutures);
-    final balances = balanceResponse as List<Map<String, dynamic>>;
+    // todo: final balances = balanceResponse as List<Map<String, dynamic>>;
 
     // TODO: Is this 'if' necessary? TCP sockets should take care of this themselves
     // in their onError callback?
     // TODO: This contains a tweak to fall back onto a balance we've confirmed thus far if server returns an empty response, which is a workaround for a specific issue with Fulcrum servers where they return empty responses instead of properly closing the connection when they're overloaded. We should test if this is still necessary after we update our Fulcrum servers to the latest version, which should have this issue fixed.
-    if (balanceResponse.length == 0 /* && balanceResponse[0] == null */) {
-      // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
-      printV("got zero length balance response from the server, setting connection status to lost");
-      syncStatus = LostConnectionSyncStatus();
-      return balance[currency] ??
-          ElectrumBalance(
-              confirmed: totalConfirmed, unconfirmed: totalUnconfirmed, frozen: totalFrozen);
-    }
+    // if (balanceResponse.length == 0 /* && balanceResponse[0] == null */) {
+    //   // if we got null balance responses from the server, set our connection status to lost and return our last known balance:
+    //   printV("got zero length balance response from the server, setting connection status to lost");
+    //   syncStatus = LostConnectionSyncStatus();
+    //   return balance[currency] ??
+    //       ElectrumBalance(
+    //           confirmed: totalConfirmed, unconfirmed: totalUnconfirmed, frozen: totalFrozen);
+    // }
 
-    for (var i = 0; i < balances.length; i++) {
-      final addressRecord = addresses[i];
-      final balance = balances[i];
-      final confirmed = balance['confirmed'] as int? ?? 0;
-      final unconfirmed = balance['unconfirmed'] as int? ?? 0;
-      totalConfirmed += confirmed;
-      totalUnconfirmed += unconfirmed;
+    // for (var i = 0; i < balances.length; i++) {
+    //   final addressRecord = addresses[i];
+    //   final balance = balances[i];
+    //   final confirmed = balance['confirmed'] as int? ?? 0;
+    //   final unconfirmed = balance['unconfirmed'] as int? ?? 0;
+    //   totalConfirmed += confirmed;
+    //   totalUnconfirmed += unconfirmed;
 
-      addressRecord.balance = confirmed + unconfirmed;
-      if (confirmed > 0 || unconfirmed > 0) {
-        addressRecord.setAsUsed();
-        walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
-      }
-    }
+    //   addressRecord.balance = confirmed + unconfirmed;
+    //   if (confirmed > 0 || unconfirmed > 0) {
+    //     addressRecord.setAsUsed();
+    //     walletAddresses.clearLockIfMatches(addressRecord.type, addressRecord.address);
+    //   }
+    // }
 
     return ElectrumBalance(
       confirmed: totalConfirmed,
@@ -2688,7 +2687,7 @@ abstract class ElectrumWalletBase
         batchCount++;
         final batchRequestJson = json.encode(batchRequest);
         printV('batchGetHistory: Batch request JSON: $batchRequestJson');
-        
+
         // Now we have valid JSON, we invoke the function to send it
         final response = await electrumClient.getBatchResults(batchRequestJson);
         return response;
@@ -2703,211 +2702,208 @@ abstract class ElectrumWalletBase
       List<BitcoinAddress> addresses, String method) async {
     if (addresses.isEmpty) return '';
     throw UnimplementedError();
-    final batchSize = _batchSizeForMethod(method);
-    // Map of original index to response
-    final Map<int, dynamic> indexedResponses = {};
-    final originalScriptHashes = List<String>.from(scriptHashes);
+    // final batchSize = _batchSizeForMethod(method);
+    // // Map of original index to response
+    // final Map<int, dynamic> indexedResponses = {};
+    // final originalScriptHashes = List<String>.from(scriptHashes);
 
-    // logic for batching has been moved to invoking function for ease of saving
-    // that said, this can be easily adapted if needed
-    try {
-      int currentOffset = 0;
-      while (currentOffset < originalScriptHashes.length) {
-        final batchEnd = (currentOffset + batchSize < originalScriptHashes.length)
-            ? currentOffset + batchSize
-            : originalScriptHashes.length;
-        final batchScripthashes = originalScriptHashes.sublist(currentOffset, batchEnd);
-        final thisOffset = currentOffset;
+    // // logic for batching has been moved to invoking function for ease of saving
+    // // that said, this can be easily adapted if needed
+    // try {
+    //   int currentOffset = 0;
+    //   while (currentOffset < originalScriptHashes.length) {
+    //     final batchEnd = (currentOffset + batchSize < originalScriptHashes.length)
+    //         ? currentOffset + batchSize
+    //         : originalScriptHashes.length;
+    //     final batchScripthashes = originalScriptHashes.sublist(currentOffset, batchEnd);
+    //     final thisOffset = currentOffset;
 
-        // Throttle: wait if less than 4000ms seconds since last batch
-        final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-        final delayNeeded = 6000 - timeSinceLastBatch;
-        if (delayNeeded > 0) {
-          printV(
-              "KB: _processIsolateBatchConnection: Throttling batch at offset $thisOffset, waiting ${delayNeeded}ms");
-          await Future.delayed(Duration(milliseconds: delayNeeded));
-        }
+    //     // Throttle: wait if less than 4000ms seconds since last batch
+    //     final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
+    //     final delayNeeded = 6000 - timeSinceLastBatch;
+    //     if (delayNeeded > 0) {
+    //       printV(
+    //           "KB: _processIsolateBatchConnection: Throttling batch at offset $thisOffset, waiting ${delayNeeded}ms");
+    //       await Future.delayed(Duration(milliseconds: delayNeeded));
+    //     }
 
-        printV(
-            "KB: _processIsolateBatchConnection: Sending batch of ${batchScripthashes.length} scripthashes at offset $thisOffset");
-        _lastBatchStart = DateTime.now();
+    //     printV(
+    //         "KB: _processIsolateBatchConnection: Sending batch of ${batchScripthashes.length} scripthashes at offset $thisOffset");
+    //     _lastBatchStart = DateTime.now();
 
-        try {
-          //final response = await client.isolateGetData(batchScripthashes, method);
-          printV("KB: _processIsolateBatchConnection: Response received for offset $thisOffset");
+    //     try {
+    //       //final response = await client.isolateGetData(batchScripthashes, method);
+    //       printV("KB: _processIsolateBatchConnection: Response received for offset $thisOffset");
 
-          if (response is List) {
-            for (int i = 0; i < response.length; i++) {
-              indexedResponses[thisOffset + i] = response[i];
-            }
-            if (onBatchComplete != null) {
-              await onBatchComplete(thisOffset, batchScripthashes, List<dynamic>.from(response));
-            }
-          }
-        } catch (batchError) {
-          printV(
-              "[_processIsolateBatchConnection] Batch failed at offset $thisOffset, will retry: $batchError");
-          failedSubBatches[thisOffset] = batchScripthashes;
-        }
+    //       if (response is List) {
+    //         for (int i = 0; i < response.length; i++) {
+    //           indexedResponses[thisOffset + i] = response[i];
+    //         }
+    //         if (onBatchComplete != null) {
+    //           await onBatchComplete(thisOffset, batchScripthashes, List<dynamic>.from(response));
+    //         }
+    //       }
+    //     } catch (batchError) {
+    //       printV(
+    //           "[_processIsolateBatchConnection] Batch failed at offset $thisOffset, will retry: $batchError");
+    //       failedSubBatches[thisOffset] = batchScripthashes;
+    //     }
 
-        currentOffset = batchEnd;
-      }
+    //     currentOffset = batchEnd;
+    //   }
 
-      // Retry failed batches
-      if (failedSubBatches.isNotEmpty) {
-        printV(
-            "KB: _processIsolateBatchConnection: Retrying ${failedSubBatches.length} failed batches");
+    //   // Retry failed batches
+    //   if (failedSubBatches.isNotEmpty) {
+    //     printV(
+    //         "KB: _processIsolateBatchConnection: Retrying ${failedSubBatches.length} failed batches");
 
-        for (final entry in failedSubBatches.entries) {
-          final offset = entry.key;
-          final batch = entry.value;
+    //     for (final entry in failedSubBatches.entries) {
+    //       final offset = entry.key;
+    //       final batch = entry.value;
 
-          // Throttle before retry
-          final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
-          final delayNeeded = 4000 - timeSinceLastBatch;
-          if (delayNeeded > 0) {
-            await Future.delayed(Duration(milliseconds: delayNeeded));
-          }
+    //       // Throttle before retry
+    //       final timeSinceLastBatch = DateTime.now().difference(_lastBatchStart).inMilliseconds;
+    //       final delayNeeded = 4000 - timeSinceLastBatch;
+    //       if (delayNeeded > 0) {
+    //         await Future.delayed(Duration(milliseconds: delayNeeded));
+    //       }
 
-          printV(
-              "KB: _processIsolateBatchConnection: Retrying batch of ${batch.length} scripthashes at offset $offset");
-          _lastBatchStart = DateTime.now();
+    //       printV(
+    //           "KB: _processIsolateBatchConnection: Retrying batch of ${batch.length} scripthashes at offset $offset");
+    //       _lastBatchStart = DateTime.now();
 
-          try {
-            final response = await client.isolateGetData(batch, method);
-            printV("KB: _processIsolateBatchConnection: Retry successful for offset $offset");
+    //       try {
+    //         final response = await client.isolateGetData(batch, method);
+    //         printV("KB: _processIsolateBatchConnection: Retry successful for offset $offset");
 
-            if (response is List) {
-              for (int i = 0; i < response.length; i++) {
-                indexedResponses[offset + i] = response[i];
-              }
-              if (onBatchComplete != null) {
-                await onBatchComplete(offset, batch, List<dynamic>.from(response));
-              }
-            }
-          } catch (retryError) {
-            printV(
-                "[_processIsolateBatchConnection] Retry failed for batch at offset $offset: $retryError");
-          }
-        }
-      }
+    //         if (response is List) {
+    //           for (int i = 0; i < response.length; i++) {
+    //             indexedResponses[offset + i] = response[i];
+    //           }
+    //           if (onBatchComplete != null) {
+    //             await onBatchComplete(offset, batch, List<dynamic>.from(response));
+    //           }
+    //         }
+    //       } catch (retryError) {
+    //         printV(
+    //             "[_processIsolateBatchConnection] Retry failed for batch at offset $offset: $retryError");
+    //       }
+    //     }
+    //   }
 
-      // Construct final list in original order, filling gaps with null if necessary
-      final List<dynamic> finalResponses = [];
-      for (int i = 0; i < originalScriptHashes.length; i++) {
-        finalResponses.add(indexedResponses[i]);
-      }
+    //   // Construct final list in original order, filling gaps with null if necessary
+    //   final List<dynamic> finalResponses = [];
+    //   for (int i = 0; i < originalScriptHashes.length; i++) {
+    //     finalResponses.add(indexedResponses[i]);
+    //   }
 
-      return json.encode(finalResponses);
-    } catch (e) {
-      printV('[_processIsolateBatchConnection] Error: $e');
-      rethrow;
-    } finally {
-      // await client.closeIsolateBatch();
-      // We actually want to keep this secondary connection to see if it was connection attempts that were getting us banned
-    }
+    //   return json.encode(finalResponses);
+    // } catch (e) {
+    //   printV('[_processIsolateBatchConnection] Error: $e');
+    //   rethrow;
+    // } finally {
+    //   // await client.closeIsolateBatch();
+    //   // We actually want to keep this secondary connection to see if it was connection attempts that were getting us banned
+    // }
   }
 
-  Future<String> getScripthashBatch(
-    List<BitcoinAddressRecord> addresses,
-    String method) async {
-
+  Future<String> getScripthashBatch(List<BitcoinAddressRecord> addresses, String method) async {
     throw UnimplementedError("Batch scripthash fetching is deprecated");
-    if (addresses.isEmpty) return '';
-    for (var i = 0; i < 6 && i < addresses.length; i++) {
-      printV(addresses[i]);
-    }
-    final List<String> scriptHashes = addresses.map((addr) => addr.getScriptHash(network)).toList();
+    // if (addresses.isEmpty) return '';
+    // for (var i = 0; i < 6 && i < addresses.length; i++) {
+    //   printV(addresses[i]);
+    // }
+    // final List<String> scriptHashes = addresses.map((addr) => addr.getScriptHash(network)).toList();
 
-    printV(
-        "KB: GetScripthashBatch: Processing ${scriptHashes.length} items in a single connection");
+    // printV(
+    //     "KB: GetScripthashBatch: Processing ${scriptHashes.length} items in a single connection");
 
-    return _processIsolateBatchConnection(scriptHashes, method, useSSL,
-        onBatchComplete: onBatchComplete);
+    // return _processIsolateBatchConnection(scriptHashes, method, useSSL,
+    //     onBatchComplete: onBatchComplete);
   }
 
   Future<Map<String, Map<String, dynamic>>> batchFetchTransactionDetails(
     List<String> txHashes,
   ) async {
     throw UnimplementedError("Batch fetching transaction details is not implemented yet");
-    if (txHashes.isEmpty) return {};
+    // if (txHashes.isEmpty) return {};
 
-    final requestSize = ((txHashes.join(',').length * 1.1) / 1048576).toStringAsFixed(2);
-    printV("Batch fetching ${txHashes.length} transaction details, request: ${requestSize}MB");
+    // final requestSize = ((txHashes.join(',').length * 1.1) / 1048576).toStringAsFixed(2);
+    // printV("Batch fetching ${txHashes.length} transaction details, request: ${requestSize}MB");
 
-    final batchResponse = await getIsolateBatch(txHashes, 'blockchain.transaction.get');
-    final responseSize = ((batchResponse.length * 1.1) / 1048576).toStringAsFixed(2);
-    printV("Received transaction details response: ${responseSize}MB");
+    // final batchResponse = await getIsolateBatch(txHashes, 'blockchain.transaction.get');
+    // final responseSize = ((batchResponse.length * 1.1) / 1048576).toStringAsFixed(2);
+    // printV("Received transaction details response: ${responseSize}MB");
 
-    final decoded = jsonDecode(batchResponse) as List;
-    final Map<String, Map<String, dynamic>> txDetailsMap = {};
+    // final decoded = jsonDecode(batchResponse) as List;
+    // final Map<String, Map<String, dynamic>> txDetailsMap = {};
 
-    for (int i = 0; i < txHashes.length && i < decoded.length; i++) {
-      final txHash = txHashes[i];
-      final response = decoded[i];
+    // for (int i = 0; i < txHashes.length && i < decoded.length; i++) {
+    //   final txHash = txHashes[i];
+    //   final response = decoded[i];
 
-      if (response is Map) {
-        final result = response['result'];
-        if (result is Map) {
-          txDetailsMap[txHash] = Map<String, dynamic>.from(result);
-        } else if (result is String) {
-          // Non-verbose response (just hex)
-          txDetailsMap[txHash] = {'hex': result};
-        }
-      }
-    }
+    //   if (response is Map) {
+    //     final result = response['result'];
+    //     if (result is Map) {
+    //       txDetailsMap[txHash] = Map<String, dynamic>.from(result);
+    //     } else if (result is String) {
+    //       // Non-verbose response (just hex)
+    //       txDetailsMap[txHash] = {'hex': result};
+    //     }
+    //   }
+    // }
 
-    return txDetailsMap;
+    // return txDetailsMap;
   }
 
   Future<List<BitcoinUnspent>> batchFetchAllUnspent() async {
     throw UnimplementedError("Batch fetching unspents is not implemented yet");
-    final addresses = walletAddresses.allAddresses
-        .where((element) => element.type != SegwitAddresType.mweb)
-        .toList();
+    // final addresses = walletAddresses.allAddresses
+    //     .where((element) => element.type != SegwitAddresType.mweb)
+    //     .toList();
 
-    printV("Fetch all unspent");
-    if (addresses.isEmpty) return [];
+    // printV("Fetch all unspent");
+    // if (addresses.isEmpty) return [];
 
-    printV("KB: batchFetchAllUnspent: Fetching unspents for ${addresses.length} addresses");
+    // printV("KB: batchFetchAllUnspent: Fetching unspents for ${addresses.length} addresses");
 
-    final batchResponse =
-        await getIsolateAddressBatch(addresses, 'blockchain.scripthash.listunspent');
-    developer.log(batchResponse);
-    final decoded = jsonDecode(batchResponse) as List;
-    final List<BitcoinUnspent> allUnspents = [];
+    // final batchResponse =
+    //     await getIsolateAddressBatch(addresses, 'blockchain.scripthash.listunspent');
+    // developer.log(batchResponse);
+    // final decoded = jsonDecode(batchResponse) as List;
+    // final List<BitcoinUnspent> allUnspents = [];
 
-    final tip = await getCurrentChainTip();
+    // final tip = await getCurrentChainTip();
 
-    for (int i = 0; i < addresses.length && i < decoded.length; i++) {
-      final address = addresses[i];
-      final response = decoded[i];
+    // for (int i = 0; i < addresses.length && i < decoded.length; i++) {
+    //   final address = addresses[i];
+    //   final response = decoded[i];
 
-      if (response is Map && response.containsKey('result')) {
-        final result = response['result'];
-        if (result is List) {
-          for (final unspentJson in result) {
-            try {
-              final unspentMap = unspentJson as Map<String, dynamic>;
-              final coin = BitcoinUnspent.fromJSON(address, unspentMap);
-              coin.isChange = address.isHidden;
+    //   if (response is Map && response.containsKey('result')) {
+    //     final result = response['result'];
+    //     if (result is List) {
+    //       for (final unspentJson in result) {
+    //         try {
+    //           final unspentMap = unspentJson as Map<String, dynamic>;
+    //           final coin = BitcoinUnspent.fromJSON(address, unspentMap);
+    //           coin.isChange = address.isHidden;
 
-              final height = unspentMap['height'] as int? ?? 0;
-              if (height > 0) {
-                coin.confirmations = tip - height + 1;
-              } else {
-                coin.confirmations = 0;
-              }
+    //           final height = unspentMap['height'] as int? ?? 0;
+    //           if (height > 0) {
+    //             coin.confirmations = tip - height + 1;
+    //           } else {
+    //             coin.confirmations = 0;
+    //           }
 
-              allUnspents.add(coin);
-            } catch (e) {
-              printV("Error parsing unspent for address ${address.address}: $e");
-            }
-          }
-        }
-      }
-    }
-    return allUnspents;
+    //           allUnspents.add(coin);
+    //         } catch (e) {
+    //           printV("Error parsing unspent for address ${address.address}: $e");
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
+    // return allUnspents;
   }
 
   UtxoDetails _createBatchUTXOS({
@@ -2917,7 +2913,7 @@ abstract class ElectrumWalletBase
     int? inputsCount,
     UnspentCoinType coinTypeToSpendFrom = UnspentCoinType.any,
   }) {
-    throw UnimplementedError("Batch UTXO selection is not implemented yet");
+    // throw UnimplementedError("Batch UTXO selection is not implemented yet");
     List<UtxoWithAddress> utxos = [];
     List<Outpoint> vinOutpoints = [];
     List<ECPrivateInfo> inputPrivKeyInfos = [];

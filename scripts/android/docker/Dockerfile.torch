@@ -1,0 +1,17 @@
+ARG BASE_IMAGE
+ARG TORCH_AARCH64_IMAGE
+ARG TORCH_ARMV7A_IMAGE
+ARG TORCH_X86_64_IMAGE
+
+FROM ${TORCH_AARCH64_IMAGE} AS torch_aarch64
+FROM ${TORCH_ARMV7A_IMAGE}  AS torch_armv7a
+FROM ${TORCH_X86_64_IMAGE}  AS torch_x86_64
+
+FROM --platform=linux/amd64 ${BASE_IMAGE} AS build
+
+COPY --from=torch_aarch64 /w /w
+COPY --from=torch_x86_64  /w /w
+COPY --from=torch_armv7a  /w /w
+
+FROM --platform=linux/amd64 alpine
+COPY --from=build /w /w

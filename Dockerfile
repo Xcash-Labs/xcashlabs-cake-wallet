@@ -69,6 +69,8 @@ RUN set -o xtrace \
     g++-x86-64-linux-gnu gcc-x86-64-linux-gnu \
     # flatpak dependencies
     flatpak flatpak-builder binutils elfutils patch unzip xz-utils zstd \
+    # docker dependencies
+    docker-cli rsync \
     && apt clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && sh -c 'echo "en_US.UTF-8 UTF-8" > /etc/locale.gen' \
     && locale-gen \
@@ -80,7 +82,7 @@ RUN flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.
     && flatpak install -y flathub org.freedesktop.Sdk//${FLATPAK_RUNTIME_VERSION}
 
 # Install nodejs for Github Actions
-RUN curl -fsSL https://deb.nodesource.com/setup_23.x | bash - && \
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -103,8 +105,8 @@ RUN ARCH=$(uname -m) && \
     gomobile init
 
 RUN git config --global user.email "czarek@cakewallet.com" \
-    && git config --global user.name "CakeWallet CI"
-
+    && git config --global user.name "CakeWallet CI" \
+    && git config --global --add safe.directory '*'
 
 # Install Android SDK commandline tools and emulator
 RUN ARCH=$(uname -m) && \

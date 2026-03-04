@@ -238,12 +238,16 @@ class ElectrumClient {
           final msg = utf8.decode(event.toList());
           final messagesList = msg.split("\n");
           for (var message in messagesList) {
-            if (message.isEmpty) {
+            // For some reason, some servers will serve us garbage whitespace characters
+            // Skip empty messages or messages with only whitespace/control chars
+            message = message.trim();
+            if (message.isEmpty || message.replaceAll(RegExp(r'[\s\x00-\x1F\x7F]'), '').isEmpty) {
               continue;
             }
             _parseResponse(message);
           }
         } catch (e) {
+          
           printV("socket.listen: $e");
         }
       },

@@ -43,7 +43,7 @@ class PrivacyPage extends BasePage {
                       if (_privacySettingsViewModel.isAutoGenerateSubaddressesVisible)
                         ListItemToggle(
                             keyValue: "auto_generate_subaddresses",
-                            label: S.current.coin_control,
+                            label: S.current.auto_generate_subaddresses,
                             value: _privacySettingsViewModel.isAutoGenerateSubaddressesEnabled,
                             onChanged: (val) {
                               _privacySettingsViewModel.setAutoGenerateSubaddresses(val);
@@ -55,12 +55,22 @@ class PrivacyPage extends BasePage {
                           onChanged: (val) {
                             _privacySettingsViewModel.setShouldSaveRecipientAddress(val);
                           }),
-                      ListItemRegularRow(
-                          iconPath: "assets/new-ui/settings_row_icons/coin-control.svg",
-                          keyValue: "silent_payments",
-                          label: S.current.silent_payments,
-                          onTap: () =>
-                              Navigator.of(context).pushNamed(Routes.unspentCoinsList)),
+                      if (_privacySettingsViewModel.canUsePayjoin)
+                        ListItemToggle(
+                            keyValue: "use_payjoin",
+                            label: S.current.use_payjoin,
+                            value: _privacySettingsViewModel.usePayjoin,
+                            onChanged: (val) {
+                              _privacySettingsViewModel.setUsePayjoin(val);
+                            }),
+                      if (_privacySettingsViewModel.canUseLightning)
+                        ListItemToggle(
+                            keyValue: "enable_lightning",
+                            label: S.current.enable_lightning,
+                            value: _privacySettingsViewModel.useLightning,
+                            onChanged: (val) {
+                              _privacySettingsViewModel.setUseLightning(val);
+                            }),
                     ],
                     "": [
                     if (_privacySettingsViewModel.isBitcoin)
@@ -77,14 +87,13 @@ class PrivacyPage extends BasePage {
                             label: "MWEB",
                             onTap: () =>
                                 Navigator.of(context).pushNamed(Routes.mwebSettings)),
-                    if (_privacySettingsViewModel.canUsePayjoin)
-                      ListItemToggle(
-                          keyValue: "use_payjoin",
-                          label: S.current.use_payjoin,
-                          value: _privacySettingsViewModel.usePayjoin,
-                          onChanged: (val) {
-                            _privacySettingsViewModel.setUsePayjoin(val);
-                          }),
+                      if (_privacySettingsViewModel.hasCoinControl)
+                      ListItemRegularRow(
+                          iconPath: "assets/new-ui/settings_row_icons/coin-control.svg",
+                          keyValue: "coin_control",
+                          label: "Coin Control",
+                          onTap: () =>
+                              Navigator.of(context).pushNamed(Routes.unspentCoinsList)),
                   ],
                 }
                 ),

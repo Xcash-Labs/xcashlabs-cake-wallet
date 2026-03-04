@@ -106,7 +106,11 @@ abstract class PrivacySettingsViewModelBase with Store {
   @computed
   bool get canUsePayjoin => _wallet.type == WalletType.bitcoin && DeviceInfo.instance.isMobile;
 
+  @computed
   bool get canUseLightning => _wallet.type == WalletType.bitcoin;
+
+  @computed
+  bool get useLightning => _wallet.type == WalletType.bitcoin && bitcoin!.useLightning(_wallet);
 
   @action
   void setShouldSaveRecipientAddress(bool value) =>

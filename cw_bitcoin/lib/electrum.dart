@@ -120,13 +120,18 @@ class ElectrumClient {
         
         // Build batch request payload for this chunk
         final List<Map<String, dynamic>> batchRequest = [];
-        final int batchStartId = _id + 1;
+        final int batchStartId = 0;
+        final int batchEndId = batchScriptHashes.length - 1;
+        _id++;
+        final int batchBaseId = _id; // Base ID for this batch
+        final String batchId = 'batch_${batchStartId}_${batchEndId}_${batchBaseId}';
+        // We already incremented _id - so it is in sync 
+        
+        
         for (int i = 0; i < batchScriptHashes.length; i++) {
-          final reqId = batchStartId + i;
-          _id = reqId;  // Keep _id in sync
           batchRequest.add({
             'jsonrpc': '2.0',
-            'id': reqId,
+            'id': 'batch_${batchStartId}_${_id}',
             'method': method,
             'params': [batchScriptHashes[i]],
           });
@@ -142,7 +147,8 @@ class ElectrumClient {
 
         // Use a special string ID for batch requests to avoid conflicts
         final completer = Completer<dynamic>();
-        final batchId = 'batch_${batchStartId}_${_id}';
+        //final batchId = 'batch_${batchStartId}_${_id}';
+        printV('batchId: $batchId');
         _tasks[batchId] = SocketTask(completer: completer, isSubscription: false);
 
         // Write the batch request directly to socket

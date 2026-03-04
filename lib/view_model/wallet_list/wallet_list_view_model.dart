@@ -68,7 +68,8 @@ abstract class WalletListViewModelBase with Store {
   WalletType get currentWalletType => _appStore.wallet!.type;
 
   Future<bool> requireHardwareWalletConnection(WalletListItem walletItem) async =>
-      _walletLoadingService.requireHardwareWalletConnection(walletItem.type, walletItem.name);
+      _walletLoadingService.requireHardwareWalletConnection(
+          walletItem.type, walletItem.name);
 
   @action
   Future<void> loadWallet(WalletListItem walletItem) async {
@@ -157,7 +158,7 @@ abstract class WalletListViewModelBase with Store {
       for (WalletInfo walletInfo in group.wallets) {
         for (int i = 0; i < wiList.length; i++) {
           if (wiList[i].name == walletInfo.name) {
-            wiList[i].sortOrder = i + oldI;
+            wiList[i].sortOrder = i+oldI;
             await wiList[i].save();
             wiList.removeAt(i);
             break;
@@ -246,7 +247,8 @@ abstract class WalletListViewModelBase with Store {
       name: info.name,
       type: info.type,
       key: info.id,
-      isCurrent: info.name == _appStore.wallet?.name && info.type == _appStore.wallet?.type,
+      isCurrent: info.name == _appStore.wallet?.name &&
+          info.type == _appStore.wallet?.type,
       isEnabled: availableWalletTypes.contains(info.type),
       isTestnet: info.network?.toLowerCase().contains('testnet') ?? false,
       isHardware: info.isHardwareWallet,

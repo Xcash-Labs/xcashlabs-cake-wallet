@@ -92,7 +92,7 @@ class _CardsViewState extends State<CardsView> {
             // printV(visualIndex);
             if (compactMode && visualIndex != 0) {
               widget.onCompactModeBackgroundCardsTapped();
-            } else if (!compactMode) {
+            } else if(!compactMode) {
               setState(() {
                 if (widget.accountListViewModel != null)
                   widget.accountListViewModel!
@@ -104,12 +104,11 @@ class _CardsViewState extends State<CardsView> {
           onLongPress: () {
             if (_selectedIndex == visualIndex) {
               widget.dashboardViewModel.balanceViewModel.switchBalanceValue();
-            }
-            ;
+            };
             HapticFeedback.heavyImpact();
           },
           child: Observer(builder: (_) {
-            if (realIndex >= (widget.accountListViewModel?.accounts.length ?? 1)) {
+            if(realIndex >= (widget.accountListViewModel?.accounts.length ?? 1)) {
               return Container();
             }
             final account = widget.accountListViewModel?.accounts[realIndex];
@@ -122,8 +121,7 @@ class _CardsViewState extends State<CardsView> {
             late final String walletBalance;
             late final String walletFiatBalance;
             if (widget.dashboardViewModel.mwebEnabled && widget.dashboardViewModel.hasMweb) {
-              if (widget.dashboardViewModel.balanceViewModel.displayMode ==
-                  BalanceDisplayMode.hiddenBalance) {
+              if(widget.dashboardViewModel.balanceViewModel.displayMode == BalanceDisplayMode.hiddenBalance) {
                 walletBalance = '●●●●●●';
                 walletFiatBalance = '●●●●●●';
               } else {
@@ -132,8 +130,7 @@ class _CardsViewState extends State<CardsView> {
               }
             } else {
               walletBalance = walletBalanceRecord?.availableBalance ?? "0";
-              walletFiatBalance = walletBalanceRecord?.fiatAvailableBalance ??
-                  "${widget.dashboardViewModel.appStore.settingsStore.fiatCurrency.title} 0.00";
+              walletFiatBalance = walletBalanceRecord?.fiatAvailableBalance ?? "${widget.dashboardViewModel.appStore.settingsStore.fiatCurrency.title} 0.00";
             }
 
             // the card designs is empty if widget gets built before it loads.
@@ -142,7 +139,7 @@ class _CardsViewState extends State<CardsView> {
             if (widget.dashboardViewModel.cardDesigns.isEmpty ||
                 realIndex >= widget.dashboardViewModel.cardDesigns.length)
               cardDesign = CardDesign.genericDefault;
-            else if (widget.lightningMode)
+            else if(widget.lightningMode)
               cardDesign = widget.dashboardViewModel.cardDesigns[realIndex + 1];
             else
               cardDesign = widget.dashboardViewModel.cardDesigns[realIndex];
@@ -200,12 +197,13 @@ class _CardsViewState extends State<CardsView> {
     );
   }
 
-  String get assetTitleFallback =>
-      widget.dashboardViewModel.appStore.amountParsingProxy.getCryptoSymbol(
-          widget.lightningMode ? CryptoCurrency.btcln : widget.dashboardViewModel.wallet.currency);
+  String get assetTitleFallback => widget.dashboardViewModel.appStore.amountParsingProxy.getCryptoSymbol(
+      widget.lightningMode
+          ? CryptoCurrency.btcln
+          : widget.dashboardViewModel.wallet.currency);
 
   bool _shouldCapitalizeAssetName() {
-    if (widget.dashboardViewModel.wallet.type != WalletType.bitcoin) {
+    if(widget.dashboardViewModel.wallet.type != WalletType.bitcoin) {
       return true;
     }
 
@@ -235,10 +233,10 @@ class _CardsViewState extends State<CardsView> {
       final parentWidth = MediaQuery.of(context).size.width;
       final children = <Widget>[];
 
-      int numCards = widget.dashboardViewModel.wallet.type == WalletType.bitcoin
-          ? 1
-          : widget.dashboardViewModel.cardDesigns.length;
-      if (numCards == 0) numCards = 1;
+    int numCards = widget.dashboardViewModel.wallet.type == WalletType.bitcoin
+        ? 1
+        : widget.dashboardViewModel.cardDesigns.length;
+        if(numCards == 0) numCards = 1;
 
       if (_selectedIndex >= (numCards)) {
         _selectedIndex = 0;
@@ -258,6 +256,7 @@ class _CardsViewState extends State<CardsView> {
           );
         }
       }
+
 
       final bool compactMode = numCards >= compactModeTreshold;
       final double overlapAmount = compactMode ? 5.0 : 46.0;
@@ -317,17 +316,15 @@ class _CardsViewState extends State<CardsView> {
         unspentCoinType: UnspentCoinType.nonMweb,
         mode: SendPageModes.lightningDeposit,
       ));
-      showCupertinoModalBottomSheet(
-          context: context,
-          barrierColor: Colors.black.withAlpha(128),
-          builder: (context) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.6,
-                  child: ModalNavigator(parentContext: context, rootPage: Material(child: page))),
-            );
-          });
+      showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SizedBox(
+              height:MediaQuery.of(context).size.height*0.6,
+              child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
+          ),
+        );
+      });
     } else {
       Navigator.pushNamed(
         context,
@@ -364,17 +361,15 @@ class _CardsViewState extends State<CardsView> {
         unspentCoinType: unspentCoinType,
         mode: SendPageModes.lightningWithdrawal,
       ));
-      showCupertinoModalBottomSheet(
-          context: context,
-          barrierColor: Colors.black.withAlpha(128),
-          builder: (context) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.6,
-                  child: ModalNavigator(parentContext: context, rootPage: Material(child: page))),
-            );
-          });
+      showCupertinoModalBottomSheet(context: context, barrierColor: Colors.black.withAlpha(128), builder: (context){
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: SizedBox(
+height:MediaQuery.of(context).size.height*0.6,
+              child:ModalNavigator(parentContext:context,rootPage: Material(child: page))
+          ),
+        );
+      });
     } else {
       Navigator.pushNamed(
         context,

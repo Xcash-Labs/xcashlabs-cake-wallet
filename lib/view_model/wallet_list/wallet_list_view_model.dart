@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cake_wallet/core/wallet_loading_service.dart';
 import 'package:cake_wallet/entities/wallet_group.dart';
 import 'package:cake_wallet/entities/wallet_list_order_types.dart';
@@ -87,16 +89,19 @@ abstract class WalletListViewModelBase with Store {
 
   bool get ascending => _appStore.settingsStore.walletListAscending;
 
-  bool _isUpdating = false;
-  bool _needsUpdate = false;
+  /// Serializes updateList() calls: each caller waits for the previous one to finish, then runs. 
+  /// 
+  /// This basically ensures that all calls to updateList() are executed.
+  Future<void> _lastUpdate = Future.value();
 
   @action
   Future<void> updateList() async {
-    if (_isUpdating) {
-      _needsUpdate = true;
-      return;
-    }
-    _isUpdating = true;
+    final waitFor = _lastUpdate;
+    final done = Completer<void>();
+    _lastUpdate = done.future;
+
+    await waitFor;
+
     try {
       wallets.clear();
       multiWalletGroups.clear();
@@ -121,11 +126,7 @@ abstract class WalletListViewModelBase with Store {
         multiWalletGroups.add(group);
       }
     } finally {
-      _isUpdating = false;
-      if (_needsUpdate) {
-        _needsUpdate = false;
-        await updateList();
-      }
+      done.complete();
     }
   }
 
@@ -158,7 +159,7 @@ abstract class WalletListViewModelBase with Store {
       for (WalletInfo walletInfo in group.wallets) {
         for (int i = 0; i < wiList.length; i++) {
           if (wiList[i].name == walletInfo.name) {
-            wiList[i].sortOrder = i+oldI;
+            wiList[i].sortOrder = i + oldI;
             await wiList[i].save();
             wiList.removeAt(i);
             break;
@@ -247,8 +248,7 @@ abstract class WalletListViewModelBase with Store {
       name: info.name,
       type: info.type,
       key: info.id,
-      isCurrent: info.name == _appStore.wallet?.name &&
-          info.type == _appStore.wallet?.type,
+      isCurrent: info.name == _appStore.wallet?.name && info.type == _appStore.wallet?.type,
       isEnabled: availableWalletTypes.contains(info.type),
       isTestnet: info.network?.toLowerCase().contains('testnet') ?? false,
       isHardware: info.isHardwareWallet,

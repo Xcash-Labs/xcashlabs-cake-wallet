@@ -54,13 +54,12 @@ abstract class WalletKeysViewModelBase with Store {
   }
 
   static String _getInitialTitle(WalletBase wallet) {
-    final baseName = isEVMCompatibleChain(wallet.type)
-        ? (evm!.getCurrentChain(wallet)?.name ?? walletTypeToString(wallet.type))
-        : walletTypeToString(wallet.type);
-
+    final baseName = walletTypeToString(wallet.type);
     final keysLabel = S.current.wallet_keys;
+
     final hwSuffix =
         wallet.isHardwareWallet ? ' (${_hardwareWalletTypeLabel(wallet.hardwareWalletType!)})' : '';
+
     return '$baseName $keysLabel$hwSuffix';
   }
 

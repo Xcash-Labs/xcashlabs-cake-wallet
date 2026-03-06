@@ -64,3 +64,26 @@ Final builds can be found in `build/app/outputs/flutter-apk/` as seen above.
 While properly signing builds is outside of the scope of this guide (very few users want or need to run their own built APKs), to learn more about how to sign APKs you can check out the Zeus team's fantastic guide:
 
 - <https://github.com/ZeusLN/zeus/blob/master/docs/ReproducibleBuilds.md#signing-apks>
+
+
+docker run -v$(pwd):$(pwd) -w $(pwd) -i --rm ghcr.io/cake-tech/cake_wallet:debian13-flutter3.32.0-ndkr28-go1.24.1-ruststablenightly bash -x << EOF
+set -x -e
+git config --global --add safe.directory '*'
+pushd scripts/android
+    ./build_reown_deps.sh
+    pushd ..
+        ./build_bitbox_flutter.sh
+    popd
+    source ./app_env.sh monero.com
+    ./app_config.sh
+popd
+pushd android/app
+    [[ -f key.jks ]] || keytool -genkey -v -keystore key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias testKey -noprompt -dname "CN=CakeWallet, OU=CakeWallet, O=CakeWallet, L=Florida, S=America, C=USA" -storepass hunter1 -keypass hunter1
+popd
+flutter clean
+./model_generator.sh
+dart run tool/generate_android_key_properties.dart keyAlias=testKey storeFile=key.jks storePassword=hunter1 keyPassword=hunter1
+dart run tool/generate_localization.dart
+dart run tool/generate_new_secrets.dart
+flutter build apk --release --split-per-abi
+EOF

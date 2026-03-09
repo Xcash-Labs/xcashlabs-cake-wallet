@@ -76,6 +76,9 @@ pushd scripts/android
     popd
     source ./app_env.sh monero.com
     ./app_config.sh
+
+    export MAKEFLAGS=
+    export MAKE_JOB_COUNT=1
     ./build_monero_all.sh
 popd
 pushd android/app

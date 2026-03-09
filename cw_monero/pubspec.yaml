@@ -25,8 +25,8 @@ dependencies:
     path: ../cw_core
   monero:
     git:
-      url: https://github.com/mrcyjanek/monero_c
-      ref: 411e8a1cdb3f4c2812d83f28c335d2a4eb18bd29
+      url: https://github.com/Xcash-Labs/xcashlabs_c
+      ref: 3092e0c5e50b5427705b2ab25f37d7d10f4d3c01
       path: impls/monero.dart
   mutex: ^3.1.0
   ledger_flutter_plus: ^1.4.1

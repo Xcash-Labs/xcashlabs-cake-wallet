@@ -76,6 +76,7 @@ pushd scripts/android
     popd
     source ./app_env.sh monero.com
     ./app_config.sh
+    ./build_monero_all.sh
 popd
 pushd android/app
     [[ -f key.jks ]] || keytool -genkey -v -keystore key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias testKey -noprompt -dname "CN=CakeWallet, OU=CakeWallet, O=CakeWallet, L=Florida, S=America, C=USA" -storepass hunter1 -keypass hunter1

@@ -69,6 +69,7 @@ While properly signing builds is outside of the scope of this guide (very few us
 docker run -v$(pwd):$(pwd) -w $(pwd) -i --rm ghcr.io/cake-tech/cake_wallet:debian13-flutter3.32.0-ndkr28-go1.24.1-ruststablenightly bash -x << EOF
 set -x -e
 git config --global --add safe.directory '*'
+bash scripts/prepare_torch.sh
 pushd scripts/android
     ./build_reown_deps.sh
     pushd ..
@@ -76,9 +77,6 @@ pushd scripts/android
     popd
     source ./app_env.sh monero.com
     ./app_config.sh
-
-    export MAKEFLAGS=
-    export MAKE_JOB_COUNT=1
     ./build_monero_all.sh
 popd
 pushd android/app
@@ -87,6 +85,53 @@ popd
 flutter clean
 ./model_generator.sh
 dart run tool/generate_android_key_properties.dart keyAlias=testKey storeFile=key.jks storePassword=hunter1 keyPassword=hunter1
+dart run tool/generate_localization.dart
+dart run tool/generate_new_secrets.dart
+flutter build apk --release --split-per-abi
+EOF
+
+
+
+
+docker run -v"$(pwd):$(pwd)" -w "$(pwd)" -i --rm \
+  ghcr.io/cake-tech/cake_wallet:debian13-flutter3.32.0-ndkr28-go1.24.1-ruststablenightly \
+  bash -x << 'EOF'
+set -x -e
+git config --global --add safe.directory '*'
+
+bash scripts/prepare_torch.sh
+
+pushd scripts/android
+    ./build_reown_deps.sh
+    pushd ..
+        ./build_bitbox_flutter.sh
+    popd
+
+    source ./app_env.sh monero.com
+    ./app_config.sh
+    ./build_monero_all.sh
+popd
+
+pushd android/app
+    [[ -f key.jks ]] || keytool -genkey -v \
+      -keystore key.jks \
+      -keyalg RSA \
+      -keysize 2048 \
+      -validity 10000 \
+      -alias testKey \
+      -noprompt \
+      -dname "CN=CakeWallet, OU=CakeWallet, O=CakeWallet, L=Florida, S=America, C=USA" \
+      -storepass hunter1 \
+      -keypass hunter1
+popd
+
+flutter clean
+./model_generator.sh
+dart run tool/generate_android_key_properties.dart \
+  keyAlias=testKey \
+  storeFile=key.jks \
+  storePassword=hunter1 \
+  keyPassword=hunter1
 dart run tool/generate_localization.dart
 dart run tool/generate_new_secrets.dart
 flutter build apk --release --split-per-abi

@@ -99,6 +99,9 @@ docker run -v"$(pwd):$(pwd)" -w "$(pwd)" -i --rm \
 set -x -e
 git config --global --add safe.directory '*'
 
+export ANDROID_NDK_ROOT="${ANDROID_NDK_HOME}"
+export PATH="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+
 bash scripts/prepare_torch.sh
 
 pushd scripts/android
@@ -135,4 +138,4 @@ dart run tool/generate_android_key_properties.dart \
 dart run tool/generate_localization.dart
 dart run tool/generate_new_secrets.dart
 flutter build apk --release --split-per-abi
-EOF
+EOF 

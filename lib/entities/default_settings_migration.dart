@@ -29,9 +29,7 @@ import 'package:collection/collection.dart';
 import 'package:cw_core/cake_hive.dart';
 import 'package:cw_core/erc20_token.dart';
 
-//const newCakeWalletMoneroUri = 'xmr-node.cakewallet.com:18081';
 const newCakeWalletMoneroUri = 'seeds.xcashseeds.uk:18281';
-
 const cakeWalletBitcoinElectrumUri = 'electrum.cakewallet.com:50002';
 const cakeWalletSilentPaymentsElectrsUri = 'electrs.cakewallet.com:50001';
 const publicBitcoinTestnetElectrumAddress = 'electrs.cakewallet.com';
@@ -137,24 +135,7 @@ Future<void> defaultSettingsMigration(
           );
           break;
         case 2:
-          await replaceNodesMigration(nodes: nodes);
-          await _changeDefaultNode(
-            nodes: nodes,
-            sharedPreferences: sharedPreferences,
-            type: WalletType.monero,
-            newDefaultUri: newCakeWalletMoneroUri,
-            currentNodePreferenceKey: PreferencesKey.currentNodeIdKey,
-            useSSL: true,
-            trusted: true,
-            oldUri: [
-//              'xmr-node-uk.cakewallet.com:18081',
-//              'eu-node.cakewallet.io:18081',
-//              'node.cakewallet.io:18081'
-              'seeds.xcashseeds.us:18281',
-              'seeds.xcashseeds.cc:18281',
-              'seeds.xcashseeds.uk:18281'
-            ],
-          );
+          // nolonger needed 
           break;
         case 3:
           await updateNodeTypes(nodes: nodes);
@@ -877,33 +858,7 @@ Future<void> validateBitcoinSavedTransactionPriority(SharedPreferences sharedPre
 }
 
 Future<void> replaceNodesMigration({required Box<Node> nodes}) async {
-//  final replaceNodes = <String, Node>{
-//    'eu-node.cakewallet.io:18081':
-//        Node(uri: 'xmr-node-eu.cakewallet.com:18081', type: WalletType.monero),
-//    'node.cakewallet.io:18081':
-//        Node(uri: 'xmr-node-usa-east.cakewallet.com:18081', type: WalletType.monero),
-//    'node.xmr.ru:13666': Node(uri: 'node.monero.net:18081', type: WalletType.monero)
-//  };
-
-  final replaceNodes = <String, Node>{
-    'eu-node.cakewallet.io:18081':
-        Node(uri: 'seeds.xcashseeds.uk:18281', type: WalletType.monero),
-    'node.cakewallet.io:18081':
-        Node(uri: 'seeds.xcashseeds.us:18281', type: WalletType.monero),
-    'node.xmr.ru:13666':
-        Node(uri: 'seeds.xcashseeds.cc:18281', type: WalletType.monero),
-  };
-
-  nodes.values.forEach((Node node) async {
-    final nodeToReplace = replaceNodes[node.uri];
-
-    if (nodeToReplace != null) {
-      node.uriRaw = nodeToReplace.uriRaw;
-      node.login = nodeToReplace.login;
-      node.password = nodeToReplace.password;
-      await node.save();
-    }
-  });
+  // nolonger needed
 }
 
 Node? getBitcoinTestnetDefaultElectrumServer({required Box<Node> nodes}) {
@@ -1418,11 +1373,7 @@ Future<void> migrateExistingNodesToUseAutoSwitching(
     'rpc.nano.to',
     'workers.perish.co',
     'worker.nanoriver.cc',
-//    'xmr-node.cakewallet.com:18081',
-    'seeds.xcashseeds.uk:18281',
     'node.sethforprivacy.com:443',
-//    'nodes.hashvault.pro:18081',
-    'seeds.xcashseeds.cc:18281',
     'polygon-bor-rpc.publicnode.com',
     'matic.nownodes.io',
     'api.mainnet-beta.solana.com:443',

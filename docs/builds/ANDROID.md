@@ -138,4 +138,4 @@ dart run tool/generate_android_key_properties.dart \
 dart run tool/generate_localization.dart
 dart run tool/generate_new_secrets.dart
 flutter build apk --release --split-per-abi
-EOF 
+EOF

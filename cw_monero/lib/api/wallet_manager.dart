@@ -50,7 +50,7 @@ void checkIfMoneroCIsFine() {
 Wallet2WalletManager? _wmPtr;
 Wallet2WalletManager wmPtr = (() {
   try {
-    // Problems with the wallet? Crashes? Lags? this will print all calls to xmr
+    // Problems with the wallet? Crashes? Lags? this will print all calls to xck
     // codebase, so it will be easier to debug what happens. At least easier
     // than plugging gdb in. Especially on windows/android.
     monero.printStarts = false;

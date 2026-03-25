@@ -26,7 +26,7 @@ class MoneroTransactionInfo extends TransactionInfo {
 
   @override
   String amountFormatted() =>
-      '${formatAmount(moneroAmountToString(amount: amount))} XMR';
+      '${formatAmount(moneroAmountToString(amount: amount))} XCK';
 
   @override
   String fiatAmount() => _fiatAmount ?? '';
@@ -36,5 +36,5 @@ class MoneroTransactionInfo extends TransactionInfo {
 
   @override
   String feeFormatted() =>
-      '${formatAmount(moneroAmountToString(amount: fee))} XMR';
+      '${formatAmount(moneroAmountToString(amount: fee))} XCK';
 }

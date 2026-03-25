@@ -59,7 +59,7 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
       required Box<UnspentCoinsInfo> unspentCoinsInfo,
       required String password})
       : balance = ObservableMap<CryptoCurrency, MoneroBalance>.of({
-          CryptoCurrency.xmr: MoneroBalance(
+          CryptoCurrency.xck: MoneroBalance(
             fullBalance: monero_wallet.getFullBalance(accountIndex: 0),
             unlockedBalance: monero_wallet.getUnlockedBalance(accountIndex: 0),
           )
@@ -414,7 +414,7 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
       if (outputs.any(
           (item) => item.sendAll || (item.formattedCryptoAmount ?? 0) <= 0)) {
         throw MoneroTransactionCreationException(
-            'You do not have enough XMR to send this amount.');
+            'You do not have enough XCK to send this amount.');
       }
 
       final int totalAmount = outputs.fold(
@@ -422,7 +422,7 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
 
       if (unlockedBalance < totalAmount) {
         throw MoneroTransactionCreationException(
-            'You do not have enough XMR to send this amount.');
+            'You do not have enough XCK to send this amount.');
       }
 
       if (inputs.isEmpty) MoneroTransactionCreationException(
@@ -865,7 +865,7 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
     final daysTmp = (distance / 86400).round();
     final days = daysTmp < 1 ? 1 : daysTmp;
 
-    return days * 720; // there are720 blocks per day on xmr
+    return days * 720; // there are720 blocks per day on xck
   }
 
   int _getHeightByDate(DateTime date) {

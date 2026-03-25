@@ -16,7 +16,7 @@ class DoubleSpendException implements Exception {
 
   @override
   String toString() =>
-      'This transaction cannot be committed. This can be due to many reasons including the wallet not being synced, there is not enough XMR in your available balance, or previous transactions are not yet fully processed.';
+      'This transaction cannot be committed. This can be due to many reasons including the wallet not being synced, there is not enough XCK in your available balance, or previous transactions are not yet fully processed.';
 }
 
 class PendingMoneroTransaction with PendingTransaction {
@@ -33,14 +33,14 @@ class PendingMoneroTransaction with PendingTransaction {
 
   @override
   String get amountFormatted => AmountConverter.amountIntToString(
-      CryptoCurrency.xmr, pendingTransactionDescription.amount);
+      CryptoCurrency.xck, pendingTransactionDescription.amount);
 
   @override
-  String get feeFormatted => "$feeFormattedValue XMR";
+  String get feeFormatted => "$feeFormattedValue XCK";
 
   @override
   String get feeFormattedValue => AmountConverter.amountIntToString(
-      CryptoCurrency.xmr, pendingTransactionDescription.fee);
+      CryptoCurrency.xck, pendingTransactionDescription.fee);
 
   @override
   bool shouldCommitUR() => isViewOnly;
@@ -80,7 +80,7 @@ class PendingMoneroTransaction with PendingTransaction {
       }());
       if (ret == null) return {};
       return {
-        "xmr-txsigned": ret,
+        "xck-txsigned": ret,
       };
     } catch (e) {
       final message = e.toString();

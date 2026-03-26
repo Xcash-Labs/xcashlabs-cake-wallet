@@ -7,6 +7,8 @@ MONERO_COM_PATH=$ASSETS_DIR/images/monero.com_android_icon.png
 MONEROCOM_ICON_SET_PATH=$ASSETS_DIR/images/monerocom_android_icon
 CAKEWALLET_PATH=$ASSETS_DIR/images/cakewallet_android_icon.png
 CAKEWALLET_ICON_SET_PATH=$ASSETS_DIR/images/cakewallet_android_icon
+XCASHLABS_PATH=$ASSETS_DIR/images/xcashlabs.org_android_icon.png
+XCASHLABS_ICON_SET_PATH=$ASSETS_DIR/images/monerocom_android_icon
 ANDROID_ICON=""
 ANDROID_ICON_DEST_PATH=$ANDROID_ICON_DIR/ic_launcher.png
 ANDROID_ICON_SET=""
@@ -22,7 +24,12 @@ case $APP_ANDROID_TYPE in
     	APP_LOGO=$ASSETS_DIR/images/cakewallet_logo.png
     	ANDROID_ICON=$CAKEWALLET_PATH
     	ANDROID_ICON_SET=$CAKEWALLET_ICON_SET_PATH
-    	;;
+    ;;
+    "xcashlabs")
+        APP_LOGO=$ASSETS_DIR/images/xcashlabs.org_logo.png
+        ANDROID_ICON=$XCASHLABS_PATH
+        ANDROID_ICON_SET=$XCASHLABS_ICON_SET_PATH
+	;;
 esac
 
 rm $APP_LOGO_DEST_PATH

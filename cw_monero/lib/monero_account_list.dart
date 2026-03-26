@@ -62,7 +62,7 @@ abstract class MoneroAccountListBase with Store {
         return Account(
           id: accountRow.getRowId(),
           label: accountRow.getLabel(),
-          balance: moneroAmountToString(amount: account_list.currentWallet!.amountFromString(balance)),
+          balance: xcashKAmountToString(amount: account_list.currentWallet!.amountFromString(balance)),
         );
       }).toList();
     

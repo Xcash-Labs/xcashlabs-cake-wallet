@@ -2,6 +2,7 @@
 
 MONERO_COM=monero.com
 CAKEWALLET=cakewallet
+XCASHLABS=xcashlabs
 HAVEN=haven
 CONFIG_ARGS=""
 
@@ -11,6 +12,9 @@ case $APP_ANDROID_TYPE in
                 ;;
         $CAKEWALLET)
                 CONFIG_ARGS="--monero --bitcoin --ethereum --polygon --nano --bitcoinCash --solana --tron --wownero --zano --decred --dogecoin --base --zcash --arbitrum --bsc"
+                ;;
+        $XCASHLABS)
+                CONFIG_ARGS="--monero"
                 ;;
 esac
 

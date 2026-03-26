@@ -90,6 +90,8 @@ dart run tool/generate_new_secrets.dart
 flutter build apk --release --split-per-abi
 EOF
 
+
+
 docker run -v"$(pwd):$(pwd)" -w "$(pwd)" -i --rm \
   ghcr.io/cake-tech/cake_wallet:debian13-flutter3.32.0-ndkr28-go1.24.1-ruststablenightly \
   bash -x << 'EOF'
@@ -107,7 +109,7 @@ pushd scripts/android
         ./build_bitbox_flutter.sh
     popd
 
-    source ./app_env.sh monero.com
+    source ./app_env.sh xcashlabs
     ./app_config.sh
     ./build_monero_all.sh
 
@@ -138,3 +140,4 @@ dart run tool/generate_localization.dart
 dart run tool/generate_new_secrets.dart
 flutter build apk --release --split-per-abi
 EOF
+

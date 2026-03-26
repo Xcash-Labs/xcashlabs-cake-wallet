@@ -453,7 +453,7 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
 
       // if ((formattedAmount != null && unlockedBalance < formattedAmount) ||
       //     (formattedAmount == null && unlockedBalance <= 0)) {
-      //   final formattedBalance = moneroAmountToString(amount: unlockedBalance);
+      //   final formattedBalance = xcashKAmountToString(amount: unlockedBalance);
       //
       //   throw MoneroTransactionCreationException(
       //       'You do not have enough unlocked balance. Unlocked: $formattedBalance. Transaction amount: ${output.cryptoAmount}.');
@@ -983,6 +983,6 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
 
   @override
   String formatCryptoAmount(String amount) {
-    return moneroAmountToString(amount: int.parse(amount));
+    return xcashKAmountToString(amount: int.parse(amount));
   }
 }

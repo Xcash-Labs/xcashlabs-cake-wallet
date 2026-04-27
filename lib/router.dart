@@ -20,6 +20,7 @@ import 'package:cake_wallet/src/screens/buy/buy_sell_options_page.dart';
 import 'package:cake_wallet/src/screens/buy/buy_webview_page.dart';
 import 'package:cake_wallet/src/screens/buy/payment_method_options_page.dart';
 import 'package:cake_wallet/src/screens/buy/webview_page.dart';
+import 'package:cake_wallet/src/screens/vote/vote_page.dart';
 import 'package:cake_wallet/cake_pay/cake_pay.dart';
 import 'package:cake_wallet/src/screens/connect_device/connect_device_page.dart';
 import 'package:cake_wallet/src/screens/connect_device/monero_hardware_wallet_options_page.dart';
@@ -664,6 +665,11 @@ Route<dynamic> createRoute(RouteSettings settings) {
       final args = settings.arguments as bool;
       return handleRouteWithPlatformAwareness(
         (context) => getIt.get<BuySellPage>(param1: args),
+      );
+
+    case Routes.vote:
+      return handleRouteWithPlatformAwareness(
+        (context) => VotePage(),
       );
 
     case Routes.buyOptionsPage:

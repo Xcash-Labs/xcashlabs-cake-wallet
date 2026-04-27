@@ -8,7 +8,8 @@ MONEROCOM_ICON_SET_PATH=$ASSETS_DIR/images/monerocom_android_icon
 CAKEWALLET_PATH=$ASSETS_DIR/images/cakewallet_android_icon.png
 CAKEWALLET_ICON_SET_PATH=$ASSETS_DIR/images/cakewallet_android_icon
 XCASHLABS_PATH=$ASSETS_DIR/images/xcashlabs.org_android_icon.png
-XCASHLABS_ICON_SET_PATH=$ASSETS_DIR/images/monerocom_android_icon
+XCASHLABS_ICON_SET_PATH=$ASSETS_DIR/images/xcashlabsorg_android_icon
+
 ANDROID_ICON=""
 ANDROID_ICON_DEST_PATH=$ANDROID_ICON_DIR/ic_launcher.png
 ANDROID_ICON_SET=""

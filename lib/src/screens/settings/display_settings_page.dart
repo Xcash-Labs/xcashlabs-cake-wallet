@@ -39,12 +39,20 @@ class DisplaySettingsPage extends BasePage {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SettingsSwitcherCell(
+//              SettingsSwitcherCell(
+//                title: S.of(context).apps,
+//                value: _displaySettingsViewModel.shouldShowMarketPlaceInDashboard,
+//                onValueChange: (_, bool value) {
+//                  _displaySettingsViewModel.setShouldShowMarketPlaceInDashbaord(value);
+//                },
+//              ),
+              AbsorbPointer(
+                absorbing: true,
+                child: SettingsSwitcherCell(
                 title: S.of(context).apps,
-                value: _displaySettingsViewModel.shouldShowMarketPlaceInDashboard,
-                onValueChange: (_, bool value) {
-                  _displaySettingsViewModel.setShouldShowMarketPlaceInDashbaord(value);
-                },
+                value: false,
+                onValueChange: (_, bool value) {},
+                ),
               ),
               SettingsSwitcherCell(
                 title: S.of(context).show_address_book_popup,

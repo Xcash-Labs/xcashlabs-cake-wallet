@@ -23,9 +23,10 @@ class MainActions {
   static List<MainActions> all = [
     showWalletsAction,
     receiveAction,
-    swapAction,
+//    swapAction,
     sendAction,
-    tradeAction,
+//    tradeAction,
+    voteAction,
   ];
 
   static MainActions showWalletsAction = MainActions._(
@@ -51,18 +52,18 @@ class MainActions {
     },
   );
 
-  static MainActions swapAction = MainActions._(
-    name: (context) => S.of(context).swap,
-    image: 'assets/images/swap.png',
-    key: ValueKey('dashboard_page_swap_action_button_key'),
-    isEnabled: (viewModel) => viewModel.isEnabledSwapAction,
-    canShow: (viewModel) => viewModel.hasSwapAction,
-    onTap: (BuildContext context, DashboardViewModel viewModel) async {
-      if (viewModel.isEnabledSwapAction) {
-        await Navigator.of(context).pushNamed(Routes.exchange);
-      }
-    },
-  );
+//  static MainActions swapAction = MainActions._(
+//    name: (context) => S.of(context).swap,
+//    image: 'assets/images/swap.png',
+//    key: ValueKey('dashboard_page_swap_action_button_key'),
+//    isEnabled: (viewModel) => viewModel.isEnabledSwapAction,
+//    canShow: (viewModel) => viewModel.hasSwapAction,
+//    onTap: (BuildContext context, DashboardViewModel viewModel) async {
+//      if (viewModel.isEnabledSwapAction) {
+//        await Navigator.of(context).pushNamed(Routes.exchange);
+//      }
+//    },
+//  );
 
   static MainActions sendAction = MainActions._(
     name: (context) => S.of(context).send,
@@ -74,15 +75,27 @@ class MainActions {
     },
   );
 
-  static MainActions tradeAction = MainActions._(
-    name: (context) => S.of(context).buy,
-    image: 'assets/images/buy.png',
-    key: ValueKey('dashboard_page_buy_action_button_key'),
-    isEnabled: (viewModel) => viewModel.isEnabledTradeAction,
-    canShow: (viewModel) => viewModel.hasTradeAction,
+//  static MainActions tradeAction = MainActions._(
+//    name: (context) => S.of(context).buy,
+//    image: 'assets/images/buy.png',
+//    key: ValueKey('dashboard_page_buy_action_button_key'),
+//    isEnabled: (viewModel) => viewModel.isEnabledTradeAction,
+//    canShow: (viewModel) => viewModel.hasTradeAction,
+//    onTap: (BuildContext context, DashboardViewModel viewModel) async {
+//      if (!viewModel.isEnabledTradeAction) return;
+//      await Navigator.of(context).pushNamed(Routes.buySellPage, arguments: false);
+//    },
+//  );
+
+  static MainActions voteAction = MainActions._(
+    name: (context) => 'Vote', // or add to localization later
+    image: 'assets/images/vote.png', // you'll need to add this icon
+    key: ValueKey('dashboard_page_vote_action_button_key'),
+    isEnabled: (viewModel) => true, // or add logic later
+    canShow: (viewModel) => true,
     onTap: (BuildContext context, DashboardViewModel viewModel) async {
-      if (!viewModel.isEnabledTradeAction) return;
-      await Navigator.of(context).pushNamed(Routes.buySellPage, arguments: false);
+      await Navigator.of(context).pushNamed(Routes.vote); // you'll define this
     },
   );
+
 }

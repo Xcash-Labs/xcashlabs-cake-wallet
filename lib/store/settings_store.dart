@@ -1156,7 +1156,8 @@ abstract class SettingsStoreBase with Store {
             FiatApiMode.enabled.raw);
     final tokenTrialNumber = sharedPreferences.getInt(PreferencesKey.failedTotpTokenTrials) ?? 0;
     final shouldShowMarketPlaceInDashboard =
-        sharedPreferences.getBool(PreferencesKey.shouldShowMarketPlaceInDashboard) ?? true;
+//        sharedPreferences.getBool(PreferencesKey.shouldShowMarketPlaceInDashboard) ?? true;
+        sharedPreferences.getBool(PreferencesKey.shouldShowMarketPlaceInDashboard) ?? false;
     final showAddressBookPopupEnabled =
         sharedPreferences.getBool(PreferencesKey.showAddressBookPopupEnabled) ?? true;
     final syncStatusDisplayMode = SyncStatusDisplayModeExtension.fromString(

@@ -1,8 +1,8 @@
-Last Modified: January 3, 2022
+Last Modified: April 27, 2026
 
 Acceptance of the Terms of Use
 ==============================
-	These terms of use are entered into by and between You and Cake Technologies LLC ("Company," "we," or "us"). The following terms and conditions "Terms of Use") govern your access to and use of the Monero.com app, including any content, functionality, and services offered on or through the Monero.com app (the “App").
+	These terms of use are entered into by and between You and MinerJed LLC ("Company," "we," or "us"). The following terms and conditions "Terms of Use") govern your access to and use of the Monero.com app, including any content, functionality, and services offered on or through the Monero.com app (the “App").
 	Please read the Terms of Use carefully before you start to use the App. By using the App you accept and agree to be bound and abide by these Terms of Use and our Privacy Policy, incorporated herein by reference. If you do not wish to agree to these Terms of Use or the Privacy Policy, you must not access or use the App. 
 
 Changes to the Terms of Use
@@ -40,7 +40,7 @@ Intellectual Property Rights
 		- Modify copies of any images from the Application.
 		- Use any illustrations, photographs, video or audio sequences, or any graphics separately from the accompanying text.
 		- Delete or modify any copyright, trademark, or other rights notices from copies of materials from this site.
-		- Claim ownership of any code, image, text or any other information authored or created by Cake Technologies.
+		- Claim ownership of any code, image, text or any other information authored or created by MinerJed LLC.
 
 Trademarks
 ==========
@@ -67,15 +67,15 @@ Prohibited Uses
 
 		- Use any manual process to monitor or copy any of the material on the App, or for any other purpose not expressly authorized in these Terms of Use, without our prior written consent.
 
-		- Use any device, software, or routine that interferes with the proper working of the App or the Nodes operated by Cake Technologies.
+		- Use any device, software, or routine that interferes with the proper working of the App or the Nodes operated by MinerJed LLC.
 
 		- Introduce any viruses, Trojan horses, worms, logic bombs, or other material that is malicious or technologically harmful.
 
 		- Attempt to gain unauthorized access to, interfere with, damage, or disrupt any parts of the App, or any node, server, computer, or database connected to the App. 
 
-		- Attack the App or the Nodes operated by Cake Technologies via a denial-of-service attack or a distributed denial-of-service attack.
+		- Attack the App or the Nodes operated by MinerJed LLC via a denial-of-service attack or a distributed denial-of-service attack.
 
-		- Otherwise attempt to interfere with the proper working of the App or the Nodes operated by Cake Technologies.
+		- Otherwise attempt to interfere with the proper working of the App or the Nodes operated by MinerJed LLC.
 
 Information About You and Your Visits to the App
 ================================================
@@ -120,7 +120,7 @@ Investment Risks
 Tax Matters
 ===========
 
-	The users of the App are solely responsible in determining what, if any, taxes apply to their Monero, Litecoin and/or Bitcoin transactions. Cake Technologies is not responsible for determining any taxes that apply to such transactions. You agree not to hold Cake Technologies responsible for any issues relating to the taxation of purchases, sale, exchanges, transfers, or any other transactions related to any cryptocurrency.
+	The users of the App are solely responsible in determining what, if any, taxes apply to their Monero, Litecoin and/or Bitcoin transactions. MinerJed LLC is not responsible for determining any taxes that apply to such transactions. You agree not to hold MinerJed LLC responsible for any issues relating to the taxation of purchases, sale, exchanges, transfers, or any other transactions related to any cryptocurrency.
 
 Monero, Bitcoin & Litecoin Transactions
 =======================================
@@ -179,10 +179,10 @@ Waiver and Severability
 Entire Agreement
 ================
 
-	The Terms of Use and our Privacy Policy constitute the sole and entire agreement between you and Cake Technologies Inc. regarding the App and supersede all prior and contemporaneous understandings, agreements, representations, and warranties, both written and oral, regarding the App. 
+	The Terms of Use and our Privacy Policy constitute the sole and entire agreement between you and MinerJed LLC regarding the App and supersede all prior and contemporaneous understandings, agreements, representations, and warranties, both written and oral, regarding the App. 
 
 Your Comments and Concerns
 ==========================
 
-	This App is operated by Cake Technologies Inc.
-	All feedback, comments, and other communications relating to the App should be directed to info@cakewallet.com. All requests for technical support should be directed to support@cakewallet.com.
+	This App is operated by MinerJed LLC.
+	All feedback, comments, and other communications relating to the App should be directed to info@cakewallet.com. All requests for technical support should be directed to XCash-Labs Discord Channel.

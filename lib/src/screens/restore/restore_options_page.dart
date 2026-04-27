@@ -84,18 +84,18 @@ class _RestoreOptionsBodyState extends State<_RestoreOptionsBody> {
                 title: S.of(context).restore_title_from_seed_keys,
                 description: S.of(context).restore_description_from_seed_keys,
               ),
-              if (FeatureFlag.hasBitcoinViewOnly && DeviceInfo.instance.isMobile)
-                Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: OptionTile(
-                    key: ValueKey('restore_options_from_cupcake_button_key'),
-                    onPressed: () => _onScanQRCode(context),
-                    image: imageRestoreCupcake,
-                    title: S.of(context).restore_title_from_cupcake,
-                    description: S.of(context).restore_description_from_cupcake,
-                    tag: S.of(context).new_tag,
-                  ),
-                ),
+//              if (FeatureFlag.hasBitcoinViewOnly && DeviceInfo.instance.isMobile)
+//                Padding(
+//                  padding: EdgeInsets.only(top: 12),
+//                  child: OptionTile(
+//                    key: ValueKey('restore_options_from_cupcake_button_key'),
+//                    onPressed: () => _onScanQRCode(context),
+//                    image: imageRestoreCupcake,
+//                    title: S.of(context).restore_title_from_cupcake,
+//                    description: S.of(context).restore_description_from_cupcake,
+//                    tag: S.of(context).new_tag,
+//                  ),
+//                ),
               Padding(
                 padding: EdgeInsets.only(top: 12),
                 child: OptionTile(
@@ -118,17 +118,17 @@ class _RestoreOptionsBodyState extends State<_RestoreOptionsBody> {
                     description: S.of(context).restore_description_from_backup,
                   ),
                 ),
-              if (DeviceInfo.instance.isMobile)
-                Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: OptionTile(
-                    key: ValueKey('restore_options_from_qr_button_key'),
-                    onPressed: () => _onScanQRCode(context),
-                    image: imageRestoreQR,
-                    title: S.of(context).scan_qr_code,
-                    description: S.of(context).cold_or_recover_wallet,
-                  ),
-                ),
+//              if (DeviceInfo.instance.isMobile)
+//                Padding(
+//                  padding: EdgeInsets.only(top: 12),
+//                  child: OptionTile(
+//                    key: ValueKey('restore_options_from_qr_button_key'),
+//                    onPressed: () => _onScanQRCode(context),
+//                    image: imageRestoreQR,
+//                    title: S.of(context).scan_qr_code,
+//                    description: S.of(context).cold_or_recover_wallet,
+//                  ),
+//                ),
             ],
           ),
         ),

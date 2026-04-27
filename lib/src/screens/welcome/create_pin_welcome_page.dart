@@ -23,17 +23,18 @@ class CreatePinWelcomePage extends BasePage {
   final cakeLogoDark = 'assets/images/cake_logo_dark.svg';
 
   String appTitle(BuildContext context) {
-    if (isMoneroOnly) {
-      return S.of(context).monero_com;
-    }
+    return "";
+//    if (isMoneroOnly) {
+//      return S.of(context).monero_com;
+//    }
 
-    return S.of(context).cake_wallet;
+//    return S.of(context).cake_wallet;
   }
 
   String appDescription(BuildContext context) {
-    if (isMoneroOnly) {
-      return S.of(context).monero_com_wallet_text;
-    }
+//    if (isMoneroOnly) {
+//      return S.of(context).monero_com_wallet_text;
+//    }
 
     return S.of(context).payment_made_easy;
   }
@@ -125,7 +126,8 @@ class CreatePinWelcomePage extends BasePage {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            S.current.to.toLowerCase(),
+//                            S.current.to.toLowerCase(),
+                            "",
                             style: Theme.of(context).textTheme.titleMedium,
                             textAlign: TextAlign.center,
                           ),

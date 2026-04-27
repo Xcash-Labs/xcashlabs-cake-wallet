@@ -460,8 +460,9 @@ abstract class DashboardViewModelBase with Store {
   BalanceDisplayMode get balanceDisplayMode => appStore.settingsStore.balanceDisplayMode;
 
   @computed
-  bool get shouldShowMarketPlaceInDashboard =>
-      appStore.settingsStore.shouldShowMarketPlaceInDashboard;
+//  bool get shouldShowMarketPlaceInDashboard =>
+//      appStore.settingsStore.shouldShowMarketPlaceInDashboard;
+  bool get shouldShowMarketPlaceInDashboard => false;
 
   @computed
   List<TradeListItem> get trades =>

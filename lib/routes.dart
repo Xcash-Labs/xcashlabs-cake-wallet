@@ -64,6 +64,7 @@ class Routes {
   static const supportLiveChat = '/support/live_chat';
   static const supportOtherLinks = '/support/other';
   static const orderDetails = '/order_details';
+  static const vote = '/vote';
   static const buySellPage = '/buy_sell_page';
   static const buyOptionsPage = '/buy_sell_options';
   static const paymentMethodOptionsPage = '/payment_method_options';

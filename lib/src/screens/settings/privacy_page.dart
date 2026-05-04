@@ -81,20 +81,27 @@ class PrivacyPage extends BasePage {
                     _privacySettingsViewModel.setIsAppSecure(value);
                   },
                 ),
+//              SettingsSwitcherCell(
+//                title: S.current.disable_buy,
+//                value: _privacySettingsViewModel.disableTradeOption,
+//                onValueChange: (BuildContext _, bool value) {
+//                  _privacySettingsViewModel.setDisableTradeOption(value);
+//                },
+//              ),
               SettingsSwitcherCell(
-                title: S.current.disable_buy,
-                value: _privacySettingsViewModel.disableTradeOption,
+                title: S.current.disable_vote,
+                value: _privacySettingsViewModel.disableVoteOption,
                 onValueChange: (BuildContext _, bool value) {
-                  _privacySettingsViewModel.setDisableTradeOption(value);
+                  _privacySettingsViewModel.setDisableVoteOption(value);
                 },
               ),
-              SettingsSwitcherCell(
-                title: S.current.disable_automatic_exchange_status_updates,
-                value: _privacySettingsViewModel.disableAutomaticExchangeStatusUpdates,
-                onValueChange: (BuildContext _, bool value) {
-                  _privacySettingsViewModel.setDisableAutomaticExchangeStatusUpdates(value);
-                },
-              ),
+//              SettingsSwitcherCell(
+//                title: S.current.disable_automatic_exchange_status_updates,
+//                value: _privacySettingsViewModel.disableAutomaticExchangeStatusUpdates,
+//                onValueChange: (BuildContext _, bool value) {
+//                  _privacySettingsViewModel.setDisableAutomaticExchangeStatusUpdates(value);
+//                },
+//              ),
               SettingsSwitcherCell(
                 title: S.current.disable_bulletin,
                 value: _privacySettingsViewModel.disableBulletin,

@@ -87,15 +87,16 @@ class MainActions {
 //    },
 //  );
 
-  static MainActions voteAction = MainActions._(
-    name: (context) => 'Vote', // or add to localization later
-    image: 'assets/images/vote.png', // you'll need to add this icon
-    key: ValueKey('dashboard_page_vote_action_button_key'),
-    isEnabled: (viewModel) => true, // or add logic later
-    canShow: (viewModel) => true,
-    onTap: (BuildContext context, DashboardViewModel viewModel) async {
-      await Navigator.of(context).pushNamed(Routes.vote); // you'll define this
-    },
-  );
+static MainActions voteAction = MainActions._(
+  name: (context) => S.of(context).vote,
+  image: 'assets/images/vote.png',
+  key: ValueKey('dashboard_page_vote_action_button_key'),
+  isEnabled: (viewModel) => viewModel.isEnabledVoteAction,
+  canShow: (viewModel) => viewModel.hasVoteAction,
+  onTap: (BuildContext context, DashboardViewModel viewModel) async {
+    if (!viewModel.isEnabledVoteAction) return;
+    await Navigator.of(context).pushNamed(Routes.vote);
+  },
+);
 
 }

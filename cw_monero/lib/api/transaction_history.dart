@@ -131,6 +131,7 @@ Future<PendingTransactionDescription> createTransactionSync(
     {required String address,
     required String paymentId,
     required int priorityRaw,
+    required bool isPrivateTransaction,
     String? amount,
     int accountIndex = 0,
     List<String> preferredInputs = const []}) async {
@@ -168,8 +169,9 @@ Future<PendingTransactionDescription> createTransactionSync(
       accountIndex,
       Pointer.fromAddress(preferredInputsAddr).cast(),
       Pointer.fromAddress(spaddr),
+      isPrivateTransaction ? 1 : 0,
     );
-    return tx.address;
+    return tx.address; 
   }));
   final Wallet2PendingTransaction pendingTx = MoneroPendingTransaction(pendingTxPtr);
   calloc.free(address_);
@@ -209,6 +211,7 @@ Future<PendingTransactionDescription> createTransactionMultDest(
     {required List<MoneroOutput> outputs,
     required String paymentId,
     required int priorityRaw,
+    required bool isPrivateTransaction,
     int accountIndex = 0,
     List<String> preferredInputs = const []}) async {
   
@@ -231,6 +234,7 @@ Future<PendingTransactionDescription> createTransactionMultDest(
       mixinCount: 0,
       pendingTransactionPriority: priorityRaw,
       subaddr_account: accountIndex,
+      isPrivateTransaction ? 1 : 0,
     ).address;
   }));
 

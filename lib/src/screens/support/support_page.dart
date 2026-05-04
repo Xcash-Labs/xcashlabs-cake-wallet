@@ -37,24 +37,24 @@ class SupportPage extends BasePage {
           padding: const EdgeInsets.only(left: 24, right: 24),
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: OptionTile(
-                  image: Image.asset(_imageSupportChat, width: 55, height: 55),
-                  title: S.of(context).support_title_live_chat,
-                  description: S.of(context).support_description_live_chat,
-                  onPressed: () => _onPressedSupportChat(context),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: OptionTile(
-                  image: Image.asset(_imageSupportDocs, width: 55, height: 55),
-                  title: S.of(context).support_title_guides,
-                  description: S.of(context).support_description_guides,
-                  onPressed: () => _launchUrl(supportViewModel.docsUrl),
-                ),
-              ),
+//              Padding(
+//                padding: const EdgeInsets.only(top: 20),
+//                child: OptionTile(
+//                  image: Image.asset(_imageSupportChat, width: 55, height: 55),
+//                  title: S.of(context).support_title_live_chat,
+//                  description: S.of(context).support_description_live_chat,
+//                  onPressed: () => _onPressedSupportChat(context),
+//                ),
+//              ),
+//              Padding(
+//                padding: const EdgeInsets.only(top: 20),
+//                child: OptionTile(
+//                  image: Image.asset(_imageSupportDocs, width: 55, height: 55),
+//                  title: S.of(context).support_title_guides,
+//                  description: S.of(context).support_description_guides,
+//                  onPressed: () => _launchUrl(supportViewModel.docsUrl),
+//                ),
+//              ),
               Padding(
                 padding: const EdgeInsets.only(top: 20),
                 child: OptionTile(

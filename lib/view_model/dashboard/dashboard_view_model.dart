@@ -87,6 +87,7 @@ abstract class DashboardViewModelBase with Store {
       required this.sharedPreferences,
       required this.keyService})
       : hasTradeAction = true,
+        hasVoteAction = true,
         hasSwapAction = true,
         isShowFirstYatIntroduction = false,
         isShowSecondYatIntroduction = false,
@@ -937,6 +938,12 @@ abstract class DashboardViewModelBase with Store {
 
   @observable
   bool hasTradeAction;
+
+  @computed
+  bool get isEnabledVoteAction => !settingsStore.disableVoteOption;
+
+  @observable
+  bool hasVoteAction;
 
   @computed
   bool get isEnabledBulletinAction => !settingsStore.disableBulletin;

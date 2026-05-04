@@ -63,6 +63,9 @@ abstract class PrivacySettingsViewModelBase with Store {
   bool get disableTradeOption => _settingsStore.disableTradeOption;
 
   @computed
+  bool get disableVoteOption => _settingsStore.disableVoteOption;
+
+  @computed
   bool get disableAutomaticExchangeStatusUpdates =>
       _settingsStore.disableAutomaticExchangeStatusUpdates;
 
@@ -153,6 +156,9 @@ abstract class PrivacySettingsViewModelBase with Store {
 
   @action
   void setDisableTradeOption(bool value) => _settingsStore.disableTradeOption = value;
+
+  @action
+  void setDisableVoteOption(bool value) => _settingsStore.disableVoteOption = value;
 
   @action
   void setDisableAutomaticExchangeStatusUpdates(bool value) =>

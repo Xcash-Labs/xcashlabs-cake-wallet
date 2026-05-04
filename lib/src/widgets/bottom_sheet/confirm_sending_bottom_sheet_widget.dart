@@ -35,6 +35,7 @@ class ConfirmSendingBottomSheet extends BaseBottomSheet {
     required this.feeFiatAmount,
     required this.outputs,
     required this.walletType,
+    this.isPrivateTransaction = true,
     this.change,
     this.explanation,
     this.isOpenCryptoPay = false,
@@ -66,6 +67,7 @@ class ConfirmSendingBottomSheet extends BaseBottomSheet {
   final String feeFiatAmount;
   final List<Output> outputs;
   final WalletType walletType;
+  final bool isPrivateTransaction;
   final PendingChange? change;
   final bool isOpenCryptoPay;
   final CakePayBuyCardViewModel? cakePayBuyCardViewModel;
@@ -139,6 +141,17 @@ class ConfirmSendingBottomSheet extends BaseBottomSheet {
             itemValue: feeValue,
             itemTitleTextStyle: itemTitleTextStyle,
             itemSubTitle: feeFiatAmount,
+            itemSubTitleTextStyle: itemSubTitleTextStyle,
+            tileBackgroundColor: tileBackgroundColor,
+          ),
+          const SizedBox(height: 8),
+          StandardTile(
+            itemTitle: S.of(context).transaction_privacy,
+            itemValue: isPrivateTransaction
+                ? S.of(context).transaction_private
+                : S.of(context).transaction_public,
+            itemTitleTextStyle: itemTitleTextStyle,
+            itemSubTitle: null,
             itemSubTitleTextStyle: itemSubTitleTextStyle,
             tileBackgroundColor: tileBackgroundColor,
           ),

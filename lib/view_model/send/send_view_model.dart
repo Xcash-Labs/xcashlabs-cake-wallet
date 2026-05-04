@@ -68,6 +68,8 @@ part 'send_view_model.g.dart';
 class SendViewModel = SendViewModelBase with _$SendViewModel;
 
 abstract class SendViewModelBase extends WalletChangeListenerViewModel with Store {
+  bool isPrivateTransaction = true;
+
   @override
   void onWalletChange(wallet) {
     currencies = wallet.balance.keys.toList();
@@ -996,7 +998,8 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
 
       case WalletType.monero:
         return monero!
-            .createMoneroTransactionCreationCredentials(outputs: outputs, priority: priority!);
+            .createMoneroTransactionCreationCredentials(outputs: outputs, priority: priority!,
+                isPrivateTransaction: isPrivateTransaction,);
 
       case WalletType.wownero:
         return wownero!

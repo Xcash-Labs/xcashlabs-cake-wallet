@@ -34,8 +34,8 @@ class AddressValidator extends TextValidator {
       pattern = '0x[0-9a-zA-Z]+';
     }
     switch (type) {
-      case CryptoCurrency.xmr:
-        pattern = '4[0-9a-zA-Z]{94}|8[0-9a-zA-Z]{94}|[0-9a-zA-Z]{106}';
+      case CryptoCurrency.xck:
+        pattern = '(XCK[0-9a-zA-Z]{95}|XCS[0-9a-zA-Z]{95}|XCB[0-9a-zA-Z]{103})';
       case CryptoCurrency.ada:
         pattern = '[0-9a-zA-Z]{59}|[0-9a-zA-Z]{92}|[0-9a-zA-Z]{104}'
             '|[0-9a-zA-Z]{105}|addr1[0-9a-zA-Z]{98}';
@@ -184,7 +184,8 @@ class AddressValidator extends TextValidator {
     }
 
     switch (type) {
-      case CryptoCurrency.xmr:
+      case CryptoCurrency.xck:
+        return [98, 106];
       case CryptoCurrency.wow:
         return null;
       case CryptoCurrency.ada:
@@ -320,10 +321,10 @@ class AddressValidator extends TextValidator {
     String? pattern = null;
 
     switch (type) {
-      case CryptoCurrency.xmr:
-        pattern = '(4[0-9a-zA-Z]{94})'
-            '|(8[0-9a-zA-Z]{94})'
-            '|([0-9a-zA-Z]{106})';
+      case CryptoCurrency.xck:
+        pattern = '(XCK[0-9a-zA-Z]{95})'
+            '|(XCS[0-9a-zA-Z]{95})'
+            '|(XCB[0-9a-zA-Z]{103})';
       case CryptoCurrency.wow:
         pattern = '(W[0-9a-zA-Z]{94})'
             '|(W[0-9a-zA-Z]{94})'

@@ -469,6 +469,14 @@ class SendPage extends BasePage {
                                     conditionToDetermineIfToUse2FA: check,
                                     onAuthSuccess: (value) async {
                                       if (value) {
+                                        final isPrivateTransaction = await _showTransactionPrivacyPrompt(context);
+
+                                        if (isPrivateTransaction == null) {
+                                          return;
+                                        }
+
+                                        sendViewModel.isPrivateTransaction = isPrivateTransaction;
+
                                         await sendViewModel.createTransaction();
                                       }
                                     },
@@ -585,6 +593,7 @@ class SendPage extends BasePage {
                     footerType: FooterType.slideActionButton,
                     isSlideActionEnabled: sendViewModel.isReadyForSend,
                     walletType: sendViewModel.walletType,
+                    isPrivateTransaction: sendViewModel.isPrivateTransaction,
                     titleIconPath: sendViewModel.selectedCryptoCurrency.iconPath,
                     currency: sendViewModel.selectedCryptoCurrency,
                     amount: S.of(bottomSheetContext).send_amount,
@@ -836,6 +845,22 @@ class SendPage extends BasePage {
     }
 
     return isValid;
+  }
+
+  Future<bool?> _showTransactionPrivacyPrompt(BuildContext context) async {
+    return await showPopUp<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertWithTwoActions(
+          alertTitle: S.of(context).transaction_privacy,
+          alertContent: S.of(context).transaction_privacy_question,
+          leftButtonText: S.of(context).transaction_private,
+          rightButtonText: S.of(context).transaction_public,
+          actionLeftButton: () => Navigator.of(dialogContext).pop(true),
+          actionRightButton: () => Navigator.of(dialogContext).pop(false),
+        );
+      },
+    );
   }
 
   String _sendButtonText(BuildContext context) {

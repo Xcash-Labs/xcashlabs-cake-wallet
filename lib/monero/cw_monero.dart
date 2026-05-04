@@ -289,8 +289,10 @@ class CWMonero extends Monero {
   }
 
   @override
-  Object createMoneroTransactionCreationCredentials(
-          {required List<Output> outputs, required TransactionPriority priority}) =>
+  Object createMoneroTransactionCreationCredentials({
+    required List<Output> outputs,
+    required TransactionPriority priority,
+    required bool isPrivateTransaction}) =>
       MoneroTransactionCreationCredentials(
           outputs: outputs
               .map((out) => OutputInfo(
@@ -303,13 +305,19 @@ class CWMonero extends Monero {
                   isParsedAddress: out.isParsedAddress,
                   formattedCryptoAmount: out.formattedCryptoAmount))
               .toList(),
-          priority: priority as MoneroTransactionPriority);
+              priority: priority as MoneroTransactionPriority,
+              isPrivateTransaction: isPrivateTransaction,
+              );
 
   @override
-  Object createMoneroTransactionCreationCredentialsRaw(
-          {required List<OutputInfo> outputs, required TransactionPriority priority}) =>
+  Object createMoneroTransactionCreationCredentialsRaw({
+    required List<OutputInfo> outputs,
+    required TransactionPriority priority,
+    required bool isPrivateTransaction}) =>
       MoneroTransactionCreationCredentials(
-          outputs: outputs, priority: priority as MoneroTransactionPriority);
+        outputs: outputs,
+        priority: priority as MoneroTransactionPriority,
+        isPrivateTransaction: isPrivateTransaction,);
 
   @override
   String formatterMoneroAmountToString({required int amount}) =>

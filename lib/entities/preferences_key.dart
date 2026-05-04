@@ -29,6 +29,7 @@ class PreferencesKey {
   static const shouldSaveRecipientAddressKey = 'save_recipient_address';
   static const isAppSecureKey = 'is_app_secure';
   static const disableTradeOption = 'disable_buy';
+  static const disableVoteOption = 'disable_vote';
   static const disableAutomaticExchangeStatusUpdates = 'disable_automatic_exchange_status_updates';
   static const disableBulletinKey = 'disable_bulletin';
   static const walletListOrder = 'wallet_list_order';

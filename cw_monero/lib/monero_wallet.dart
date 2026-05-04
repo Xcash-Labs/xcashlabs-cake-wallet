@@ -388,6 +388,7 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
   @override
   Future<PendingTransaction> createTransaction(Object credentials) async {
     final _credentials = credentials as MoneroTransactionCreationCredentials;
+    final isPrivateTransaction = _credentials.isPrivateTransaction;
     final inputs = <String>[];
     final outputs = _credentials.outputs;
     final hasMultiDestination = outputs.length > 1;
@@ -443,7 +444,8 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
               priorityRaw: _credentials.priority.serialize(),
               accountIndex: walletAddresses.account!.id,
               paymentId: "",
-              preferredInputs: inputs);
+              preferredInputs: inputs,
+              isPrivateTransaction: _credentials.isPrivateTransaction);
     } else {
       final output = outputs.first;
       final address =
@@ -468,7 +470,8 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
               priorityRaw: _credentials.priority.serialize(),
               accountIndex: walletAddresses.account!.id,
               preferredInputs: inputs,
-              paymentId: '');
+              paymentId: '',
+              isPrivateTransaction: _credentials.isPrivateTransaction,);
     }
 
     // final status = monero.PendingTransaction_status(pendingTransactionDescription);

@@ -66,6 +66,7 @@ abstract class SettingsStoreBase with Store {
       required NanoSeedType initialNanoSeedType,
       required bool initialAppSecure,
       required bool initialDisableTrade,
+      required bool initialDisableVote,
       required bool initialDisableAutomaticExchangeStatusUpdates,
       required FilterListOrderType initialWalletListOrder,
       required FilterListOrderType initialContactListOrder,
@@ -173,6 +174,7 @@ abstract class SettingsStoreBase with Store {
         numberOfFailedTokenTrials = initialFailedTokenTrial,
         isAppSecure = initialAppSecure,
         disableTradeOption = initialDisableTrade,
+        disableVoteOption = initialDisableVote,
         disableAutomaticExchangeStatusUpdates = initialDisableAutomaticExchangeStatusUpdates,
         disableBulletin = initialDisableBulletin,
         walletListOrder = initialWalletListOrder,
@@ -348,6 +350,11 @@ abstract class SettingsStoreBase with Store {
         (_) => disableTradeOption,
         (bool disableTradeOption) =>
             sharedPreferences.setBool(PreferencesKey.disableTradeOption, disableTradeOption));
+
+    reaction(
+        (_) => disableVoteOption,
+        (bool disableVoteOption) =>
+            sharedPreferences.setBool(PreferencesKey.disableVoteOption, disableVoteOption));
 
     reaction(
         (_) => disableAutomaticExchangeStatusUpdates,
@@ -767,6 +774,9 @@ abstract class SettingsStoreBase with Store {
   bool disableTradeOption;
 
   @observable
+  bool disableVoteOption;
+
+  @observable
   bool disableAutomaticExchangeStatusUpdates;
 
   @observable
@@ -1140,6 +1150,8 @@ abstract class SettingsStoreBase with Store {
     final isAppSecure = sharedPreferences.getBool(PreferencesKey.isAppSecureKey) ?? false;
     final disableTradeOption =
         sharedPreferences.getBool(PreferencesKey.disableTradeOption) ?? false;
+    final disableVoteOption =
+        sharedPreferences.getBool(PreferencesKey.disableVoteOption) ?? false;
     final disableAutomaticExchangeStatusUpdates =
         sharedPreferences.getBool(PreferencesKey.disableAutomaticExchangeStatusUpdates) ?? false;
     final disableBulletin = sharedPreferences.getBool(PreferencesKey.disableBulletinKey) ?? false;
@@ -1519,6 +1531,7 @@ abstract class SettingsStoreBase with Store {
       initialNanoSeedType: nanoSeedType,
       initialAppSecure: isAppSecure,
       initialDisableTrade: disableTradeOption,
+      initialDisableVote: disableVoteOption,
       initialDisableAutomaticExchangeStatusUpdates: disableAutomaticExchangeStatusUpdates,
       initialDisableBulletin: disableBulletin,
       initialWalletListOrder: walletListOrder,
@@ -1705,6 +1718,8 @@ abstract class SettingsStoreBase with Store {
     isAppSecure = sharedPreferences.getBool(PreferencesKey.isAppSecureKey) ?? isAppSecure;
     disableTradeOption =
         sharedPreferences.getBool(PreferencesKey.disableTradeOption) ?? disableTradeOption;
+    disableVoteOption =
+        sharedPreferences.getBool(PreferencesKey.disableVoteOption) ?? disableVoteOption;
     disableAutomaticExchangeStatusUpdates =
         sharedPreferences.getBool(PreferencesKey.disableAutomaticExchangeStatusUpdates) ??
             disableAutomaticExchangeStatusUpdates;

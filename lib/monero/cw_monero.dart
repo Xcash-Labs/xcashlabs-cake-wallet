@@ -306,8 +306,7 @@ class CWMonero extends Monero {
                   formattedCryptoAmount: out.formattedCryptoAmount))
               .toList(),
               priority: priority as MoneroTransactionPriority,
-              isPrivateTransaction: isPrivateTransaction,
-              );
+              isPrivateTransaction: isPrivateTransaction,);
 
   @override
   Object createMoneroTransactionCreationCredentialsRaw({

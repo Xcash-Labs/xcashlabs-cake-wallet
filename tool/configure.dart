@@ -449,8 +449,8 @@ abstract class Monero {
   WalletCredentials createMoneroNewWalletCredentials({required String name, required String language, required int seedType, required String? passphrase, String? password, String? mnemonic});
   Map<String, String> getKeys(Object wallet);
   int? getRestoreHeight(Object wallet);
-  Object createMoneroTransactionCreationCredentials({required List<Output> outputs, required TransactionPriority priority, required bool isPrivateTransaction,});
-  Object createMoneroTransactionCreationCredentialsRaw({required List<OutputInfo> outputs, required TransactionPriority priorityrequired bool isPrivateTransaction,});
+  Object createMoneroTransactionCreationCredentials({required List<Output> outputs, required TransactionPriority priority, required bool isPrivateTransaction});
+  Object createMoneroTransactionCreationCredentialsRaw({required List<OutputInfo> outputs, required TransactionPriority priority, required bool isPrivateTransaction});
   String formatterMoneroAmountToString({required int amount});
   double formatterMoneroAmountToDouble({required int amount});
   int formatterMoneroParseAmount({required String amount});

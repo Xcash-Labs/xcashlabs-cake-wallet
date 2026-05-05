@@ -180,7 +180,7 @@ abstract class TransactionDetailsViewModelBase with Store {
 
     switch (type) {
       case WalletType.monero:
-        return 'https://monero.com/tx/${txId}';
+        return 'https://explorer.xcashlabs.org/tx/${txId}';
       case WalletType.bitcoin:
         return 'https://mempool.cakewallet.com/${wallet.isTestnet ? "testnet/" : ""}tx/${txId}';
       case WalletType.litecoin:
@@ -231,7 +231,7 @@ abstract class TransactionDetailsViewModelBase with Store {
     }
     switch (type) {
       case WalletType.monero:
-        return S.current.view_transaction_on + 'Monero.com';
+        return S.current.view_transaction_on + 'XCashLabs.org';
       case WalletType.bitcoin:
         return S.current.view_transaction_on + 'mempool.space';
       case WalletType.litecoin:

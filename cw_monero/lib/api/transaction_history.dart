@@ -234,7 +234,7 @@ Future<PendingTransactionDescription> createTransactionMultDest(
       mixinCount: 0,
       pendingTransactionPriority: priorityRaw,
       subaddr_account: accountIndex,
-      isPrivateTransaction ? 1 : 0,
+      privacySettings: isPrivateTransaction ? 1 : 0,
     ).address;
   }));
 

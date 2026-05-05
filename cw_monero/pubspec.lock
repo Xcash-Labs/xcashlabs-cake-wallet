@@ -573,8 +573,8 @@ packages:
     dependency: "direct main"
     description:
       path: "impls/monero.dart"
-      ref: "12a004b902ed48595ec7cce88d3c55ba762f5612"
-      resolved-ref: "12a004b902ed48595ec7cce88d3c55ba762f5612"
+      ref: dd237ffa77fc12cc41bdeb45d9382382f5203653
+      resolved-ref: dd237ffa77fc12cc41bdeb45d9382382f5203653
       url: "https://github.com/Xcash-Labs/xcashlabs_c"
     source: git
     version: "0.0.0"

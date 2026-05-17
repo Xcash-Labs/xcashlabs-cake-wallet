@@ -49,8 +49,13 @@ abstract class AppStoreBase with Store {
   Future<void> changeCurrentWallet(
       WalletBase<Balance, TransactionHistoryBase<TransactionInfo>, TransactionInfo> wallet) async {
     bool changingToSameWalletType = this.wallet?.type == wallet.type;
-    this.wallet?.close(shouldCleanup: !changingToSameWalletType);
+
+//    this.wallet?.close(shouldCleanup: !changingToSameWalletType);
+//    this.wallet = wallet;
+
+    await this.wallet?.close(shouldCleanup: !changingToSameWalletType,);
     this.wallet = wallet;
+
     this.wallet!.setExceptionHandler(ExceptionHandler.onError);
 
     if (isWalletConnectCompatibleChain(wallet.type)) {

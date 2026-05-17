@@ -16,7 +16,6 @@ import 'package:monero/src/wallet2.dart';
 import 'package:monero/src/generated_bindings_monero.g.dart' as monero_gen;
 import 'package:mutex/mutex.dart';
 
-
 Map<int, Map<String, String>> txKeys = {};
 String getTxKey(String txId) {
   txKeys[currentWallet!.ffiAddress()] ??= {};

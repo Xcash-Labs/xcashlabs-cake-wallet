@@ -35,7 +35,7 @@ class AddressValidator extends TextValidator {
     }
     switch (type) {
       case CryptoCurrency.xck:
-        pattern = '(XCK[0-9a-zA-Z]{95}|XCS[0-9a-zA-Z]{95}|XCB[0-9a-zA-Z]{103})';
+        pattern = '(XCK[0-9a-zA-Z]{95}|8[0-9a-zA-Z]{94}|XCB[0-9a-zA-Z]{103})';
       case CryptoCurrency.ada:
         pattern = '[0-9a-zA-Z]{59}|[0-9a-zA-Z]{92}|[0-9a-zA-Z]{104}'
             '|[0-9a-zA-Z]{105}|addr1[0-9a-zA-Z]{98}';

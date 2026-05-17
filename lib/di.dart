@@ -293,6 +293,8 @@ import 'package:cake_wallet/src/screens/dev/socket_health_logs_page.dart';
 import 'package:cake_wallet/view_model/dev/exchange_provider_logs_view_model.dart';
 import 'package:cake_wallet/view_model/payment/payment_view_model.dart';
 import 'package:cake_wallet/view_model/wallet_switcher_view_model.dart';
+import 'package:cake_wallet/src/screens/vote/vote_page.dart';
+import 'package:cw_monero/monero_wallet.dart';
 
 final getIt = GetIt.instance;
 
@@ -1421,6 +1423,8 @@ Future<void> setup({
   getIt.registerFactory(() => SupportViewModel(getIt.get<AppStore>()));
 
   getIt.registerFactory(() => SupportPage(getIt.get<SupportViewModel>()));
+
+  getIt.registerFactory(() => VotePage(wallet: getIt.get<AppStore>().wallet! as MoneroWallet));
 
   getIt.registerFactory(() =>
       SupportChatPage(getIt.get<SupportViewModel>(), secureStorage: getIt.get<SecureStorage>()));

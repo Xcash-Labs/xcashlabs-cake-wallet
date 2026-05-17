@@ -53,6 +53,10 @@ abstract class WalletKeysViewModelBase with Store {
   }
 
   static String _getInitialTitle(WalletBase wallet) {
+    if (wallet.type == WalletType.monero) {
+      return 'XCash Klassic ${S.current.wallet_keys}';
+    }
+
     if (isEVMCompatibleChain(wallet.type)) {
       final currentChain = evm!.getCurrentChain(wallet);
       return '${currentChain?.name ?? walletTypeToString(wallet.type)} ${S.current.wallet_keys}';

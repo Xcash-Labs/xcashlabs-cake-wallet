@@ -74,8 +74,8 @@ abstract class WalletListViewModelBase with Store {
     if (walletItem.type == WalletType.haven) {
       return;
     }
-    // bool switchingToSameWalletType = walletItem.type == _appStore.wallet?.type;
-    // await _appStore.wallet?.close(shouldCleanup: !switchingToSameWalletType);
+    bool switchingToSameWalletType = walletItem.type == _appStore.wallet?.type;
+    await _appStore.wallet?.close(shouldCleanup: !switchingToSameWalletType);
     final wallet = await _walletLoadingService.load(walletItem.type, walletItem.name);
     await _appStore.changeCurrentWallet(wallet);
     updateList();

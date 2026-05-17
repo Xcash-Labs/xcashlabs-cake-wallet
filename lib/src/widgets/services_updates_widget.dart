@@ -79,23 +79,24 @@ class _ServicesUpdatesWidgetState extends State<ServicesUpdatesWidget> {
                         minHeight: MediaQuery.of(context).size.height / 4,
                       ),
                       builder: (context) {
-                        Widget body;
-                        if (state.data!.servicesStatus.isEmpty) {
-                          body = Center(
-                            child: Text(
-                              "Everything is up and running as expected",
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          );
-                        } else {
-                          body = SingleChildScrollView(
-                            child: Column(
-                              children: state.data!.servicesStatus
-                                  .map((status) => ServiceStatusTile(status))
-                                  .toList(),
-                            ),
-                          );
-                        }
+                        Widget body = const SizedBox.shrink();
+//                        Widget body;
+//                        if (state.data!.servicesStatus.isEmpty) {
+//                          body = Center(
+//                            child: Text(
+//                              "Everything is up and running as expected",
+//                              style: Theme.of(context).textTheme.bodyMedium,
+//                            ),
+//                          );
+//                        } else {
+//                          body = SingleChildScrollView(
+//                            child: Column(
+//                              children: state.data!.servicesStatus
+//                                  .map((status) => ServiceStatusTile(status))
+//                                  .toList(),
+//                            ),
+//                          );
+//                        }
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Column(
@@ -113,7 +114,7 @@ class _ServicesUpdatesWidgetState extends State<ServicesUpdatesWidget> {
                                       try {
                                         launchUrl(
                                             Uri.parse(
-                                              "https://status.cakewallet.com/",
+                                              "https://xcashlabs.org/delegates/",
                                             ),
                                             mode: LaunchMode.externalApplication);
                                       } catch (_) {}

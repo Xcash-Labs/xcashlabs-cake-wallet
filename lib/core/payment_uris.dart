@@ -12,7 +12,7 @@ class MoneroURI extends PaymentURI {
 
   @override
   String toString() {
-    var base = 'monero:$address';
+    var base = 'xck:$address';
 
     if (amount.isNotEmpty) {
       base += '?tx_amount=${amount.replaceAll(',', '.')}';

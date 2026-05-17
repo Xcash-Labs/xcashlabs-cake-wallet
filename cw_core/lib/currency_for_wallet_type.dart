@@ -8,10 +8,10 @@ CryptoCurrency walletTypeToCryptoCurrency(WalletType type, {bool isTestnet = fal
 
   switch (type) {
     case WalletType.monero:
-      return CryptoCurrency.xmr;
+      return CryptoCurrency.xck;
     case WalletType.bitcoin:
       if (isTestnet) {
-        return CryptoCurrency.tbtc;
+        return CryptoCurrency.tbtc; 
       }
       return CryptoCurrency.btc;
     case WalletType.litecoin:

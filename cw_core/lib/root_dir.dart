@@ -70,7 +70,7 @@ Future<void> linuxSymlinkSharedPreferences() async {
 }
 
 Future<Directory> getAppDir() async {
-  const String appName = 'cake_wallet';
+  const String appName = 'xcashlabs_cake_wallet';
   Directory dir;
 
   if (_rootDirPath != null && _rootDirPath!.isNotEmpty) {

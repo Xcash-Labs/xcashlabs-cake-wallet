@@ -24,6 +24,10 @@ abstract class WalletSeedViewModelBase with Store {
   }
   
   static String _getWalletTypeName(WalletBase wallet) {
+    if (wallet.type == WalletType.monero) {
+      return 'XCash Klassic';
+    }
+    
     if (isEVMCompatibleChain(wallet.type)) {
       final currentChain = evm!.getCurrentChain(wallet);
       return currentChain?.name ?? walletTypeToString(wallet.type);

@@ -479,6 +479,26 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
     return PendingMoneroTransaction(pendingTransactionDescription, this);
   }
 
+//  @override
+//  int calculateEstimatedFee(TransactionPriority priority, int? amount) {
+//    if (priority is MoneroTransactionPriority) {
+//      switch (priority) {
+//        case MoneroTransactionPriority.slow:
+//          return 24590000;
+//        case MoneroTransactionPriority.automatic:
+//          return 123050000;
+//        case MoneroTransactionPriority.medium:
+//          return 245029999;
+//        case MoneroTransactionPriority.fast:
+//          return 614530000;
+//        case MoneroTransactionPriority.fastest:
+//          return 26021600000;
+//      }
+//    }
+//    return 0;
+//  }
+
+
   @override
   int calculateEstimatedFee(TransactionPriority priority, int? amount) {
     // FIXME: hardcoded value;
@@ -486,18 +506,18 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
     if (priority is MoneroTransactionPriority) {
       switch (priority) {
         case MoneroTransactionPriority.slow:
-          return 24590000;
+          return 2500;      // 0.002500 XCK
         case MoneroTransactionPriority.automatic:
-          return 123050000;
+          return 5000;      // 0.005000 XCK
         case MoneroTransactionPriority.medium:
-          return 245029999;
+          return 10000;     // 0.010000 XCK
         case MoneroTransactionPriority.fast:
-          return 614530000;
+          return 25000;     // 0.025000 XCK
         case MoneroTransactionPriority.fastest:
-          return 26021600000;
+          return 100000;    // 0.100000 XCK
       }
     }
-
+    
     return 0;
   }
 
@@ -988,4 +1008,21 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
   String formatCryptoAmount(String amount) {
     return xcashKAmountToString(amount: int.parse(amount));
   }
+
+  Future<String> voteStatus() async {
+    return monero_wallet.voteStatus();
+  }
+
+  Future<String> vote(String value) async {
+    return monero_wallet.vote(value);
+  }
+
+  Future<String> revote() async {
+    return monero_wallet.revote();
+  }
+
+  Future<bool> sweepAllToPrimary() async {
+    return monero_wallet.sweepAllToPrimary();
+  }
+
 }

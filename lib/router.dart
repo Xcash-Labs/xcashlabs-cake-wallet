@@ -669,7 +669,7 @@ Route<dynamic> createRoute(RouteSettings settings) {
 
     case Routes.vote:
       return handleRouteWithPlatformAwareness(
-        (context) => VotePage(),
+        (context) => getIt.get<VotePage>(),
       );
 
     case Routes.buyOptionsPage:

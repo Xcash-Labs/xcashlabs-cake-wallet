@@ -439,3 +439,44 @@ Map<String, dynamic> getWalletCacheDebug() {
     };
   }
 }
+
+String voteStatus() {
+  if (currentWallet == null) {
+    return 'Wallet is not open';
+  }
+
+  return monero.Wallet_voteStatus(
+    Pointer.fromAddress(currentWallet!.ffiAddress()),
+  );
+}
+
+String vote(String value) {
+  if (currentWallet == null) {
+    return 'Wallet is not open';
+  }
+
+  return monero.Wallet_vote(
+    Pointer.fromAddress(currentWallet!.ffiAddress()),
+    value,
+  );
+}
+
+String revote() {
+  if (currentWallet == null) {
+    return 'Wallet is not open';
+  }
+
+  return monero.Wallet_revote(
+    Pointer.fromAddress(currentWallet!.ffiAddress()),
+  );
+}
+
+bool sweepAllToPrimary() {
+  if (currentWallet == null) {
+    return false;
+  }
+
+  return monero.Wallet_sweepAllToPrimary(
+    Pointer.fromAddress(currentWallet!.ffiAddress()),
+  );
+}

@@ -19,7 +19,7 @@ String getQrImage(WalletType type) {
     case WalletType.zano:
       return 'assets/images/zano_chain_qr.svg';
     case WalletType.monero:
-      return 'assets/images/xmr_chain_qr.svg';
+      return 'assets/images/xck_chain_qr.svg';
     case WalletType.wownero:
       return 'assets/images/wow_chain_qr.svg';
     case WalletType.bitcoin:

@@ -139,16 +139,47 @@ abstract class MoneroWalletAddressesBase extends WalletAddresses with Store {
     });
   }
 
-  Future<void> updateUnusedSubaddress(
-      {required int accountIndex, required String defaultLabel}) async {
+//  Future<void> updateUnusedSubaddress(
+//      {required int accountIndex, required String defaultLabel}) async {
+//    await subaddressList.updateWithAutoGenerate(
+//        accountIndex: accountIndex,
+//        defaultLabel: defaultLabel,
+//        usedAddresses: usedAddresses.toList());
+//    subaddress = (subaddressList.subaddresses.isEmpty) ? Subaddress(id: 0, address: address, label: defaultLabel, balance: '0', txCount: 0) : subaddressList.subaddresses.last;
+//    if (num.tryParse(subaddress!.balance??'0') != 0) {
+//      getAddress(accountIndex: accountIndex, addressIndex: (subaddress?.id??0)+1);
+//    }
+//    address = subaddress!.address;
+//  }
+
+  Future<void> updateUnusedSubaddress({
+    required int accountIndex,
+    required String defaultLabel,
+  }) async {
     await subaddressList.updateWithAutoGenerate(
-        accountIndex: accountIndex,
-        defaultLabel: defaultLabel,
-        usedAddresses: usedAddresses.toList());
-    subaddress = (subaddressList.subaddresses.isEmpty) ? Subaddress(id: 0, address: address, label: defaultLabel, balance: '0', txCount: 0) : subaddressList.subaddresses.last;
-    if (num.tryParse(subaddress!.balance??'0') != 0) {
-      getAddress(accountIndex: accountIndex, addressIndex: (subaddress?.id??0)+1);
+      accountIndex: accountIndex,
+      defaultLabel: defaultLabel,
+      usedAddresses: usedAddresses.toList(),
+    );
+
+    final candidates = subaddressList.subaddresses
+        .where((subaddress) => subaddress.id != 0)
+        .toList();
+
+    subaddress = candidates.isEmpty
+        ? Subaddress(
+            id: 1,
+            address: getAddress(accountIndex: accountIndex, addressIndex: 1),
+            label: defaultLabel,
+            balance: '0',
+            txCount: 0,
+          )
+        : candidates.last;
+
+    if (num.tryParse(subaddress!.balance ?? '0') != 0) {
+      getAddress(accountIndex: accountIndex, addressIndex: (subaddress?.id ?? 0) + 1);
     }
+
     address = subaddress!.address;
   }
 

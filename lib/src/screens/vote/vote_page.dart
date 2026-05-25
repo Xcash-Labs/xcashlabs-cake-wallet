@@ -318,7 +318,12 @@ class _VotePageBodyState extends State<_VotePageBody> {
 
                                                   Text(
                                                     S.current.delegate_fee_votes
-                                                      .replaceAll('{fee}', delegate.fee.toString())
+                                                      .replaceAll(
+                                                        '{fee}',
+                                                        delegate.fee % 100 == 0
+                                                            ? (delegate.fee / 100).toStringAsFixed(0)
+                                                            : (delegate.fee / 100).toStringAsFixed(2),
+                                                      )
                                                       .replaceAll('{votes}', delegate.votesDisplay),
                                                     style: Theme.of(context)
                                                         .textTheme

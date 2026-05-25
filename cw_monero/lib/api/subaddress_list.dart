@@ -1,4 +1,3 @@
-
 import 'package:cw_monero/api/account_list.dart';
 import 'package:cw_monero/api/transaction_history.dart';
 import 'package:cw_monero/api/wallet.dart';

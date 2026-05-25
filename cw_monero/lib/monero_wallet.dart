@@ -973,14 +973,28 @@ abstract class MoneroWalletBase extends WalletBase<MoneroBalance,
     }
   }
 
+//  void _updateSubAddress(bool enableAutoGenerate, {Account? account}) {
+//    if (enableAutoGenerate) {
+//      walletAddresses.updateUnusedSubaddress(
+//        accountIndex: account?.id ?? 0,
+//        defaultLabel: account?.label ?? '',
+//      );
+//    } else {
+//      walletAddresses.updateSubaddressList(accountIndex: account?.id ?? 0);
+//    }
+//  }
+
   void _updateSubAddress(bool enableAutoGenerate, {Account? account}) {
+    final accountIndex = account?.id ?? 0;
+
     if (enableAutoGenerate) {
       walletAddresses.updateUnusedSubaddress(
-        accountIndex: account?.id ?? 0,
+        accountIndex: accountIndex,
         defaultLabel: account?.label ?? '',
       );
     } else {
-      walletAddresses.updateSubaddressList(accountIndex: account?.id ?? 0);
+      walletAddresses.address =
+          monero_wallet.getAddress(accountIndex: accountIndex, addressIndex: 0);
     }
   }
 

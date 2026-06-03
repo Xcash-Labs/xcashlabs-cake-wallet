@@ -9,8 +9,6 @@ import 'package:cake_wallet/reactions/wallet_connect.dart';
 import 'package:cake_wallet/store/settings_store.dart';
 import 'package:cake_wallet/utils/feature_flag.dart';
 import 'package:cake_wallet/utils/tor.dart';
-import 'package:cake_wallet/view_model/wallet_list/wallet_list_item.dart';
-import 'package:cake_wallet/view_model/wallet_list/wallet_list_view_model.dart';
 import 'package:cw_core/sync_status.dart';
 import 'package:cw_core/transaction_direction.dart';
 import 'package:cw_core/utils/print_verbose.dart';
@@ -18,6 +16,7 @@ import 'package:cw_core/wallet_type.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cake_wallet/evm/evm.dart';
+import 'package:cw_core/wallet_info.dart';
 
 class BackgroundSync {
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -54,11 +53,18 @@ class BackgroundSync {
               ) ??
           false;
     } else if (Platform.isAndroid) {
-      return await _notificationsPlugin
-              .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-              ?.areNotificationsEnabled() ??
-          false;
+      final androidPlugin = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+      final enabled = await androidPlugin?.areNotificationsEnabled() ?? false;
+
+      if (enabled) {
+        return true;
+      }
+
+      return await androidPlugin?.requestNotificationsPermission() ?? false;
     }
+
     return false;
   }
 
@@ -107,21 +113,40 @@ class BackgroundSync {
 
   Future<void> _syncWallets() async {
     final walletLoadingService = getIt.get<WalletLoadingService>();
-    final walletListViewModel = getIt.get<WalletListViewModel>();
     final settingsStore = getIt.get<SettingsStore>();
+    final keyService = getIt.get<KeyService>();
+    final sharedPreferences = await SharedPreferences.getInstance();
 
-    final List<WalletListItem> moneroWallets = walletListViewModel.wallets
-        .where((element) => !element.isHardware)
-        .where((element) => ![WalletType.haven, WalletType.decred].contains(element.type))
+    final List<WalletInfo> moneroWallets = (await WalletInfo.getAll())
+        .where((element) => element.type == WalletType.monero)
+        .where((element) => !element.isHardwareWallet)
         .toList();
+
+    printV("TRANS_NOTIFY: WalletInfo.getAll() returned ${moneroWallets.length} XCK wallets");
+
+    for (final wallet in moneroWallets) {
+      printV(
+        "TRANS_NOTIFY: wallet name=${wallet.name} "
+        "type=${wallet.type} "
+        "hardware=${wallet.isHardwareWallet}",
+      );
+    }
+
     for (int i = 0; i < moneroWallets.length; i++) {
+
+      printV(
+        "TRANS_NOTIFY: loading wallet index=$i "
+        "name=${moneroWallets[i].name} "
+        "type=${moneroWallets[i].type} "
+        "isHardware=${moneroWallets[i].isHardwareWallet}",
+      );
+
       final wallet = await walletLoadingService.load(moneroWallets[i].type, moneroWallets[i].name,
           isBackground: true);
+
       int syncedTicks = 0;
-      final keyService = getIt.get<KeyService>();
-
       int stuckTicks = 0;
-
+      bool walletSynced = false;
       inner:
       while (true) {
         await Future.delayed(const Duration(seconds: 1));
@@ -132,24 +157,32 @@ class BackgroundSync {
             syncStatus is NotConnectedSyncStatus) {
           stuckTicks++;
           if (stuckTicks > 30) {
-            printV("${wallet.name} STUCK SYNCING");
+            printV("${wallet.name} sync timed out");
             break inner;
           }
         } else {
           stuckTicks = 0;
         }
-        if (syncStatus is NotConnectedSyncStatus) {
-          printV("${wallet.name} NOT CONNECTED");
 
-          int? chainId;
-          if (isEVMCompatibleChain(wallet.type)) {
-            chainId = evm!.getSelectedChainId(wallet);
+        if (syncStatus is NotConnectedSyncStatus) {
+          printV("TRANS_NOTIFY: ${wallet.name} NOT CONNECTED");
+
+          final node = settingsStore.getCurrentNode(WalletType.monero);
+
+          printV(
+            "TRANS_NOTIFY: selected node for ${wallet.name} "
+            "isNull=${node == null} node=$node",
+          );
+
+          if (node == null) {
+            printV("TRANS_NOTIFY: no XCK node found, stopping wallet sync");
+            break inner;
           }
 
-          final node = settingsStore.getCurrentNode(wallet.type, chainId: chainId);
           await wallet.connectToNode(node: node);
           await wallet.startBackgroundSync();
-          printV("STARTED SYNC");
+
+          printV("TRANS_NOTIFY: STARTED SYNC for ${wallet.name}");
           continue inner;
         }
 
@@ -157,18 +190,14 @@ class BackgroundSync {
           syncedTicks++;
           if (syncedTicks > 5) {
             syncedTicks = 0;
+            walletSynced = true;
             printV("WALLET $i SYNCED");
-            try {
-              await wallet.stopBackgroundSync(
-                  (await keyService.getWalletPassword(walletName: wallet.name)));
-            } catch (e) {
-              printV("error stopping sync: $e");
-            }
             break inner;
           }
         } else {
           syncedTicks = 0;
         }
+
         if (FeatureFlag.hasDevOptions) {
           if (syncStatus is SyncingSyncStatus) {
             final blocksLeft = syncStatus.blocksLeft;
@@ -194,32 +223,63 @@ class BackgroundSync {
           }
         }
       }
+
+      if (!walletSynced) {
+        printV("${wallet.name} STUCK SYNCING - skipping notifications");
+
+        try {
+          await wallet.stopBackgroundSync(
+            await keyService.getWalletPassword(walletName: wallet.name),
+          );
+        } catch (e) {
+          printV("error stopping stuck wallet sync: $e");
+        }
+
+        await wallet.close(shouldCleanup: true);
+        continue;
+      }
+
       final txs = wallet.transactionHistory;
       final sortedTxs = txs.transactions.values.toList()..sort((a, b) => a.date.compareTo(b.date));
-      final sharedPreferences = await SharedPreferences.getInstance();
+      
       for (final tx in sortedTxs) {
         final lastTriggerString =
             sharedPreferences.getString(PreferencesKey.backgroundSyncLastTrigger(wallet.name));
-        final lastTriggerDate =
-            lastTriggerString != null ? DateTime.parse(lastTriggerString) : DateTime.now();
-        final keys = sharedPreferences.getKeys();
-        if (tx.date.isBefore(lastTriggerDate)) {
-          printV(
-              "w: ${wallet.name}, tx: ${tx.date} is before $lastTriggerDate (lastTriggerString: $lastTriggerString) (k: ${keys.length})");
+
+        final lastTriggerDate = lastTriggerString != null
+            ? DateTime.parse(lastTriggerString)
+            : DateTime.fromMillisecondsSinceEpoch(0);
+
+        if (!tx.date.isAfter(lastTriggerDate)) {
           continue;
         }
-        await sharedPreferences.setString(PreferencesKey.backgroundSyncLastTrigger(wallet.name),
-            tx.date.add(Duration(minutes: 1)).toIso8601String());
+
+        await sharedPreferences.setString(
+          PreferencesKey.backgroundSyncLastTrigger(wallet.name),
+          tx.date.toIso8601String(),
+        );
+
         final action = tx.direction == TransactionDirection.incoming ? "Received" : "Sent";
+
         if (sharedPreferences.getBool(PreferencesKey.backgroundSyncNotificationsEnabled) ?? false) {
-          await showNotification(
-              "$action ${wallet.currency.fullName} in ${wallet.name}", "${tx.amountFormatted()}");
+
+          printV("TRANS_NOTIFY: Showing notification for ${tx.amountFormatted()}");
+          await showNotification("$action ${wallet.currency.fullName} in ${wallet.name}", tx.amountFormatted(),);
         }
+
         printV(
-            "${wallet.currency.fullName} in ${wallet.name}: TX: ${tx.date} ${tx.amount} ${tx.direction}");
+          "TRANS_NOTIFY: ${wallet.currency.fullName} in ${wallet.name}: " "TX: ${tx.date} ${tx.amount} ${tx.direction}",
+        );
       }
-      wallet.id;
-      await wallet.stopBackgroundSync(await keyService.getWalletPassword(walletName: wallet.name));
+
+      try {
+        await wallet.stopBackgroundSync(
+          await keyService.getWalletPassword(walletName: wallet.name),
+        );
+      } catch (e) {
+        printV("error stopping sync after notifications: $e");
+      }
+
       await wallet.close(shouldCleanup: true);
     }
   }

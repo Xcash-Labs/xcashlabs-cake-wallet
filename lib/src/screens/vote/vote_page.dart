@@ -98,6 +98,7 @@ class _VotePageBodyState extends State<_VotePageBody> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
+
         final result = await widget.wallet.revote();
 
         if (!mounted) return;
@@ -108,8 +109,14 @@ class _VotePageBodyState extends State<_VotePageBody> {
 
         String message = result;
 
-        if (result.startsWith('No revote needed')) {
+        if (result.contains('proof is too large')) {
+          message = S.current.sweep_error;
+        } else if (result.startsWith('No revote needed')) {
           message = S.current.no_revote;
+        } else if (result.contains('sent successfully')) {
+          message = S.current.success;
+        } else {
+          message = '${S.current.revote_failed}: $result';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,11 +130,7 @@ class _VotePageBodyState extends State<_VotePageBody> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              e.toString().startsWith('Reserve proof is too large')
-                  ? S.current.sweep_error
-                  : '${S.current.revote_failed}: $e',
-            ),
+           content: Text('${S.current.revote_failed}: $e'),
           ),
         );
 
@@ -160,9 +163,19 @@ class _VotePageBodyState extends State<_VotePageBody> {
 
         if (!mounted) return;
 
+        String message = result;
+
+        if (result.contains('proof is too large')) {
+          message = S.current.sweep_error;
+        } else if (result.contains('sent successfully')) {
+          message = S.current.success;
+        } else {
+          message = '${S.current.vote_failed}: $result';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result),
+            content: Text(message),
           ),
         );
 
@@ -173,9 +186,7 @@ class _VotePageBodyState extends State<_VotePageBody> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '${S.current.vote_failed}: $e',
-            ),
+            content: Text('${S.current.vote_failed}: $e'),
           ),
         );
 

@@ -532,31 +532,57 @@ class TopLevelErrorWidget extends StatelessWidget {
 
 @pragma('vm:entry-point')
 Future<void> backgroundSync() async {
-  bool shouldUnmark = false;
+  bool didMark = false;
+
   try {
     printV("Background sync triggered");
+
     printV("- WidgetsFlutterBinding.ensureInitialized()");
     WidgetsFlutterBinding.ensureInitialized();
+
     printV("- DartPluginRegistrant.ensureInitialized()");
     DartPluginRegistrant.ensureInitialized();
+
+    // Clear any stale heartbeat/lock from a previous failed run.
+    printV("- FlutterDaemon.unmarkBackgroundSync() before mark");
+    await FlutterDaemon().unmarkBackgroundSync();
+
+    printV("- waiting for stale lock cleanup");
+    await Future.delayed(const Duration(seconds: 2));
+
     printV("- FlutterDaemon.markBackgroundSync()");
-    final val = await FlutterDaemon().markBackgroundSync();
-    if (val) {
+    final alreadyRunning = await FlutterDaemon().markBackgroundSync();
+    printV("markBackgroundSync returned: $alreadyRunning");
+
+    if (alreadyRunning) {
       printV("Background sync already in progress");
       return;
     }
-    shouldUnmark = true;
+
+    didMark = true;
+
     printV("Starting background sync");
-    final backgroundSync = BackgroundSync();
+
+    printV("- initDb()");
+    await initDb();
+
+    printV("- initializeAppConfigs(loadWallet: false)");
     await initializeAppConfigs(loadWallet: false);
+
+    printV("- BackgroundSync().sync()");
+    final backgroundSync = BackgroundSync();
     await backgroundSync.sync();
+
     printV("Background sync completed");
+  } catch (e, s) {
+    printV("Background sync error: $e");
+    printV("Background sync stack: $s");
   } finally {
-    if (shouldUnmark) {
+    if (didMark) {
       printV("Unmarking background sync");
       await FlutterDaemon().unmarkBackgroundSync();
     } else {
-      printV("Not unmarking background sync");
+      printV("Not unmarking background sync because mark was not acquired");
     }
   }
 }

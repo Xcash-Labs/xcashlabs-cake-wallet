@@ -26,7 +26,7 @@ dependencies:
   monero:
     git:
       url: https://github.com/Xcash-Labs/xcashlabs_c
-      ref: d4cdc1ea23bd0b29fa343b1a774e3a3c892a5ebc
+      ref: f0b878e18e9b8cd55cf91a39e39919dbd0d3f4a5
       path: impls/monero.dart
   mutex: ^3.1.0
   ledger_flutter_plus: ^1.4.1
